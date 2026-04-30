@@ -75,6 +75,22 @@ echo "Stopping agents..."
 echo "Removing $DELIBERATE_DIR..."
 rm -rf "$DELIBERATE_DIR"
 
+# Remove deployed agent definitions and skills
+CLAUDE_DIR="${WORKTREES_DIR}/.claude"
+if [[ -d "$CLAUDE_DIR" ]]; then
+  echo "Removing deployed .claude/ directory..."
+  rm -rf "${CLAUDE_DIR}/agents"
+  rm -rf "${CLAUDE_DIR}/skills"
+  # Only remove .claude/ itself if it's empty (may contain user config)
+  rmdir "$CLAUDE_DIR" 2>/dev/null || true
+fi
+
+# Remove deployed .mcp.json
+if [[ -f "${WORKTREES_DIR}/.mcp.json" ]]; then
+  echo "Removing .mcp.json..."
+  rm -f "${WORKTREES_DIR}/.mcp.json"
+fi
+
 echo ""
 echo "Teardown complete. Deliberate_Agents has been removed from $PROJECT_NAME."
 echo "The framework itself (${FRAMEWORK_DIR}) is untouched."

@@ -2,13 +2,13 @@
 
 Deliberate_Agents is designed to be adapted per project. Here's how to customize each layer.
 
-## Agent Profiles
+## Agent Definitions
 
-Agent profiles live in `agents/{role}/profile.md`. These are injected as system prompts when the agent is launched.
+Agent definitions live in `.claude/agents/{role}.md`. Each file has YAML frontmatter for configuration and markdown body for the agent's identity and instructions.
 
 ### Modifying behavior
 
-Edit the profile's **Constraints** section to change guardrails. For example, to allow a developer agent to install gems:
+Edit the agent definition's **Constraints** section to change guardrails. For example, to allow a developer agent to install gems:
 
 ```markdown
 ## Constraints
@@ -17,7 +17,7 @@ Edit the profile's **Constraints** section to change guardrails. For example, to
 
 ### Adding domain knowledge
 
-Add a **Domain Context** section to the profile with project-specific information:
+Add a **Domain Context** section to the agent definition with project-specific information:
 
 ```markdown
 ## Domain Context
@@ -28,7 +28,7 @@ Add a **Domain Context** section to the profile with project-specific informatio
 
 ### Tech stack adjustments
 
-The developer agent profile includes a **Tech Stack Awareness** section. Update this for your project:
+The developer agent definition includes a **Tech Stack Awareness** section. Update this for your project:
 
 ```markdown
 ## Tech Stack Awareness
@@ -37,36 +37,44 @@ The developer agent profile includes a **Tech Stack Awareness** section. Update 
 - **Alpine.js** — Lightweight reactivity
 ```
 
-## Agent Config (config.toml)
+### YAML frontmatter options
 
-Each agent has a `config.toml` with tunable parameters. These are read by the agent profile and workflow steps.
+| Field | Purpose | Example |
+|-------|---------|---------|
+| `model` | LLM model for the agent | `sonnet`, `opus` |
+| `tools` | Available tools | `Bash, Read, Write, Edit, Glob, Grep` |
+| `permissionMode` | Permission handling | `auto` (unattended), `default` (interactive) |
+| `maxTurns` | Maximum agent turns | `100` |
+| `skills` | Available workflow skills | `[dev-understand, dev-implement]` |
+| `effort` | Reasoning effort level | `high`, `medium`, `low` |
 
-Key settings:
+## Skill Files
 
-| Setting | Purpose |
-|---------|---------|
-| `behavior.autonomy` | `full` (run unattended), `semi` (pause at decisions) |
-| `testing.command` | Test command for the project |
-| `guardrails.no_push` | Prevent agents from pushing to remote |
-| `monitoring.stale_threshold_minutes` | When to flag an agent as stale |
+Skills live in `skills/{name}/SKILL.md`. Each skill is a self-contained workflow step with YAML frontmatter and markdown instructions.
 
-## Workflow Step Files
+### Modifying skills
 
-Workflows live in `workflows/{name}/steps/`. Each step is a self-contained markdown file with instructions.
+Edit `SKILL.md` files directly. Changes take effect when the skill is next deployed to a target project (via `init.sh`). Running agents use the version that was deployed at initialization time.
 
-### Adding steps
+### Adding skills
 
-Create a new step file following the naming convention (`step-05-lint.md`) and reference it in the workflow's `WORKFLOW.md`.
-
-### Modifying steps
-
-Edit step files directly. Changes take effect on the next agent launch — running agents use the version that was loaded at startup.
+1. Create `skills/{name}/SKILL.md` with frontmatter:
+   ```yaml
+   ---
+   name: my-skill
+   description: What this skill does
+   allowed-tools: Read, Write, Bash
+   ---
+   ```
+2. Add the skill name to the relevant agent's `skills` list in `.claude/agents/{role}.md`
 
 ### Creating new workflows
 
-1. Create `workflows/{name}/WORKFLOW.md`
-2. Create `workflows/{name}/steps/step-01-*.md`, etc.
-3. Reference the workflow in the relevant agent's `config.toml`
+Skills can be composed into workflows by listing them in an agent's definition. For example, to create a "deployment" workflow:
+
+1. Create `skills/deploy-prepare/SKILL.md`, `skills/deploy-execute/SKILL.md`, etc.
+2. Create `.claude/agents/deployer.md` with `skills: [deploy-prepare, deploy-execute]`
+3. Add launch logic in `orchestrate.sh` for the new role
 
 ## Project Configuration
 
@@ -106,6 +114,25 @@ Templates in `templates/` are used by `init.sh` and the agents. Customize them t
 - `PLAN.md.template` — PRD template used by the PM agent
 - `project-config.yaml.tmpl` — Base for project configuration
 - `STATUS.md.template` — Human-readable status board
+- `mcp.json.template` — MCP server configuration for target projects
+
+## MCP Servers
+
+MCP servers live in `mcp-servers/` and provide cross-LLM capabilities.
+
+### Enabling the Codex review server
+
+1. Install dependencies: `cd mcp-servers/codex-review && npm install`
+2. Set `OPENAI_API_KEY` in your environment
+3. In your project's `.mcp.json`, uncomment the `codex-review` entry
+4. Add `codex-review` tools to the reviewer agent's `tools` list
+
+### Creating new MCP servers
+
+1. Create `mcp-servers/{name}/` with `package.json`, `index.js`, `README.md`
+2. Implement the MCP stdio server protocol
+3. Add the server to `templates/mcp.json.template`
+4. Reference the server's tools in agent definitions
 
 ## Orchestrator Tuning
 
@@ -117,7 +144,30 @@ The orchestrator (`orchestration/orchestrate.sh`) behavior is controlled by the 
 
 ## Adding New Agent Roles
 
-1. Create `agents/{role}/profile.md` and `agents/{role}/config.toml`
-2. Create a workflow in `workflows/{name}/`
-3. Add launch logic in `orchestrate.sh` for the new role
-4. Update `launch-agent.sh` to handle the new role's working directory
+1. Create `.claude/agents/{role}.md` with YAML frontmatter and role description
+2. Create workflow skills in `skills/{role}-{step}/SKILL.md`
+3. Add the role to `launch-agent.sh`:
+   - Working directory case statement (usually `$REPO_DIR` for non-dev agents)
+   - Context case statement (specialist agents share a common pattern)
+   - Max turns case statement
+4. Add the role to `orchestrate.sh`:
+   - Add to the `agent_type` routing in `process_assignments()`
+   - The orchestrator reads `agent_type` from assignment YAML to launch the correct agent
+
+### Current Agent Roster
+
+The framework ships with 14 agents. See `docs/ARCHITECTURE.md` for the full list with descriptions and skill mappings.
+
+### Agent Type Routing
+
+The Project Manager creates assignments with an `agent_type` field. The orchestrator reads this field and launches the correct specialist agent:
+
+```yaml
+# Example assignment YAML
+initiative: "0e-gtm-instrumentation"
+agent_type: "integrations-engineer"
+task: "Configure PostHog event tracking"
+status: "assigned"
+```
+
+Agents without an `agent_type` field default to `developer`.

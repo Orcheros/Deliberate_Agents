@@ -198,9 +198,34 @@ launch_review_agent() {
   "${SCRIPT_DIR}/launch-agent.sh" \
     --session "$TMUX_SESSION" \
     --window "$window_name" \
-    --role "project-manager" \
+    --role "reviewer" \
     --initiative "$initiative_slug" \
-    --workflow "review" \
+    --config "$CONFIG_FILE" \
+    --framework-dir "$FRAMEWORK_DIR"
+}
+
+launch_specialist_agent() {
+  local agent_type="$1"
+  local worktree_name="$2"
+  local assignment_file="${ASSIGNMENTS_DIR}/${worktree_name}.yaml"
+  local window_name="${agent_type}-${worktree_name}"
+
+  if agent_window_exists "$window_name"; then
+    log_debug "${agent_type} agent already running for $worktree_name"
+    return
+  fi
+
+  local initiative
+  initiative="$(read_yaml_field "$assignment_file" 'initiative')"
+
+  log_info "Launching ${agent_type} agent for assignment: $worktree_name"
+
+  "${SCRIPT_DIR}/launch-agent.sh" \
+    --session "$TMUX_SESSION" \
+    --window "$window_name" \
+    --role "$agent_type" \
+    --initiative "${initiative:-}" \
+    --worktree "$worktree_name" \
     --config "$CONFIG_FILE" \
     --framework-dir "$FRAMEWORK_DIR"
 }
@@ -267,12 +292,35 @@ process_assignments() {
     local status
     status="$(read_yaml_field "$assignment_file" 'status')"
 
+    local agent_type
+    agent_type="$(read_yaml_field "$assignment_file" 'agent_type')"
+    agent_type="${agent_type:-developer}"
+
     case "$status" in
       assigned)
-        launch_dev_agent "$worktree"
+        case "$agent_type" in
+          developer)
+            launch_dev_agent "$worktree"
+            ;;
+          integrations-engineer|content-writer|compliance-analyst|\
+          technical-writer|devops-engineer|security-analyst|\
+          sales-development-rep|account-executive-assistant|\
+          customer-success|onboarding-specialist)
+            launch_specialist_agent "$agent_type" "$worktree"
+            ;;
+          *)
+            log_warn "Unknown agent_type '$agent_type' for assignment $worktree"
+            ;;
+        esac
         ;;
       in_progress)
-        check_agent_health "dev-${worktree}" "$assignment_file"
+        local window_prefix
+        if [[ "$agent_type" == "developer" ]]; then
+          window_prefix="dev"
+        else
+          window_prefix="$agent_type"
+        fi
+        check_agent_health "${window_prefix}-${worktree}" "$assignment_file"
         ;;
       complete)
         log_debug "Assignment $worktree is complete"

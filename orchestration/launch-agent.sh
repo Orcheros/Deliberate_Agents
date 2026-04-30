@@ -2,8 +2,10 @@
 #
 # launch-agent.sh — Spawn a headless Claude Code session in a tmux window
 #
-# Creates a new tmux window and runs Claude Code with the appropriate
-# agent profile, workflow, and project context injected.
+# Uses Claude Code's native --agent flag with agent definitions from
+# .claude/agents/*.md. Dynamic context (initiative, worktree, paths)
+# is passed via --append-system-prompt instead of building a giant
+# concatenated system prompt.
 #
 # Usage: launch-agent.sh --session <name> --window <name> --role <role> [options]
 
@@ -16,7 +18,6 @@ WINDOW_NAME=""
 ROLE=""
 INITIATIVE=""
 WORKTREE=""
-WORKFLOW=""
 CONFIG_FILE=""
 FRAMEWORK_DIR=""
 
@@ -27,7 +28,6 @@ while [[ $# -gt 0 ]]; do
     --role)         ROLE="$2"; shift 2 ;;
     --initiative)   INITIATIVE="$2"; shift 2 ;;
     --worktree)     WORKTREE="$2"; shift 2 ;;
-    --workflow)     WORKFLOW="$2"; shift 2 ;;
     --config)       CONFIG_FILE="$2"; shift 2 ;;
     --framework-dir) FRAMEWORK_DIR="$2"; shift 2 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
@@ -62,7 +62,11 @@ case "$ROLE" in
       exit 1
     fi
     ;;
-  product-manager|project-manager)
+  product-manager|project-manager|reviewer|\
+  integrations-engineer|content-writer|compliance-analyst|\
+  technical-writer|devops-engineer|security-analyst|\
+  sales-development-rep|account-executive-assistant|\
+  customer-success|onboarding-specialist)
     WORK_DIR="$REPO_DIR"
     ;;
   *)
@@ -71,93 +75,100 @@ case "$ROLE" in
     ;;
 esac
 
-# --- Build the Prompt ---------------------------------------------------------
+# --- Build Dynamic Context ---------------------------------------------------
 
-PROFILE_FILE="${FRAMEWORK_DIR}/agents/${ROLE}/profile.md"
-if [[ ! -f "$PROFILE_FILE" ]]; then
-  echo "ERROR: Agent profile not found: $PROFILE_FILE"
-  exit 1
-fi
-
-# Determine workflow
-if [[ -z "$WORKFLOW" ]]; then
-  case "$ROLE" in
-    product-manager)  WORKFLOW="initiative-intake" ;;
-    project-manager)  WORKFLOW="review" ;;
-    developer)        WORKFLOW="development" ;;
-  esac
-fi
-
-WORKFLOW_DIR="${FRAMEWORK_DIR}/workflows/${WORKFLOW}"
-
-# Build the system prompt from profile + workflow + context
-PROMPT="$(cat "$PROFILE_FILE")"
-PROMPT+="\n\n---\n\n"
-
-# Add workflow instructions
-if [[ -f "${WORKFLOW_DIR}/WORKFLOW.md" ]]; then
-  PROMPT+="# Current Workflow\n\n"
-  PROMPT+="$(cat "${WORKFLOW_DIR}/WORKFLOW.md")"
-  PROMPT+="\n\n"
-fi
-
-# Add step files as reference
-if [[ -d "${WORKFLOW_DIR}/steps" ]]; then
-  for step_file in "${WORKFLOW_DIR}/steps"/*.md; do
-    [[ -f "$step_file" ]] || continue
-    PROMPT+="---\n\n"
-    PROMPT+="$(cat "$step_file")"
-    PROMPT+="\n\n"
-  done
-fi
-
-# Add context based on role
-PROMPT+="---\n\n# Current Context\n\n"
-PROMPT+="- Project config: ${CONFIG_FILE}\n"
-PROMPT+="- Framework directory: ${FRAMEWORK_DIR}\n"
-PROMPT+="- State directory: ${DELIBERATE_DIR}\n"
+# Only the runtime-specific context goes here — agent identity, workflow steps,
+# and skills are handled natively by the --agent flag.
+CONTEXT="# Runtime Context\n"
+CONTEXT+="- Project config: ${CONFIG_FILE}\n"
+CONTEXT+="- Framework directory: ${FRAMEWORK_DIR}\n"
+CONTEXT+="- State directory: ${DELIBERATE_DIR}\n"
 
 case "$ROLE" in
   product-manager)
-    PROMPT+="- Initiative: ${INITIATIVE}\n"
-    PROMPT+="- Initiative state file: ${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml\n"
-    PROMPT+="\n## Your Task\n\n"
-    PROMPT+="Process the initiative '${INITIATIVE}' through the initiative-intake workflow.\n"
-    PROMPT+="Start by reading the initiative state file to find the one-pager path, then follow the workflow steps in order.\n"
+    CONTEXT+="- Initiative: ${INITIATIVE}\n"
+    CONTEXT+="- Initiative state file: ${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml\n"
+    CONTEXT+="\n## Your Task\n\n"
+    CONTEXT+="Process the initiative '${INITIATIVE}' through the initiative-intake workflow.\n"
+    CONTEXT+="Start by reading the initiative state file to find the one-pager path, then follow the workflow steps in order.\n"
     ;;
   project-manager)
-    PROMPT+="- Initiative: ${INITIATIVE}\n"
-    PROMPT+="- Initiative state file: ${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml\n"
-    PROMPT+="- Assignments directory: ${DELIBERATE_DIR}/assignments/\n"
-    if [[ "$WORKFLOW" == "review" ]]; then
-      PROMPT+="\n## Your Task\n\n"
-      PROMPT+="Review the completed work for initiative '${INITIATIVE}'. Follow the review workflow steps.\n"
-    else
-      PROMPT+="\n## Your Task\n\n"
-      PROMPT+="Break down the PRD for initiative '${INITIATIVE}' into tasks and create worktree assignments.\n"
-    fi
+    CONTEXT+="- Initiative: ${INITIATIVE}\n"
+    CONTEXT+="- Initiative state file: ${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml\n"
+    CONTEXT+="- Assignments directory: ${DELIBERATE_DIR}/assignments/\n"
+    CONTEXT+="\n## Your Task\n\n"
+    CONTEXT+="Break down the PRD for initiative '${INITIATIVE}' into tasks and create worktree assignments.\n"
+    ;;
+  reviewer)
+    CONTEXT+="- Initiative: ${INITIATIVE}\n"
+    CONTEXT+="- Initiative state file: ${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml\n"
+    CONTEXT+="- Assignments directory: ${DELIBERATE_DIR}/assignments/\n"
+    CONTEXT+="\n## Your Task\n\n"
+    CONTEXT+="Review the completed work for initiative '${INITIATIVE}'. Follow the review workflow steps.\n"
     ;;
   developer)
-    PROMPT+="- Worktree: ${WORKTREE}\n"
-    PROMPT+="- Worktree path: ${WORK_DIR}\n"
-    PROMPT+="- Assignment file: ${DELIBERATE_DIR}/assignments/${WORKTREE}.yaml\n"
-    PROMPT+="\n## Your Task\n\n"
-    PROMPT+="Execute the development task assigned in your assignment file. Follow the development workflow steps in order.\n"
-    PROMPT+="Start by reading your assignment file.\n"
+    CONTEXT+="- Worktree: ${WORKTREE}\n"
+    CONTEXT+="- Worktree path: ${WORK_DIR}\n"
+    CONTEXT+="- Assignment file: ${DELIBERATE_DIR}/assignments/${WORKTREE}.yaml\n"
+    CONTEXT+="\n## Your Task\n\n"
+    CONTEXT+="Execute the development task assigned in your assignment file. Follow the development workflow steps in order.\n"
+    CONTEXT+="Start by reading your assignment file.\n"
     ;;
+  integrations-engineer|content-writer|compliance-analyst|\
+  technical-writer|devops-engineer|security-analyst|\
+  sales-development-rep|account-executive-assistant|\
+  customer-success|onboarding-specialist)
+    CONTEXT+="- Initiative: ${INITIATIVE}\n"
+    if [[ -n "$WORKTREE" ]]; then
+      CONTEXT+="- Assignment file: ${DELIBERATE_DIR}/assignments/${WORKTREE}.yaml\n"
+    elif [[ -n "$INITIATIVE" ]]; then
+      CONTEXT+="- Initiative state file: ${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml\n"
+    fi
+    CONTEXT+="- Assignments directory: ${DELIBERATE_DIR}/assignments/\n"
+    CONTEXT+="\n## Your Task\n\n"
+    CONTEXT+="Execute the task described in your assignment file. Follow your workflow skills in order.\n"
+    CONTEXT+="Start by reading your assignment file.\n"
+    ;;
+esac
+
+# --- Determine Max Turns ------------------------------------------------------
+
+case "$ROLE" in
+  developer)                  MAX_TURNS=100 ;;
+  product-manager)            MAX_TURNS=120 ;;
+  project-manager)            MAX_TURNS=80  ;;
+  reviewer)                   MAX_TURNS=60  ;;
+  integrations-engineer)      MAX_TURNS=80  ;;
+  content-writer)             MAX_TURNS=60  ;;
+  compliance-analyst)         MAX_TURNS=60  ;;
+  technical-writer)           MAX_TURNS=60  ;;
+  devops-engineer)            MAX_TURNS=80  ;;
+  security-analyst)           MAX_TURNS=60  ;;
+  sales-development-rep)      MAX_TURNS=60  ;;
+  account-executive-assistant) MAX_TURNS=60  ;;
+  customer-success)           MAX_TURNS=60  ;;
+  onboarding-specialist)      MAX_TURNS=60  ;;
+  *)                          MAX_TURNS=80  ;;
 esac
 
 # --- Launch in tmux -----------------------------------------------------------
 
-# Create a temporary file for the prompt
-PROMPT_FILE="$(mktemp)"
-echo -e "$PROMPT" > "$PROMPT_FILE"
+LOG_FILE="${DELIBERATE_DIR}/logs/${WINDOW_NAME}-$(date +%Y%m%d-%H%M%S).log"
 
-# Create the tmux window with Claude Code
+# Create a temporary file for the context prompt
+CONTEXT_FILE="$(mktemp)"
+echo -e "$CONTEXT" > "$CONTEXT_FILE"
+
 tmux new-window -t "$TMUX_SESSION" -n "$WINDOW_NAME" \
-  "cd '$WORK_DIR' && claude --print --system-prompt '$(cat "$PROMPT_FILE")' --allowedTools 'Bash,Read,Write,Edit,Glob,Grep' 'Begin your assigned task. Read your assignment/state file first, then follow the workflow steps.' 2>&1 | tee '${DELIBERATE_DIR}/logs/${WINDOW_NAME}-$(date +%Y%m%d-%H%M%S).log'; echo 'Agent session ended. Press enter to close.'; read"
+  "cd '$WORK_DIR' && claude --print \
+    --agent $ROLE \
+    --permission-mode auto \
+    --max-turns $MAX_TURNS \
+    --append-system-prompt \"\$(cat '$CONTEXT_FILE')\" \
+    'Begin your assigned task. Read your assignment/state file first.' \
+    2>&1 | tee '$LOG_FILE'; echo 'Agent session ended. Press enter to close.'; read"
 
-# Clean up prompt file after a delay (tmux needs it briefly)
-(sleep 5 && rm -f "$PROMPT_FILE") &
+# Clean up context file after a delay (tmux needs it briefly)
+(sleep 5 && rm -f "$CONTEXT_FILE") &
 
 echo "Launched $ROLE agent in tmux window: $TMUX_SESSION:$WINDOW_NAME"

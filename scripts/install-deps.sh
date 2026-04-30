@@ -53,6 +53,8 @@ echo ""
 echo "Optional:"
 check_command "yq"      "YAML processor (enables richer config parsing)" "brew install yq" "false"
 check_command "jq"      "JSON processor (useful for log analysis)" "brew install jq" "false"
+check_command "node"    "Node.js runtime (required for MCP servers)" "brew install node" "false"
+check_command "npm"     "Node package manager (required for MCP servers)" "brew install node" "false"
 
 echo ""
 

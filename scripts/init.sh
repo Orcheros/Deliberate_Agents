@@ -138,6 +138,36 @@ EOF
 
 echo "Created .gitignore"
 
+# --- Deploy Agent Definitions & Skills ----------------------------------------
+
+echo ""
+echo "Deploying agent definitions and skills..."
+
+# Deploy .claude/agents/ to the worktrees root so agents in any worktree can find them
+TARGET_CLAUDE_DIR="${WORKTREES_DIR}/.claude"
+mkdir -p "${TARGET_CLAUDE_DIR}/agents"
+if [[ -d "${FRAMEWORK_DIR}/.claude/agents" ]]; then
+  cp -R "${FRAMEWORK_DIR}/.claude/agents/"*.md "${TARGET_CLAUDE_DIR}/agents/" 2>/dev/null || true
+  echo "  Deployed agent definitions to ${TARGET_CLAUDE_DIR}/agents/"
+else
+  echo "  WARNING: No agent definitions found at ${FRAMEWORK_DIR}/.claude/agents/"
+fi
+
+# Deploy skills/ to .claude/skills/ in the worktrees root
+mkdir -p "${TARGET_CLAUDE_DIR}/skills"
+if [[ -d "${FRAMEWORK_DIR}/skills" ]]; then
+  cp -R "${FRAMEWORK_DIR}/skills/"* "${TARGET_CLAUDE_DIR}/skills/" 2>/dev/null || true
+  echo "  Deployed skills to ${TARGET_CLAUDE_DIR}/skills/"
+else
+  echo "  WARNING: No skills found at ${FRAMEWORK_DIR}/skills/"
+fi
+
+# Deploy .mcp.json if template exists
+if [[ -f "${FRAMEWORK_DIR}/templates/mcp.json.template" ]]; then
+  cp "${FRAMEWORK_DIR}/templates/mcp.json.template" "${WORKTREES_DIR}/.mcp.json"
+  echo "  Deployed .mcp.json to ${WORKTREES_DIR}/"
+fi
+
 # --- Verify Dependencies -----------------------------------------------------
 
 echo ""

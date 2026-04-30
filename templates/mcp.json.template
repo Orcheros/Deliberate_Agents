@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "_comment": "Uncomment codex-review when ready to enable cross-LLM code review",
+    "_codex-review": {
+      "command": "node",
+      "args": ["__FRAMEWORK_DIR__/mcp-servers/codex-review/index.js"],
+      "env": {
+        "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+      }
+    }
+  }
+}

@@ -6,6 +6,7 @@
 2. **Claude Code CLI** — [Installation guide](https://docs.anthropic.com/en/docs/claude-code)
 3. **git** — `brew install git`
 4. A project with a git worktree setup
+5. **Node.js** (optional) — `brew install node` (only needed for MCP servers)
 
 Run the dependency checker:
 ```bash
@@ -26,7 +27,10 @@ Run the dependency checker:
   --test-cmd "bin/rails test"
 ```
 
-This creates `.deliberate/` in your worktrees directory with the state infrastructure.
+This creates:
+- `.deliberate/` in your worktrees directory with the state infrastructure
+- `.claude/agents/` with agent definitions deployed to your project
+- `.claude/skills/` with workflow skills deployed to your project
 
 ### 2. Start the orchestrator
 
@@ -83,6 +87,18 @@ When the orchestrator reports an initiative as `REVIEW_READY`:
   --system-test-cmd "bin/rails test:system"
 ```
 
+## How Agents Are Launched
+
+Each agent runs via Claude Code's native `--agent` flag:
+
+```bash
+claude --print --agent developer --permission-mode auto --max-turns 100 \
+  --append-system-prompt "$RUNTIME_CONTEXT" \
+  'Begin your assigned task.'
+```
+
+Agent definitions live in `.claude/agents/*.md` with YAML frontmatter specifying model, tools, permissions, and available skills. Workflow steps are lazy-loaded as skills — only consuming context when the agent invokes them.
+
 ## Checking on agents
 
 Each agent runs in its own tmux window. You can:
@@ -112,3 +128,12 @@ To resolve:
 2. Add your decision in the "Resolution" section
 3. Remove the file (or move it to a resolved/ subdirectory)
 4. The agent's initiative/task will need to be re-queued or unblocked manually
+
+## Teardown
+
+To remove Deliberate_Agents from a project:
+```bash
+./scripts/teardown.sh /path/to/.deliberate/config.yaml
+```
+
+This stops all agents, removes `.deliberate/`, deployed `.claude/agents/`, `.claude/skills/`, and `.mcp.json`.
