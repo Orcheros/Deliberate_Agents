@@ -1,0 +1,49 @@
+# CLAUDE.md — Deliberate_Agents Context
+
+## Project
+
+- **Name**: {{PROJECT_NAME}}
+- **Repo**: {{REPO_DIR}}
+- **Worktrees**: {{WORKTREES_DIR}}
+- **Main branch**: {{MAIN_BRANCH}}
+- **Dev branch**: {{DEV_BRANCH}}
+
+## Tech Stack
+
+- Ruby on Rails
+- Tailwind CSS (utility-first styling)
+- Stimulus JS (modest JavaScript framework)
+- Minitest (testing)
+
+## Conventions
+
+- Follow existing patterns in the codebase
+- RESTful routes and resources
+- Models handle validations and business logic
+- Controllers are thin — delegate to models/service objects
+- Views use partials for reusable components
+- Stimulus controllers: one concern per controller
+- Tailwind: use project's design tokens from tailwind.config.js
+
+## Testing
+
+- Run tests: `{{TEST_COMMAND}}`
+- Run system tests: `{{SYSTEM_TEST_COMMAND}}`
+- Always run tests before committing
+
+## Deliberate_Agents
+
+This worktree is managed by the Deliberate_Agents framework.
+
+- **State directory**: `{{DELIBERATE_DIR}}`
+- **Your assignment**: `{{DELIBERATE_DIR}}/assignments/{{WORKTREE_NAME}}.yaml`
+- **Report status**: Update your assignment file's `status` field
+- **If blocked**: Set status to `blocked` and add a `blocker` field
+
+### Rules
+
+1. Never push to remote
+2. Never modify files outside this worktree
+3. Always run tests before marking complete
+4. Follow the development workflow steps in order
+5. Produce atomic commits with clear messages

@@ -1,0 +1,39 @@
+# Developer Agent Configuration
+
+[behavior]
+workflow = "development"
+autonomy = "full"                # full | semi (pause at each step)
+
+[context]
+# Files the developer agent should always read for context
+always_read = [
+  "CLAUDE.md",
+  "Gemfile",
+  "config/routes.rb",
+]
+# Patterns to explore when understanding the task
+explore_patterns = [
+  "app/models/**/*.rb",
+  "app/controllers/**/*.rb",
+  "app/views/**/*.html.erb",
+  "app/javascript/controllers/**/*.js",
+  "test/**/*_test.rb",
+  "spec/**/*_spec.rb",
+]
+
+[testing]
+command = "bin/rails test"
+system_test_command = "bin/rails test:system"
+run_before_commit = true
+fail_on_warning = false
+
+[commits]
+require_co_author = true
+max_files_per_commit = 15        # Warn if a single commit touches more than this
+sign_commits = false
+
+[guardrails]
+no_push = true                   # Never push to remote
+no_force = true                  # Never force-push
+no_main_branch = true            # Never commit to main/staging directly
+max_session_minutes = 90         # Self-terminate after this long

@@ -1,0 +1,33 @@
+# Deliberate_Agents — Status Board
+
+## Project: {{PROJECT_NAME}}
+
+Last updated: {{TIMESTAMP}}
+
+## Active Initiatives
+
+| Initiative | Status | Agent | Started |
+|-----------|--------|-------|---------|
+| (none)    |        |       |         |
+
+## Active Assignments
+
+| Worktree | Task | Status | Agent |
+|----------|------|--------|-------|
+| (none)   |      |        |       |
+
+## Pending Decisions
+
+| Decision | Initiative | Created |
+|----------|-----------|---------|
+| (none)   |           |         |
+
+## Recent Completions
+
+| Initiative | Completed | Review Status |
+|-----------|-----------|---------------|
+| (none)    |           |               |
+
+---
+
+*This file is auto-updated by the orchestrator. Do not edit manually.*

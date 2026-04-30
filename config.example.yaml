@@ -1,0 +1,32 @@
+# Deliberate_Agents — Example Project Configuration
+#
+# Copy this file and customize for your project.
+# See docs/CUSTOMIZATION.md for details on each setting.
+
+project:
+  name: "My Project"
+  repo: "/path/to/my-project"
+  worktrees: "/path/to/my-project-worktrees"
+  main_branch: "main"
+  dev_branch: "staging"
+  initiatives_path: ".documentation/initiatives"
+
+agents:
+  max_concurrent_developers: 3
+  poll_interval_seconds: 30
+  autonomy: "full"  # full | semi | supervised
+
+orchestration:
+  tmux_session: "deliberate-my-project"
+  log_dir: ".deliberate/logs"
+
+testing:
+  command: "bin/rails test"
+  system_test_command: "bin/rails test:system"
+
+stack:
+  language: "ruby"
+  framework: "rails"
+  css: "tailwindcss"
+  js: "stimulus"
+  design_tool: "claude-design"

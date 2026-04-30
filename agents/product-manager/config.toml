@@ -1,0 +1,22 @@
+# Product Manager Agent Configuration
+
+[behavior]
+workflow = "initiative-intake"
+autonomy = "full"                # full | semi (pause at each step)
+
+[context]
+# Files/patterns the PM agent should always read for context
+always_read = [
+  "README.md",
+  "CLAUDE.md",
+  ".documentation/**/*.md",
+]
+
+[output]
+prd_template = "templates/PLAN.md.template"
+max_tasks_per_initiative = 20    # Warn if PRD breaks into more tasks than this
+
+[guardrails]
+require_acceptance_criteria = true
+require_edge_cases = true
+flag_ambiguity_threshold = "strict"  # strict | moderate | permissive

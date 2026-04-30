@@ -1,0 +1,20 @@
+# Orchestrator Configuration
+
+[polling]
+interval_seconds = 30
+max_consecutive_errors = 5       # Pause after this many errors
+backoff_multiplier = 2           # Exponential backoff on errors
+
+[agents]
+max_concurrent_developers = 3
+session_timeout_minutes = 60     # Kill agent if no heartbeat for this long
+startup_stagger_seconds = 10     # Delay between launching multiple agents
+
+[logging]
+level = "info"                   # debug | info | warn | error
+max_log_size_mb = 50
+rotate_count = 5
+
+[notifications]
+# Future: Slack, email, etc.
+enabled = false

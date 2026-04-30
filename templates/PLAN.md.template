@@ -1,0 +1,55 @@
+# Initiative: {{INITIATIVE_NAME}}
+
+## Status: {{STATUS}}
+
+## Problem Statement
+
+{{PROBLEM_STATEMENT}}
+
+## Requirements
+
+1. **Requirement 1**: Description
+   - Acceptance: Given X, When Y, Then Z
+   - Edge cases: ...
+
+## User Experience
+
+### User Flow
+1. User navigates to ...
+2. User sees ...
+3. User clicks ...
+4. System responds with ...
+
+### Design Reference
+- Claude Design link/reference: {{DESIGN_REF}}
+
+## Data Model Changes
+
+### New Models
+- (none)
+
+### Modified Models
+- (none)
+
+### Migrations
+- (none)
+
+## Route Changes
+
+```ruby
+# New routes
+```
+
+## Task Breakdown
+
+| # | Task | Complexity | Depends On | Files |
+|---|------|-----------|------------|-------|
+| 1 |      |           |            |       |
+
+## Architecture Notes
+
+(If applicable — otherwise remove this section)
+
+## Open Questions
+
+- (none)
