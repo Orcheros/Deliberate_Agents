@@ -1,158 +1,152 @@
-# State Protocol
+# State Protocol — How Agents Communicate
 
-This directory documents the filesystem-based inter-agent communication protocol used by Deliberate_Agents.
+Agents in Deliberate Agents don't talk to each other directly. Instead, they communicate through **files** — specifically, YAML and markdown files in a `.deliberate/` directory inside your project. The orchestrator watches these files and coordinates the handoffs.
 
-## Overview
+Think of it like a shared whiteboard: one agent writes "I'm done with my part," the orchestrator reads it, and launches the next agent.
 
-Agents communicate exclusively through YAML and markdown files in the `.deliberate/` directory within the project's worktrees root. There is no direct agent-to-agent communication — the orchestrator mediates all transitions.
+## The `.deliberate/` Directory
 
-## Directory Structure
-
-When `init.sh` is run against a project, it creates:
+When you initialize a project with `init.sh`, this directory is created:
 
 ```
-{worktrees-root}/.deliberate/
-├── config.yaml              # Project configuration
-├── queue/                   # Initiative state files
-│   └── {slug}.yaml
-├── assignments/             # Developer task assignments
-│   └── {worktree}.yaml
-├── status/                  # Agent heartbeat/status reports
-│   └── {agent-role}.yaml
-├── decisions/               # Items requiring human input
-│   └── {timestamp}-{slug}.md
-└── logs/                    # Session logs
-    └── {agent}-{timestamp}.log
+.deliberate/
+├── config.yaml              Your project settings
+│
+├── queue/                   The initiative queue
+│   └── my-feature.yaml      One file per initiative — tracks its progress
+│
+├── assignments/             Task assignments
+│   └── worktree-01.yaml     One file per workspace — what's assigned there
+│
+├── status/                  Agent heartbeats
+│   └── developer.yaml       Each agent reports what it's working on
+│
+├── decisions/               Things that need your input
+│   └── 2026-04-30-my-feature.md    Agents pause and wait for your answer
+│
+└── logs/                    Session logs
+    └── developer-2026-04-30.log    Full record of what each agent did
 ```
 
-## Initiative State File
+## How an Initiative Moves Through the Pipeline
 
-Location: `.deliberate/queue/{initiative-slug}.yaml`
+Each initiative has a status that changes as it progresses:
+
+```
+QUEUED                     You added it to the queue
+  ↓
+PM_IN_PROGRESS             The Product Manager is writing the PRD
+  ↓
+PRD_COMPLETE               PRD is done, waiting for Project Manager
+  ↓
+PJM_IN_PROGRESS            The Project Manager is breaking it into tasks
+  ↓
+READY_FOR_DEV              Tasks are assigned, ready for developers
+  ↓
+DEV_IN_PROGRESS            Developers are working on the tasks
+  ↓
+DEV_COMPLETE               All tasks are finished
+  ↓
+REVIEW_IN_PROGRESS         The Reviewer is checking the work
+  ↓
+REVIEW_READY               Review is done — ready for you to look at
+  ↓
+COMPLETE                   You've approved and merged it
+```
+
+At any point, an initiative can move to **BLOCKED** if an agent encounters something it can't resolve on its own. It will create a decision file explaining what it needs from you.
+
+## What's in Each File
+
+### Initiative File (`queue/my-feature.yaml`)
+
+Tracks one initiative from start to finish:
 
 ```yaml
-initiative: "initiative-slug"
-title: "Human-readable title"
-one_pager_path: "path/to/one-pager.md"
-status: "QUEUED"
-created_at: "2024-01-15T10:00:00Z"
+initiative: "my-feature"
+title: "Add user authentication"
+status: "DEV_IN_PROGRESS"
+created_at: "2026-04-30"
 
-# Added by PM agent
+# Written by the Product Manager
 prd_path: "path/to/prd.md"
-architecture_path: "path/to/arch.md"
-assessment:
-  readiness: "ready"
-  notes: ""
-  concerns: []
 
-# Added by PjM agent
+# Written by the Project Manager
 task_count: 5
 tasks:
-  - id: "init-001-task-01"
-    worktree: "worktree-name"
+  - id: "task-01"
+    worktree: "worktree-01"
     status: "complete"
+  - id: "task-02"
+    worktree: "worktree-02"
+    status: "in_progress"
 ```
 
-## State Transitions
+### Assignment File (`assignments/worktree-01.yaml`)
 
-```
-QUEUED
-  → PM_IN_PROGRESS        (orchestrator launches PM agent)
-  → PRD_COMPLETE           (PM agent finishes)
-  → PJM_IN_PROGRESS        (orchestrator launches PjM agent)
-  → READY_FOR_DEV          (PjM agent creates assignments)
-  → DEV_IN_PROGRESS        (orchestrator launches dev agents)
-  → DEV_COMPLETE           (orchestrator detects all tasks done)
-  → REVIEW_IN_PROGRESS     (orchestrator launches review)
-  → REVIEW_READY           (review agent finishes)
-  → COMPLETE               (human approves)
-
-Any state → BLOCKED        (agent encounters issue needing human input)
-```
-
-## Assignment File
-
-Location: `.deliberate/assignments/{worktree-name}.yaml`
+Tells a Developer agent exactly what to build:
 
 ```yaml
 task:
-  id: "init-001-task-01"
-  initiative: "initiative-slug"
-  title: "Short description"
-  description: "Detailed implementation instructions"
+  id: "task-01"
+  title: "Add login form"
+  description: "Create a login page with email and password fields..."
   acceptance_criteria:
-    - "Criterion 1"
-    - "Criterion 2"
+    - "User can log in with valid email and password"
+    - "Invalid credentials show an error message"
   relevant_files:
-    - "app/models/user.rb"
-    - "app/controllers/users_controller.rb"
-  depends_on: []
-  branch: "feature/initiative-slug-task-01"
+    - "app/controllers/sessions_controller.rb"
+    - "app/views/sessions/new.html.erb"
 
-status: "assigned"          # assigned → in_progress → complete | blocked
-worktree: "worktree-name"
-initiative: "initiative-slug"
-
-# Updated by developer agent
-started_at: null
-completed_at: null
-commits: []
-test_result: null
-blocker: null
-notes: null
+status: "assigned"
+worktree: "worktree-01"
+initiative: "my-feature"
 ```
 
-## Status File
+### Status File (`status/developer.yaml`)
 
-Location: `.deliberate/status/{agent-role}.yaml`
+An agent's heartbeat — what it's currently doing:
 
 ```yaml
-status: "active"            # active | idle | error
+status: "active"
 role: "developer"
-worktree: "worktree-name"   # for developer agents
-current_task: "task-id"
-last_heartbeat: "2024-01-15T10:30:00Z"
-current_step: "step-02-implement"
-progress: "Implementing user model validations"
+worktree: "worktree-01"
+current_task: "task-01"
+last_heartbeat: "2026-04-30T14:30:00Z"
+progress: "Writing tests for login form"
 ```
 
-## Decision File
+The orchestrator checks these heartbeats. If one goes stale (the agent crashed or got stuck), it logs the issue and can alert you.
 
-Location: `.deliberate/decisions/{timestamp}-{slug}.md`
+### Decision File (`decisions/2026-04-30-my-feature.md`)
+
+When an agent needs your input, it creates one of these and pauses:
 
 ```markdown
-# Decision Required: {Title}
+# Decision Required: Authentication Strategy
 
-**Initiative**: {initiative-slug}
-**Agent**: {role}
-**Created**: {timestamp}
-**Priority**: {high | medium | low}
+**Initiative**: my-feature
+**Agent**: Developer
+**Priority**: high
 
 ## Context
-
-What the agent was doing when it hit this decision point.
+I'm implementing the login system and need to decide on session management.
 
 ## Question
-
-The specific question that needs a human answer.
+Should we use cookie-based sessions or JWT tokens?
 
 ## Options
-
-1. **Option A**: Description and trade-offs
-2. **Option B**: Description and trade-offs
+1. **Cookie sessions** — Simpler, built into Rails, works well for web apps
+2. **JWT tokens** — Better for API-first apps, more complex to implement
 
 ## Resolution
-
-(Filled in by human)
-
-**Decision**: Option chosen
-**Notes**: Any additional context
-**Resolved at**: timestamp
+(You fill this in, and the agent continues)
 ```
 
-## Rules
+## The Rules
 
-1. **Atomic writes**: Always write complete files, never partial updates
-2. **No direct communication**: Agents never read each other's status files — only the orchestrator reads all state
-3. **Immutable history**: Decision files are never deleted, only marked as resolved
-4. **Human authority**: Any file in `decisions/` blocks progress until resolved
-5. **Crash recovery**: If an agent crashes, its status file reflects the last known state. The orchestrator detects stale heartbeats and can re-launch.
+1. **One writer per file.** Each file has exactly one agent that writes to it. Other agents and the orchestrator can read it, but they don't modify it.
+2. **Complete writes only.** When an agent updates a file, it writes the whole file at once. No partial updates that could leave a file in a broken state.
+3. **Decisions block progress.** If there's an unresolved decision file, the affected agent waits. Agents don't guess — they ask.
+4. **History is preserved.** Decision files are never deleted, only marked as resolved. You can always look back at what was decided and why.
+5. **Crash recovery.** If an agent crashes, its status file shows the last known state. The orchestrator detects the stale heartbeat and can re-launch the agent from where it left off.
