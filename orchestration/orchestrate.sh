@@ -305,7 +305,7 @@ process_assignments() {
           integrations-engineer|content-writer|compliance-analyst|\
           technical-writer|devops-engineer|security-analyst|\
           sales-development-rep|account-executive-assistant|\
-          customer-success|onboarding-specialist)
+          customer-success|onboarding-specialist|seo-specialist)
             launch_specialist_agent "$agent_type" "$worktree"
             ;;
           *)

@@ -78,11 +78,15 @@ Each AI agent runs as an independent Claude Code session using native agent defi
 - **Customer Success** (`.claude/agents/customer-success.md`): Account health monitoring (Green/Yellow/Red), churn/expansion signals.
 - **Onboarding Specialist** (`.claude/agents/onboarding-specialist.md`): Per-ICP onboarding flows, activation metrics, email-product coordination.
 
+**Marketing:**
+
+- **SEO Specialist** (`.claude/agents/seo-specialist.md`): Search optimization across all four dimensions — traditional SEO, AEO (featured snippets), AIO (AI Overviews), and GEO (LLM citation).
+
 ### Skills (Workflow Steps)
 
 Workflow steps are implemented as Claude Code skills in `skills/`. Skills are lazy-loaded — they appear in the agent's awareness but only consume context when invoked. This replaces the previous approach of concatenating all step files into a single system prompt (~8,000 tokens upfront → ~500 tokens baseline).
 
-Each agent's definition lists its available skills. 35 skills across 14 agents:
+Each agent's definition lists its available skills. 38 skills across 15 agents:
 
 - **Developer**: `dev-understand`, `dev-implement`, `dev-test`, `dev-complete`
 - **Product Manager**: `pm-assess`, `pm-research`, `pm-expand-prd`, `pm-architecture`, `pm-cross-functional`, `pm-ready-for-dev`
@@ -98,6 +102,7 @@ Each agent's definition lists its available skills. 35 skills across 14 agents:
 - **Account Executive Assistant**: `sales-research`, `sales-pipeline`
 - **Customer Success**: `cs-health-check`, `cs-intervention`
 - **Onboarding Specialist**: `onboarding-assess`, `onboarding-design`
+- **SEO Specialist**: `seo-audit`, `seo-strategy`, `seo-implement`
 
 ### MCP Servers
 

@@ -66,7 +66,7 @@ case "$ROLE" in
   integrations-engineer|content-writer|compliance-analyst|\
   technical-writer|devops-engineer|security-analyst|\
   sales-development-rep|account-executive-assistant|\
-  customer-success|onboarding-specialist)
+  customer-success|onboarding-specialist|seo-specialist)
     WORK_DIR="$REPO_DIR"
     ;;
   *)
@@ -117,7 +117,7 @@ case "$ROLE" in
   integrations-engineer|content-writer|compliance-analyst|\
   technical-writer|devops-engineer|security-analyst|\
   sales-development-rep|account-executive-assistant|\
-  customer-success|onboarding-specialist)
+  customer-success|onboarding-specialist|seo-specialist)
     CONTEXT+="- Initiative: ${INITIATIVE}\n"
     if [[ -n "$WORKTREE" ]]; then
       CONTEXT+="- Assignment file: ${DELIBERATE_DIR}/assignments/${WORKTREE}.yaml\n"
@@ -148,6 +148,7 @@ case "$ROLE" in
   account-executive-assistant) MAX_TURNS=60  ;;
   customer-success)           MAX_TURNS=60  ;;
   onboarding-specialist)      MAX_TURNS=60  ;;
+  seo-specialist)             MAX_TURNS=80  ;;
   *)                          MAX_TURNS=80  ;;
 esac
 
