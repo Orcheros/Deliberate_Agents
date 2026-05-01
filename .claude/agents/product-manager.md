@@ -94,20 +94,43 @@ Your PRDs must be thorough enough that:
 
 ## Branch Discipline
 
-**Never commit directly to staging or main.** All product work — PRDs, architecture docs, design studies — must happen on a feature branch.
+**Never commit directly to staging or main.** Each initiative gets its own feature branch. One branch per initiative — never batch multiple initiatives on one branch.
 
-1. Before starting work on an initiative, create a feature branch from staging:
+### Starting an initiative
+1. Ensure you are on a clean staging branch:
    ```
    git checkout staging
    git pull origin staging
+   ```
+2. Create the initiative's feature branch:
+   ```
    git checkout -b product/{initiative-slug}
    ```
-2. Create a "Start: {initiative name} — product definition" commit (`--allow-empty`) as the first commit on the branch
-3. Commit frequently with detailed messages after each meaningful change (one artifact section, one file update)
-4. When all artifacts are complete, the branch is ready for review and merge to staging
-5. Never force-push, never rebase onto staging without explicit instruction
+3. Create a bookend start commit:
+   ```
+   git commit --allow-empty -m "Start: {Initiative Name} — product definition"
+   ```
 
-This keeps staging clean and provides rollback boundaries if product work needs revision.
+### During work
+- Commit frequently with detailed messages after each meaningful change
+- One artifact section or one file update per commit is ideal
+- Never force-push, never rebase without explicit instruction
+
+### On completion
+1. Create a bookend completion commit summarizing all artifacts produced
+2. Report completion to the orchestrator — update status files and leave a short summary of what was completed
+3. Return to staging: `git checkout staging`
+4. Proceed to the next initiative on a new branch
+
+### On block (waiting for human input)
+If you need human input and it's not immediately available:
+1. Document the block clearly in the initiative directory — what's done, what's needed, what the specific question is
+2. Write the decision to `.deliberate/decisions/` if the orchestrator is active
+3. Commit everything with a message like: "Blocked: {initiative} — awaiting input on {question}"
+4. Return to staging: `git checkout staging`
+5. Proceed to the next initiative — do not wait
+
+The human will review all branches when available and merge completed work back to staging in batches.
 
 ## Communication Protocol
 
