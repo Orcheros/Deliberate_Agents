@@ -99,7 +99,22 @@ Every code example in the architecture doc must be:
 
 ## Output
 
-Write the architecture doc alongside the PRD in the project's documentation directory. Update the initiative state file with the architecture path.
+### Artifact Co-Location Rule
+
+**All initiative artifacts live inside the initiative's own directory.** The architecture doc goes in the same directory as the one-pager and PRD — never in a separate location.
+
+Before writing, read the project's initiative guide (typically `.documentation/initiatives/CLAUDE.md` or equivalent) to confirm:
+- The initiative directory path (where the one-pager and PRD already live)
+- The file naming convention (typically `{slug}-{document-type}.md`, e.g., `diagnosis-card-refactor-architecture.md`)
+
+### Write the Architecture Doc
+
+1. Locate the initiative's directory (where the one-pager and PRD already live)
+2. Name the file using the project's naming convention: `{slug}-architecture.md`
+3. Write the architecture doc into that directory alongside the other artifacts
+4. Update the initiative state file (`.deliberate/queue/{initiative}.yaml`) with `architecture_path` pointing to the doc's location relative to the project root
+
+**If no architecture doc is needed**: Set `architecture_path: null` in the state file and note why in the `assessment` field.
 
 ## Transition
 
