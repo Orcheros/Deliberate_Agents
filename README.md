@@ -107,12 +107,25 @@ It will tell you if anything is missing.
 
 ### Step 2: Connect It to Your Project
 
-Deliberate Agents doesn't live inside your project — it's a separate tool that you **point at** your project. Think of it like plugging your project into a workstation.
+Deliberate Agents doesn't live inside your project — it's a separate tool that you **point at** your project. You give it two paths: where your main codebase lives, and where agents should do their work.
+
+**Why two folders?** Your main project repository holds your production code — the `main`, `staging`, and `dev` branches that you deploy from. You don't want agents editing files directly in there. Instead, agents work in **worktrees** — separate copies of your code where they can make changes safely without affecting your main branches. Think of worktrees like scratch pads that are linked to your repo but isolated from it.
+
+Here's a real example of how this looks on disk:
+
+```
+~/Development/
+├── Deuterophos/              ← The main repo (main + staging branches live here)
+├── Deuterophos-worktrees/    ← Where agents do their work (one folder per initiative)
+│   ├── .deliberate/          ← Agent coordination files (queue, status, logs)
+│   ├── user-auth/            ← Worktree for the "user auth" initiative
+│   └── dashboard-v2/         ← Worktree for the "dashboard v2" initiative
+└── Deliberate_Agents/        ← This framework (you're here)
+```
 
 Make sure you're still in the Deliberate Agents folder (`~/Development/Deliberate_Agents/`), then run:
 
 ```bash
-# Replace "my-app" with your actual project name and paths
 ./scripts/init.sh \
   --name "My App" \
   --repo ~/Development/my-app \
@@ -120,8 +133,10 @@ Make sure you're still in the Deliberate Agents folder (`~/Development/Deliberat
 ```
 
 > **What are these paths?**
-> - `--repo` is where your project's code lives (the git repository you already have)
-> - `--worktrees` is a new folder where agents will create isolated copies of your code to work in. You don't need to create this folder — the script will set it up.
+> - `--repo` is your main project repository — the one you already have, where your `main` and `staging` branches live. Agents read from it but don't work in it directly.
+> - `--worktrees` is a **separate folder** next to your repo where agents create isolated workspaces for each initiative. You don't need to create this folder — the script will set it up.
+>
+> **Naming convention:** We recommend putting them side by side with matching names: `my-app/` and `my-app-worktrees/`. This makes it obvious which worktrees belong to which repo.
 
 **What just happened?**
 
@@ -300,7 +315,7 @@ A few terms that come up often:
 |------|--------------|
 | **Initiative** | A feature or project you want built. It starts as your one-pager and moves through the pipeline until it's done. |
 | **PRD** | Product Requirements Document. The detailed plan that the Product Manager writes from your one-pager. |
-| **Worktree** | A separate copy of your project's code where an agent can work without affecting the main codebase. Think of it like a sandbox. |
+| **Worktree** | A separate copy of your project's code where an agent can work without affecting your main branches. Worktrees live in a dedicated folder next to your repo (e.g., `my-app-worktrees/`) — one worktree per initiative. Think of them like sandboxes linked to your repo. |
 | **Orchestrator** | The bash script that coordinates everything. It watches for completed work and launches the next agent in line. It doesn't use AI — it's just a simple script, so it costs nothing to run. |
 | **Skill** | A step-by-step instruction set that an agent follows for a specific task. Skills are loaded only when needed, keeping agents focused. |
 | **State** | The collection of files in `.deliberate/` that track what's happening — which initiatives are active, which tasks are assigned, which agents are running. |
