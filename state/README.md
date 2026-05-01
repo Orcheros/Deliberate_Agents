@@ -173,14 +173,20 @@ When an agent creates a decision file, the orchestrator:
 - `report` — Periodic summary of all activity.
 - `progress` — Individual agent progress updates (verbose mode).
 
-### Future: Slack Response Routing
+### Slack Response Routing (Bi-Directional)
 
-The current flow requires the human to edit the decision file directly (or via Cursor). A future enhancement will add a Slack bot that:
-- Receives threaded replies to decision notifications
-- Writes the response into the `## Resolution` section of the decision file
-- The orchestrator detects the resolution on the next poll and unblocks the agent
+The Slack bot (`integrations/slack/bot.py`) runs in Socket Mode and completes the loop:
 
-This closes the loop: agent asks → Slack notifies → human replies in Slack → agent continues.
+1. Agent creates a decision file in `.deliberate/decisions/`
+2. Orchestrator calls `notify.sh --type decision` which posts via the Bot API with Block Kit formatting
+3. The bot registers a thread-to-decision mapping in `.deliberate/status/slack_threads.json`
+4. Human replies in the Slack thread (from phone, desktop, anywhere)
+5. Bot receives the reply event, looks up the thread → decision file mapping
+6. Bot writes the reply into the `## Resolution` section with timestamp and responder name
+7. Bot removes the `.notified` marker and adds a :white_check_mark: reaction
+8. Orchestrator detects the resolution on the next poll → agent unblocks
+
+The human can also edit the decision file directly (via Cursor) — the orchestrator detects either path.
 
 ## The Rules
 

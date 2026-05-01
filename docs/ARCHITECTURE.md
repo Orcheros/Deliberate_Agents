@@ -124,11 +124,12 @@ See `state/README.md` for the full protocol specification.
 
 The orchestrator integrates with external notification channels (currently Slack) for real-time visibility:
 
-- **`orchestration/notify.sh`** — Dispatches notifications to configured channels (Slack webhook, log). Supports five message types: `decision`, `transition`, `alert`, `report`, `progress`.
+- **`orchestration/notify.sh`** — Dispatches notifications to configured channels. Decision notifications route through the Bot API (for threaded reply tracking); all other types use Incoming Webhooks. Supports five message types: `decision`, `transition`, `alert`, `report`, `progress`.
 - **`orchestration/compile-report.sh`** — Reads all state files and produces a summary. Outputs markdown (persisted to `status/report.md`) or Slack-formatted text. Called every poll cycle.
-- **Question routing** — When an agent creates a decision file, the orchestrator posts the question to Slack with full context (initiative, agent role, question text). The human responds by filling in the `## Resolution` section. Future: a Slack bot will write responses directly from threaded replies.
+- **`integrations/slack/bot.py`** — Python Slack bot running in Socket Mode (outbound WebSocket, no public URL). Posts decision questions with Block Kit formatting, listens for threaded replies, writes responses back to decision files, and unblocks the waiting agent. Launched automatically by the orchestrator when `slack_enabled: true`.
+- **`integrations/slack/start.sh`** — Launcher that creates a Python venv, installs dependencies, and starts the bot in a tmux window.
 
-Configuration lives in `config.yaml` under `notifications:` (see `config.example.yaml`).
+Configuration lives in `config.yaml` under `notifications:` (see `config.example.yaml` and `integrations/README.md`).
 
 ## Execution Model
 

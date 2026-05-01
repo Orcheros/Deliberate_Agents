@@ -491,6 +491,17 @@ main() {
   # Ensure state directories exist
   mkdir -p "$QUEUE_DIR" "$ASSIGNMENTS_DIR" "$STATUS_DIR" "$DECISIONS_DIR" "$LOG_DIR"
 
+  # Launch Slack bot if enabled
+  if [[ "$SLACK_ENABLED" == "true" ]]; then
+    local slack_start="${FRAMEWORK_DIR}/integrations/slack/start.sh"
+    if [[ -x "$slack_start" ]]; then
+      log_info "Starting Slack bot..."
+      "$slack_start" "$CONFIG_FILE" || log_warn "Slack bot launch failed (non-fatal)"
+    else
+      log_warn "Slack enabled but integrations/slack/start.sh not found"
+    fi
+  fi
+
   local consecutive_errors=0
   local poll_count=0
 

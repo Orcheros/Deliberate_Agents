@@ -2,20 +2,22 @@
 #
 # notify.sh — Send notifications to configured channels (Slack, log)
 #
-# Supports Slack webhook integration for real-time question routing
-# and progress reporting. Falls back to log-only if Slack is not configured.
+# Decision notifications are routed through the Python Slack bot (Bot API)
+# for bi-directional threading. All other types use Incoming Webhooks.
 #
 # Usage:
 #   notify.sh --config <config-file> --type <type> --message <message> [options]
 #
 # Types:
-#   decision    — An agent needs human input (routes question to Slack)
-#   progress    — Agent progress update (compiled into report)
-#   transition  — Initiative state change (logged, optionally posted)
-#   report      — Compiled orchestration report (posted to Slack)
-#   alert       — Agent crash, blocker, or error (always posted)
+#   decision    — An agent needs human input (posted via Bot API for threading)
+#   progress    — Agent progress update (webhook)
+#   transition  — Initiative state change (webhook)
+#   report      — Compiled orchestration report (webhook)
+#   alert       — Agent crash, blocker, or error (webhook)
 
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- Argument Parsing ---------------------------------------------------------
 
@@ -52,12 +54,18 @@ parse_yaml() {
 }
 
 SLACK_WEBHOOK="$(parse_yaml 'slack_webhook_url')"
+SLACK_BOT_TOKEN="$(parse_yaml 'slack_bot_token')"
 SLACK_CHANNEL="$(parse_yaml 'slack_channel')"
 SLACK_ENABLED="$(parse_yaml 'slack_enabled')"
 PROJECT_NAME="$(parse_yaml 'name')"
 
 SLACK_ENABLED="${SLACK_ENABLED:-false}"
 SLACK_CHANNEL="${SLACK_CHANNEL:-#dev-agents}"
+
+FRAMEWORK_DIR="$(dirname "$SCRIPT_DIR")"
+INTEGRATIONS_DIR="${FRAMEWORK_DIR}/integrations"
+SLACK_DIR="${INTEGRATIONS_DIR}/slack"
+VENV_PYTHON="${SLACK_DIR}/.venv/bin/python3"
 
 # --- Emoji Map ----------------------------------------------------------------
 
@@ -72,9 +80,9 @@ emoji_for_type() {
   esac
 }
 
-# --- Slack Posting ------------------------------------------------------------
+# --- Slack Posting (Webhook) --------------------------------------------------
 
-post_to_slack() {
+post_via_webhook() {
   local text="$1"
   local thread="${2:-}"
 
@@ -110,6 +118,32 @@ EOF
     > /dev/null 2>&1 || true
 }
 
+# --- Slack Posting (Bot API — for decisions) ----------------------------------
+
+post_decision_via_bot() {
+  local decision_file="$1"
+
+  [[ "$SLACK_ENABLED" == "true" ]] || return 0
+
+  # Use the Python bot to post the decision with Block Kit formatting
+  # and register the thread mapping for reply routing
+  if [[ -x "$VENV_PYTHON" ]]; then
+    export SLACK_BOT_TOKEN="${SLACK_BOT_TOKEN:-}"
+    "$VENV_PYTHON" "${SLACK_DIR}/bot.py" "$CONFIG_FILE" \
+      --post-decision "$decision_file" 2>/dev/null || {
+      echo "WARN: Bot API post failed, falling back to webhook"
+      local formatted
+      formatted="$(format_decision)"
+      post_via_webhook "$formatted"
+    }
+  else
+    # Venv not set up yet — fall back to webhook
+    local formatted
+    formatted="$(format_decision)"
+    post_via_webhook "$formatted"
+  fi
+}
+
 # --- Format Messages ---------------------------------------------------------
 
 format_decision() {
@@ -128,7 +162,7 @@ format_decision() {
     if [[ -n "$question" ]]; then
       body+="\n> ${question}\n"
     fi
-    body+="\n_Reply in this thread to answer. The orchestrator will route your response back to the agent._"
+    body+="\n_Reply in this thread to answer._"
   fi
 
   echo -e "$body"
@@ -165,25 +199,28 @@ main() {
 
   case "$NOTIFY_TYPE" in
     decision)
-      formatted="$(format_decision)"
-      post_to_slack "$formatted" "$THREAD_TS"
+      if [[ -n "$DECISION_FILE" && -f "$DECISION_FILE" ]]; then
+        post_decision_via_bot "$DECISION_FILE"
+      else
+        formatted="$(format_decision)"
+        post_via_webhook "$formatted"
+      fi
       ;;
     progress)
       formatted="$(format_progress)"
-      # Progress updates go to thread if one exists, otherwise standalone
-      post_to_slack "$formatted" "$THREAD_TS"
+      post_via_webhook "$formatted" "$THREAD_TS"
       ;;
     transition)
       formatted="$(format_transition)"
-      post_to_slack "$formatted"
+      post_via_webhook "$formatted"
       ;;
     report)
       formatted="$(format_report)"
-      post_to_slack "$formatted"
+      post_via_webhook "$formatted"
       ;;
     alert)
       formatted="$(format_alert)"
-      post_to_slack "$formatted"
+      post_via_webhook "$formatted"
       ;;
     *)
       echo "Unknown notification type: $NOTIFY_TYPE"

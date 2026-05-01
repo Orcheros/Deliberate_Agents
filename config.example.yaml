@@ -23,14 +23,12 @@ orchestration:
   report_interval_cycles: 10  # Post a full Slack report every N poll cycles
 
 notifications:
-  slack_enabled: false          # Set to true to enable Slack integration
-  slack_webhook_url: ""         # Slack Incoming Webhook URL
-  slack_channel: "#dev-agents"  # Channel for notifications
-  # Notification types:
-  #   decision    — Agent needs human input (always posted when Slack enabled)
-  #   transition  — Initiative state change (posted to channel)
-  #   alert       — Agent crash or blocker (always posted)
-  #   report      — Periodic orchestration summary (every report_interval_cycles)
+  slack_enabled: false            # Set to true to enable Slack integration
+  slack_bot_token: ""             # Bot User OAuth Token (xoxb-...) — or set SLACK_BOT_TOKEN env var
+  slack_app_token: ""             # App-Level Token (xapp-...) for Socket Mode — or set SLACK_APP_TOKEN env var
+  slack_webhook_url: ""           # Incoming Webhook URL (fallback for non-decision messages)
+  slack_channel: "#dev-agents"    # Channel for notifications
+  # See integrations/README.md for Slack app setup instructions
 
 testing:
   command: "bin/rails test"
