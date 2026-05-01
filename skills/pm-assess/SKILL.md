@@ -12,18 +12,23 @@ Evaluate the incoming one-pager for completeness, clarity, and feasibility befor
 
 ## Instructions
 
-1. **Read the one-pager** from the path specified in the initiative's queue file
-2. **Read the project's codebase context**:
+1. **Verify branch state**:
+   - Confirm you are NOT on `staging` or `main`. If you are, create a feature branch: `git checkout -b product/{initiative-slug}` from staging.
+   - Create a bookend commit: `git commit --allow-empty -m "Start: {initiative name} — product definition"`
+   - Read the project's initiative guide (`.documentation/initiatives/CLAUDE.md` or equivalent) to learn artifact naming and directory conventions.
+
+2. **Read the one-pager** from the path specified in the initiative's queue file
+3. **Read the project's codebase context**:
    - `CLAUDE.md` or `README.md` for project overview
    - Relevant existing features that this initiative touches
    - Current data models and schema related to the initiative
-3. **Evaluate against these criteria**:
+4. **Evaluate against these criteria**:
    - [ ] Problem statement is clear
    - [ ] Target user/persona is identified
    - [ ] Desired outcome is stated (what does "done" look like?)
    - [ ] Scope is reasonable for a single initiative
    - [ ] No obvious conflicts with existing functionality
-4. **Determine readiness**:
+5. **Determine readiness**:
    - **Ready**: All criteria met -> proceed to `/pm-expand-prd`
    - **Needs clarification**: Some criteria unclear -> write specific questions to `.deliberate/decisions/`, set status to `BLOCKED`
    - **Too large**: Scope exceeds a single initiative -> recommend splitting, set status to `BLOCKED`
