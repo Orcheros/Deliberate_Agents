@@ -71,10 +71,14 @@ Every project you work on with Deliberate Agents gets its own initialization. Th
 
 | Flag | Default | Purpose |
 |------|---------|---------|
-| `--main-branch` | `main` | Primary branch name |
-| `--dev-branch` | `staging` | Development branch name |
+| `--main-branch` | `main` | Production branch |
+| `--dev-branch` | `dev` | Development branch (agent worktrees branch from here) |
 | `--test-cmd` | `bin/rails test` | Unit test command |
 | `--system-test-cmd` | `bin/rails test:system` | System test command |
+
+**Branch model for mature apps:**
+
+Most production Rails apps use a three-branch model: `dev` (active development) → `staging` (pre-production validation) → `main` (production). Agent worktrees branch from and merge back into `dev`. Promotion to `staging` and `main` is a human operation outside the agent pipeline.
 
 ### 4. Start the Orchestrator
 

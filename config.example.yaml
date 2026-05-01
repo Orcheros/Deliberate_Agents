@@ -8,7 +8,7 @@ project:
   repo: "/path/to/my-project"
   worktrees: "/path/to/my-project-worktrees"
   main_branch: "main"
-  dev_branch: "staging"
+  dev_branch: "dev"
   initiatives_path: ".documentation/initiatives"
 
 agents:

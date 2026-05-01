@@ -12,7 +12,7 @@
 #   --repo <path>             Path to main repo (required)
 #   --worktrees <path>        Path to worktrees root (required)
 #   --main-branch <branch>    Main branch name (default: main)
-#   --dev-branch <branch>     Development branch name (default: staging)
+#   --dev-branch <branch>     Development branch name (default: dev)
 #   --initiatives <path>      Path to initiatives within repo (default: .documentation/initiatives)
 #   --test-cmd <command>      Test command (default: bin/rails test)
 #   --system-test-cmd <cmd>   System test command (default: bin/rails test:system)
@@ -28,7 +28,7 @@ PROJECT_NAME=""
 REPO_DIR=""
 WORKTREES_DIR=""
 MAIN_BRANCH="main"
-DEV_BRANCH="staging"
+DEV_BRANCH="dev"
 INITIATIVES_PATH=".documentation/initiatives"
 TEST_COMMAND="bin/rails test"
 SYSTEM_TEST_COMMAND="bin/rails test:system"
