@@ -133,7 +133,21 @@ Cross-references to external documents, event taxonomies, configuration guides.
 
 ## Output
 
-Write the PRD to the project's documentation directory, following existing naming conventions. Update the initiative state file with the PRD path.
+### Artifact Co-Location Rule
+
+**All initiative artifacts live inside the initiative's own directory.** Never write a PRD to a separate location, a shared folder, or a cross-cutting spec directory unless the initiative is explicitly documented as cross-cutting.
+
+Before writing, read the project's initiative guide (typically `.documentation/initiatives/CLAUDE.md` or equivalent) to learn:
+- The initiative directory path (e.g., `backlog/0z2-diagnosis-card-refactor/`)
+- The file naming convention (typically `{slug}-{document-type}.md`, e.g., `diagnosis-card-refactor-prd.md`)
+- Any project-specific PRD conventions or metadata fields
+
+### Write the PRD
+
+1. Locate the initiative's directory (where the one-pager already lives)
+2. Name the file using the project's naming convention: `{slug}-prd.md`
+3. Write the PRD into that directory alongside the one-pager
+4. Update the initiative state file (`.deliberate/queue/{initiative}.yaml`) with `prd_path` pointing to the PRD's location relative to the project root
 
 ## Transition
 
