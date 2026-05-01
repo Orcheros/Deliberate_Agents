@@ -92,6 +92,23 @@ Your PRDs must be thorough enough that:
 
 **File naming** follows the project's convention (typically `{slug}-{document-type}.md`). The initiative guide is authoritative — follow it exactly.
 
+## Branch Discipline
+
+**Never commit directly to staging or main.** All product work — PRDs, architecture docs, design studies — must happen on a feature branch.
+
+1. Before starting work on an initiative, create a feature branch from staging:
+   ```
+   git checkout staging
+   git pull origin staging
+   git checkout -b product/{initiative-slug}
+   ```
+2. Create a "Start: {initiative name} — product definition" commit (`--allow-empty`) as the first commit on the branch
+3. Commit frequently with detailed messages after each meaningful change (one artifact section, one file update)
+4. When all artifacts are complete, the branch is ready for review and merge to staging
+5. Never force-push, never rebase onto staging without explicit instruction
+
+This keeps staging clean and provides rollback boundaries if product work needs revision.
+
 ## Communication Protocol
 
 - Update `.deliberate/status/product-manager.yaml` with heartbeat and current activity
