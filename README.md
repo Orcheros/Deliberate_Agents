@@ -69,46 +69,63 @@ Each agent knows its role and stays in its lane. The Developer never touches the
 
 ### What You'll Need
 
-Before starting, make sure you have these tools installed:
+Before starting, make sure you have these tools installed on your Mac. Open **Terminal** (you'll find it in Applications → Utilities, or search for it with Spotlight) and run each check command:
 
 | Tool | What It Is | How to Check | How to Install |
 |------|-----------|-------------|---------------|
-| **macOS** | Your operating system | — | — |
-| **tmux** | A terminal multiplexer (lets agents run in separate windows) | `tmux -V` (need 3.0+) | `brew install tmux` |
+| **Homebrew** | A package manager for macOS (installs the other tools) | `brew --version` | [Install Homebrew](https://brew.sh/) — paste the command from their site into Terminal |
+| **tmux** | Lets agents run in separate windows behind the scenes | `tmux -V` (need 3.0+) | `brew install tmux` |
 | **Claude Code** | The AI that powers the agents | `claude --version` | [Install guide](https://docs.anthropic.com/en/docs/claude-code) |
 | **git** | Version control for your code | `git --version` | `brew install git` |
 | **Node.js** | Only needed if you want cross-LLM code review | `node --version` | `brew install node` |
 
-Not sure if you have everything? Run:
+### Step 1: Download Deliberate Agents
+
+Open **Terminal** and run these commands. This downloads the Deliberate Agents code into a folder called `Deliberate_Agents` inside your `Development` folder:
+
+```bash
+# Go to your Development folder (create it first if you don't have one)
+mkdir -p ~/Development
+cd ~/Development
+
+# Download Deliberate Agents from GitHub
+git clone https://github.com/Orcheros/Deliberate_Agents.git
+
+# Move into the Deliberate Agents folder
+cd Deliberate_Agents
+```
+
+**Where you are now:** `~/Development/Deliberate_Agents/`
+
+You can verify everything is installed correctly by running the dependency checker from here:
 
 ```bash
 ./scripts/install-deps.sh --check-only
 ```
 
-It will tell you what's missing.
-
-### Step 1: Get Deliberate Agents
-
-```bash
-cd ~/Development
-git clone https://github.com/Orcheros/Deliberate_Agents.git
-cd Deliberate_Agents
-```
+It will tell you if anything is missing.
 
 ### Step 2: Connect It to Your Project
 
 Deliberate Agents doesn't live inside your project — it's a separate tool that you **point at** your project. Think of it like plugging your project into a workstation.
 
+Make sure you're still in the Deliberate Agents folder (`~/Development/Deliberate_Agents/`), then run:
+
 ```bash
+# Replace "my-app" with your actual project name and paths
 ./scripts/init.sh \
   --name "My App" \
   --repo ~/Development/my-app \
   --worktrees ~/Development/my-app-worktrees
 ```
 
+> **What are these paths?**
+> - `--repo` is where your project's code lives (the git repository you already have)
+> - `--worktrees` is a new folder where agents will create isolated copies of your code to work in. You don't need to create this folder — the script will set it up.
+
 **What just happened?**
 
-- A `.deliberate/` folder was created in your worktrees directory. This is where agents coordinate — it contains their task queue, progress tracking, and logs.
+- A `.deliberate/` folder was created inside your worktrees directory. This is where agents coordinate — it contains their task queue, progress tracking, and logs.
 - Agent definitions and skills were copied into your project so they have the context they need.
 - A config file was generated with your project's settings.
 
@@ -125,17 +142,19 @@ Deliberate Agents doesn't live inside your project — it's a separate tool that
 
 ### Step 3: Start the Orchestrator
 
-The orchestrator is the coordinator. It watches for work that needs to be done and launches the right agent at the right time.
+The orchestrator is the coordinator — it watches for work that needs to be done and launches the right agent at the right time.
+
+Still in the Deliberate Agents folder (`~/Development/Deliberate_Agents/`), run:
 
 ```bash
 ./orchestration/orchestrate.sh ~/Development/my-app-worktrees/.deliberate/config.yaml
 ```
 
-This will keep running in your terminal. Open a new terminal tab or window for your next steps.
+You'll see output confirming it's running. **This keeps running** — it needs to stay open to coordinate agents. Leave this terminal window alone and open a **new terminal tab** (Cmd+T) or **new terminal window** (Cmd+N) for the next steps.
 
 ### Step 4: Give It Something to Build
 
-Create a file describing what you want. This is your "one-pager" — it doesn't need to be long, just clear about what you want:
+In your **new terminal window**, create a file describing what you want built. This is your "one-pager" — it doesn't need to be long, just clear about what you want:
 
 ```bash
 cat > ~/Development/my-app-worktrees/.deliberate/queue/user-auth.yaml << 'EOF'
@@ -150,34 +169,41 @@ created_at: 2026-04-30
 EOF
 ```
 
-The orchestrator will detect this new initiative and start the pipeline automatically:
+> **What just happened?** You created a small YAML file in the queue folder. The orchestrator (still running in your other terminal) will detect this new file within 30 seconds and start the pipeline automatically.
+
+The progress looks like this:
 
 ```
 Your idea is queued
   → Product Manager writes the PRD
-    → Project Manager creates tasks
-      → Developer agents write code
-        → Reviewer checks the work
-          → Ready for your review
+    → Architect / Designer step in (if needed)
+      → Project Manager creates tasks
+        → Developer agents write code
+          → Reviewer checks the work
+            → Ready for your review
 ```
 
 ### Step 5: Check on Progress
 
+From any terminal window, run this to see what's happening:
+
 ```bash
-./orchestration/status.sh ~/Development/my-app-worktrees/.deliberate/config.yaml
+# You can run this from anywhere — just give it the full path to your config
+~/Development/Deliberate_Agents/orchestration/status.sh \
+  ~/Development/my-app-worktrees/.deliberate/config.yaml
 ```
 
-This shows you what's happening: which agents are active, how far along each initiative is, and whether anything needs your attention.
+This shows you which agents are active, how far along each initiative is, and whether anything needs your attention (like a decision that agents can't make without you).
 
 ### Step 6: Review and Approve
 
-When the work is done, you'll see the initiative status change to `REVIEW_READY`. Open it in Cursor:
+When the work is done, the initiative status will change to `REVIEW_READY`. Open the finished work in Cursor to review it:
 
 ```bash
 cursor ~/Development/my-app-worktrees/<worktree-name>
 ```
 
-Look through the changes, run the tests, try it out. When you're happy, merge it into your `dev` branch.
+Look through the changes, run the tests, try it out. When you're happy, merge it into your `dev` branch. The orchestrator will mark the initiative as complete.
 
 ---
 
@@ -187,8 +213,11 @@ One copy of Deliberate Agents can manage as many projects as you want. Each proj
 
 ### Adding Another Project
 
+Open Terminal and navigate to your Deliberate Agents folder, then run init again with the new project's details:
+
 ```bash
-# From the Deliberate_Agents directory
+cd ~/Development/Deliberate_Agents
+
 ./scripts/init.sh \
   --name "My Other App" \
   --repo ~/Development/other-app \
@@ -201,13 +230,15 @@ Notice you can change the test commands — Deliberate Agents isn't locked to an
 
 ### Running Multiple Projects at Once
 
-Each project needs its own orchestrator running in its own terminal:
+Each project needs its own orchestrator running in its own terminal window. Open two separate Terminal windows:
 
 ```bash
-# Terminal 1
+# Terminal window 1 — start orchestrator for Project A
+cd ~/Development/Deliberate_Agents
 ./orchestration/orchestrate.sh ~/Development/my-app-worktrees/.deliberate/config.yaml
 
-# Terminal 2
+# Terminal window 2 — start orchestrator for Project B
+cd ~/Development/Deliberate_Agents
 ./orchestration/orchestrate.sh ~/Development/other-app-worktrees/.deliberate/config.yaml
 ```
 
