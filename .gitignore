@@ -15,3 +15,7 @@
 
 # Temp files
 *.tmp
+
+# Project configs (contain machine-specific paths)
+config.*.yaml
+!config.example.yaml

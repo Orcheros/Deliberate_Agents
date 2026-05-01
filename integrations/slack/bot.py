@@ -16,6 +16,8 @@ Environment (or config):
     SLACK_APP_TOKEN    — App-Level Token (xapp-...) for Socket Mode
 """
 
+from __future__ import annotations
+
 import json
 import os
 import re
@@ -24,6 +26,7 @@ import time
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Dict, Optional
 
 import yaml
 from slack_bolt import App

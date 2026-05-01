@@ -45,7 +45,7 @@ done
 
 parse_yaml() {
   local key="$1"
-  grep -E "^\s*${key}:" "$CONFIG_FILE" | head -1 | sed 's/.*:\s*//' | tr -d '"' | tr -d "'"
+  grep -E "^[[:space:]]*${key}:" "$CONFIG_FILE" | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'"
 }
 
 REPO_DIR="$(parse_yaml 'repo')"

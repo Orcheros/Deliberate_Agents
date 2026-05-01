@@ -24,7 +24,7 @@ fi
 # Parse YAML config (simple key extraction — no yq dependency)
 parse_yaml() {
   local key="$1"
-  grep -E "^\s*${key}:" "$CONFIG_FILE" | head -1 | sed 's/.*:\s*//' | tr -d '"' | tr -d "'"
+  grep -E "^[[:space:]]*${key}:" "$CONFIG_FILE" | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'"
 }
 
 PROJECT_NAME="$(parse_yaml 'name')"
@@ -75,7 +75,7 @@ log_debug() { log "DEBUG" "$@"; }
 read_yaml_field() {
   local file="$1"
   local field="$2"
-  grep -E "^\s*${field}:" "$file" 2>/dev/null | head -1 | sed 's/.*:\s*//' | tr -d '"' | tr -d "'"
+  grep -E "^[[:space:]]*${field}:" "$file" 2>/dev/null | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'"
 }
 
 # Write/update a field in a YAML file
