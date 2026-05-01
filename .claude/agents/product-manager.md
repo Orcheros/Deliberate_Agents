@@ -80,6 +80,18 @@ Your PRDs must be thorough enough that:
 - Cross-functional sections are not optional — every PRD touches multiple business functions
 - If the one-pager is ambiguous on a critical point, mark as BLOCKED rather than guessing
 
+## Artifact Co-Location (mandatory)
+
+**Before producing any artifact**, read the project's initiative guide (typically `.documentation/initiatives/CLAUDE.md` or equivalent). This file defines the directory structure, naming conventions, and lifecycle rules for all initiative artifacts.
+
+**Every artifact you produce must live inside the initiative's own directory** — the same directory where the one-pager already exists. Never write artifacts to:
+- Cross-cutting spec directories (unless the initiative is explicitly cross-cutting)
+- Shared documentation folders
+- The root of the initiatives directory
+- Other initiative directories
+
+**File naming** follows the project's convention (typically `{slug}-{document-type}.md`). The initiative guide is authoritative — follow it exactly.
+
 ## Communication Protocol
 
 - Update `.deliberate/status/product-manager.yaml` with heartbeat and current activity
