@@ -114,11 +114,21 @@ The `.deliberate/` directory is the single source of truth for all inter-agent c
 
 - `queue/` — Initiative lifecycle (QUEUED → ... → COMPLETE)
 - `assignments/` — Developer task assignments (assigned → in_progress → complete)
-- `status/` — Agent heartbeats and activity reports
-- `decisions/` — Items requiring human input
+- `status/` — Agent heartbeats, activity reports, and compiled report (`report.md`)
+- `decisions/` — Items requiring human input (with `.notified` markers for Slack tracking)
 - `logs/` — Session output logs
 
 See `state/README.md` for the full protocol specification.
+
+### Notification & Reporting Layer
+
+The orchestrator integrates with external notification channels (currently Slack) for real-time visibility:
+
+- **`orchestration/notify.sh`** — Dispatches notifications to configured channels (Slack webhook, log). Supports five message types: `decision`, `transition`, `alert`, `report`, `progress`.
+- **`orchestration/compile-report.sh`** — Reads all state files and produces a summary. Outputs markdown (persisted to `status/report.md`) or Slack-formatted text. Called every poll cycle.
+- **Question routing** — When an agent creates a decision file, the orchestrator posts the question to Slack with full context (initiative, agent role, question text). The human responds by filling in the `## Resolution` section. Future: a Slack bot will write responses directly from threaded replies.
+
+Configuration lives in `config.yaml` under `notifications:` (see `config.example.yaml`).
 
 ## Execution Model
 
@@ -167,6 +177,7 @@ Developer agents work in git worktrees, providing:
 | State management | Filesystem (YAML/MD) | No database needed, git-friendly, human-readable |
 | Orchestration | Bash script | Deterministic, zero API cost, easy to debug |
 | Human review | Cursor | Visual diffs, inline comments, familiar IDE |
+| Notifications | Slack (Incoming Webhooks) | Real-time question routing, progress visibility, decision tracking |
 | Design | Claude Design | AI-assisted UI/UX design |
 | Cross-LLM review | MCP servers | Extensible, protocol-based, multi-model |
 

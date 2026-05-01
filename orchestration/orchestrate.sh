@@ -38,6 +38,10 @@ POLL_INTERVAL="${POLL_INTERVAL:-30}"
 MAX_DEVELOPERS="${MAX_DEVELOPERS:-3}"
 AUTONOMY="${AUTONOMY:-full}"
 TMUX_SESSION="${TMUX_SESSION:-deliberate}"
+SLACK_ENABLED="$(parse_yaml 'slack_enabled')"
+SLACK_ENABLED="${SLACK_ENABLED:-false}"
+REPORT_INTERVAL="$(parse_yaml 'report_interval_cycles')"
+REPORT_INTERVAL="${REPORT_INTERVAL:-10}"
 
 DELIBERATE_DIR="${WORKTREES_DIR}/.deliberate"
 LOG_DIR="${DELIBERATE_DIR}/logs"
@@ -246,27 +250,33 @@ process_queue() {
     case "$status" in
       QUEUED)
         log_info "Detected queued initiative: $slug"
+        notify "transition" "QUEUED → PM_IN_PROGRESS" --initiative "$slug"
         launch_pm_agent "$slug"
         ;;
       PRD_COMPLETE)
         log_info "Detected PRD complete for: $slug"
+        notify "transition" "PRD_COMPLETE → PJM_IN_PROGRESS" --initiative "$slug"
         launch_pjm_agent "$slug"
         ;;
       READY_FOR_DEV)
         log_info "Detected ready-for-dev: $slug — checking assignments"
+        notify "transition" "READY_FOR_DEV — assigning developers" --initiative "$slug"
         process_assignments
         ;;
       DEV_COMPLETE)
         log_info "Detected dev complete for: $slug"
+        notify "transition" "DEV_COMPLETE → REVIEW" --initiative "$slug"
         launch_review_agent "$slug"
         ;;
       REVIEW_READY)
         log_info "Initiative $slug is ready for human review"
+        notify "transition" "REVIEW_READY — awaiting human review" --initiative "$slug"
         ;;
       BLOCKED)
         local reason
         reason="$(read_yaml_field "$initiative_file" 'blocker')"
         log_warn "Initiative $slug is BLOCKED: $reason"
+        notify "alert" "Initiative BLOCKED: $reason" --initiative "$slug"
         ;;
       PM_IN_PROGRESS|PJM_IN_PROGRESS|DEV_IN_PROGRESS|REVIEW_IN_PROGRESS)
         log_debug "Initiative $slug is in progress ($status)"
@@ -347,6 +357,7 @@ check_agent_health() {
       log_warn "Marking $state_file as blocked (agent crashed)"
       write_yaml_field "$state_file" "status" "blocked"
       write_yaml_field "$state_file" "blocker" "Agent session crashed unexpectedly"
+      notify "alert" "Agent $window_name crashed — session marked as blocked"
     fi
   fi
 }
@@ -389,11 +400,71 @@ check_decisions() {
   local pending_count=0
   for f in "$DECISIONS_DIR"/*.md; do
     [[ -f "$f" ]] || continue
+
+    # Check if already notified (marker file)
+    local notified_marker="${f}.notified"
+    if [[ -f "$notified_marker" ]]; then
+      # Already sent notification, check for resolution
+      local resolution_content
+      resolution_content="$(sed -n '/^## Resolution/,/^##/p' "$f" 2>/dev/null | grep -v '^##' | tr -d '[:space:]')"
+      if [[ -n "$resolution_content" ]]; then
+        log_info "Decision resolved: $(basename "$f" .md)"
+        rm -f "$notified_marker"
+      else
+        ((pending_count++))
+      fi
+      continue
+    fi
+
     ((pending_count++))
+
+    # Extract context for notification
+    local initiative
+    initiative="$(grep -E '^\*\*Initiative\*\*:' "$f" 2>/dev/null | sed 's/.*: //' || echo 'unknown')"
+    local agent
+    agent="$(grep -E '^\*\*Agent\*\*:' "$f" 2>/dev/null | sed 's/.*: //' || echo 'unknown')"
+    local question
+    question="$(sed -n '/^## Question/,/^##/p' "$f" 2>/dev/null | grep -v '^##' | head -3 | tr '\n' ' ')"
+
+    # Send notification
+    notify "decision" "${question:-Decision needed — see $f}" \
+      --initiative "$initiative" \
+      --agent "$agent" \
+      --decision-file "$f"
+
+    # Mark as notified
+    touch "$notified_marker"
   done
 
   if (( pending_count > 0 )); then
     log_warn "$pending_count decision(s) pending human review in $DECISIONS_DIR"
+  fi
+}
+
+# --- Notification & Reporting ------------------------------------------------
+
+notify() {
+  local type="$1"
+  shift
+  local message="$1"
+  shift
+
+  "${SCRIPT_DIR}/notify.sh" \
+    --config "$CONFIG_FILE" \
+    --type "$type" \
+    --message "$message" \
+    "$@" 2>/dev/null || log_debug "Notification failed (non-fatal)"
+}
+
+compile_report() {
+  "${SCRIPT_DIR}/compile-report.sh" "$CONFIG_FILE" --format log 2>/dev/null || true
+}
+
+compile_and_post_report() {
+  local slack_summary
+  slack_summary="$("${SCRIPT_DIR}/compile-report.sh" "$CONFIG_FILE" --format slack 2>/dev/null)" || return
+  if [[ -n "$slack_summary" ]]; then
+    notify "report" "$slack_summary"
   fi
 }
 
@@ -407,6 +478,8 @@ main() {
   log_info "Poll interval: ${POLL_INTERVAL}s"
   log_info "Max developers: $MAX_DEVELOPERS"
   log_info "Autonomy: $AUTONOMY"
+  log_info "Slack: ${SLACK_ENABLED}"
+  log_info "Report interval: every ${REPORT_INTERVAL} cycles"
   log_info "========================================="
 
   # Ensure the tmux session exists
@@ -419,11 +492,13 @@ main() {
   mkdir -p "$QUEUE_DIR" "$ASSIGNMENTS_DIR" "$STATUS_DIR" "$DECISIONS_DIR" "$LOG_DIR"
 
   local consecutive_errors=0
+  local poll_count=0
 
   while true; do
     if (( consecutive_errors >= 5 )); then
       local backoff=$(( POLL_INTERVAL * 2 ))
       log_error "Too many consecutive errors, backing off to ${backoff}s"
+      notify "alert" "Orchestrator backing off — ${consecutive_errors} consecutive errors"
       sleep "$backoff"
       consecutive_errors=0
     fi
@@ -437,6 +512,15 @@ main() {
 
     check_decisions
 
+    # Compile report every cycle (lightweight — updates .deliberate/status/report.md)
+    compile_report
+
+    # Post full Slack report every N cycles
+    ((poll_count++))
+    if (( poll_count % REPORT_INTERVAL == 0 )); then
+      compile_and_post_report
+    fi
+
     # Reconcile initiative directories with STATUS.yaml state
     "${FRAMEWORK_DIR}/scripts/sync-initiatives.sh" "$CONFIG_FILE" --quiet --no-tracker 2>/dev/null || true
 
@@ -446,6 +530,8 @@ status: "running"
 last_poll: "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 active_developers: $(count_active_developers)
 pending_decisions: $(ls "$DECISIONS_DIR"/*.md 2>/dev/null | wc -l | tr -d ' ')
+poll_count: ${poll_count}
+slack_enabled: ${SLACK_ENABLED}
 EOF
 
     sleep "$POLL_INTERVAL"

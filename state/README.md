@@ -143,6 +143,45 @@ Should we use cookie-based sessions or JWT tokens?
 (You fill this in, and the agent continues)
 ```
 
+## Real-Time Reporting
+
+The orchestrator compiles a report on every poll cycle, written to `.deliberate/status/report.md`. This report aggregates:
+
+- Initiative status across the entire queue
+- Active agents and their current progress
+- Pending decisions awaiting human input
+- Blocked items with reasons
+- Recent agent activity from today's logs
+
+When Slack is enabled, a summary is posted every N poll cycles (configurable via `report_interval_cycles`). The report is always available locally even when Slack is disabled.
+
+## Notification & Question Routing
+
+When an agent creates a decision file, the orchestrator:
+
+1. Detects the new file on the next poll cycle
+2. Extracts the question, initiative, and agent context
+3. Posts the question to Slack (if enabled) with full context
+4. Marks the file as notified (`.notified` marker) to avoid duplicate posts
+5. On subsequent polls, checks if the human has filled in the `## Resolution` section
+6. When resolved, clears the marker so the agent can proceed
+
+**Notification types:**
+- `decision` — Agent needs human input. Always posted to Slack.
+- `transition` — Initiative moved to a new pipeline stage.
+- `alert` — Agent crash, blocker, or repeated errors.
+- `report` — Periodic summary of all activity.
+- `progress` — Individual agent progress updates (verbose mode).
+
+### Future: Slack Response Routing
+
+The current flow requires the human to edit the decision file directly (or via Cursor). A future enhancement will add a Slack bot that:
+- Receives threaded replies to decision notifications
+- Writes the response into the `## Resolution` section of the decision file
+- The orchestrator detects the resolution on the next poll and unblocks the agent
+
+This closes the loop: agent asks → Slack notifies → human replies in Slack → agent continues.
+
 ## The Rules
 
 1. **One writer per file.** Each file has exactly one agent that writes to it. Other agents and the orchestrator can read it, but they don't modify it.

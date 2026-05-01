@@ -15,10 +15,22 @@ agents:
   max_concurrent_developers: 3
   poll_interval_seconds: 30
   autonomy: "full"  # full | semi | supervised
+  verbose: true     # When true, agents emit step-by-step progress lines to stdout
 
 orchestration:
   tmux_session: "deliberate-my-project"
   log_dir: ".deliberate/logs"
+  report_interval_cycles: 10  # Post a full Slack report every N poll cycles
+
+notifications:
+  slack_enabled: false          # Set to true to enable Slack integration
+  slack_webhook_url: ""         # Slack Incoming Webhook URL
+  slack_channel: "#dev-agents"  # Channel for notifications
+  # Notification types:
+  #   decision    — Agent needs human input (always posted when Slack enabled)
+  #   transition  — Initiative state change (posted to channel)
+  #   alert       — Agent crash or blocker (always posted)
+  #   report      — Periodic orchestration summary (every report_interval_cycles)
 
 testing:
   command: "bin/rails test"

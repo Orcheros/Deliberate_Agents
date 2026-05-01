@@ -50,6 +50,8 @@ parse_yaml() {
 
 REPO_DIR="$(parse_yaml 'repo')"
 WORKTREES_DIR="$(parse_yaml 'worktrees')"
+VERBOSE="$(parse_yaml 'verbose')"
+VERBOSE="${VERBOSE:-false}"
 DELIBERATE_DIR="${WORKTREES_DIR}/.deliberate"
 
 # Determine working directory based on role
@@ -63,6 +65,7 @@ case "$ROLE" in
     fi
     ;;
   product-manager|project-manager|reviewer|\
+  architect|product-designer|scrum-master|\
   integrations-engineer|content-writer|compliance-analyst|\
   technical-writer|devops-engineer|security-analyst|\
   sales-development-rep|account-executive-assistant|\
@@ -83,14 +86,59 @@ CONTEXT="# Runtime Context\n"
 CONTEXT+="- Project config: ${CONFIG_FILE}\n"
 CONTEXT+="- Framework directory: ${FRAMEWORK_DIR}\n"
 CONTEXT+="- State directory: ${DELIBERATE_DIR}\n"
+CONTEXT+="- Verbose mode: ${VERBOSE}\n"
+
+if [[ "$VERBOSE" == "true" ]]; then
+  CONTEXT+="\n## Verbose Mode (ENABLED)\n\n"
+  CONTEXT+="You MUST emit a short, clear progress line to stdout at the start of every major step.\n"
+  CONTEXT+="Format: a plain-English sentence describing what you are doing right now.\n"
+  CONTEXT+="Examples:\n"
+  CONTEXT+="  Reading one-pager for 0Z12...\n"
+  CONTEXT+="  Exploring data models related to diagnosis cards...\n"
+  CONTEXT+="  Writing PRD section 3: Functional Requirements...\n"
+  CONTEXT+="  Committing architecture doc...\n"
+  CONTEXT+="  Submitting PRD for cross-functional feedback...\n"
+  CONTEXT+="  Reading feedback from architect on PRD...\n"
+  CONTEXT+="  Revising PRD based on feedback...\n"
+  CONTEXT+="\n"
+  CONTEXT+="Emit these lines using: echo \"<progress message>\"\n"
+  CONTEXT+="One line per major step. Do not skip this — it is how operators monitor your work.\n"
+fi
 
 case "$ROLE" in
   product-manager)
     CONTEXT+="- Initiative: ${INITIATIVE}\n"
     CONTEXT+="- Initiative state file: ${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml\n"
+    CONTEXT+="- Feedback directory: ${DELIBERATE_DIR}/feedback/${INITIATIVE}/\n"
     CONTEXT+="\n## Your Task\n\n"
     CONTEXT+="Process the initiative '${INITIATIVE}' through the initiative-intake workflow.\n"
     CONTEXT+="Start by reading the initiative state file to find the one-pager path, then follow the workflow steps in order.\n"
+    CONTEXT+="After writing the PRD, submit it for a cross-functional feedback round before finalizing.\n"
+    ;;
+  architect)
+    CONTEXT+="- Initiative: ${INITIATIVE}\n"
+    CONTEXT+="- Initiative state file: ${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml\n"
+    CONTEXT+="- Feedback directory: ${DELIBERATE_DIR}/feedback/${INITIATIVE}/\n"
+    CONTEXT+="\n## Your Task\n\n"
+    CONTEXT+="Write the architecture document for initiative '${INITIATIVE}'.\n"
+    CONTEXT+="Start by reading the initiative state file and PRD, then produce the architecture doc.\n"
+    CONTEXT+="After writing the architecture doc, submit it for a cross-functional feedback round before finalizing.\n"
+    ;;
+  product-designer)
+    CONTEXT+="- Initiative: ${INITIATIVE}\n"
+    CONTEXT+="- Initiative state file: ${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml\n"
+    CONTEXT+="- Feedback directory: ${DELIBERATE_DIR}/feedback/${INITIATIVE}/\n"
+    CONTEXT+="\n## Your Task\n\n"
+    CONTEXT+="Write the design brief for initiative '${INITIATIVE}'.\n"
+    CONTEXT+="Start by reading the initiative state file, PRD, and architecture doc, then produce the design brief.\n"
+    CONTEXT+="After writing the design brief, submit it for a cross-functional feedback round before finalizing.\n"
+    ;;
+  scrum-master)
+    CONTEXT+="- Initiative: ${INITIATIVE}\n"
+    CONTEXT+="- Initiative state file: ${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml\n"
+    CONTEXT+="\n## Your Task\n\n"
+    CONTEXT+="Shard the initiative '${INITIATIVE}' into epics, sprints, and stories.\n"
+    CONTEXT+="Start by reading the PRD, architecture doc, and design brief, then decompose into an actionable backlog.\n"
     ;;
   project-manager)
     CONTEXT+="- Initiative: ${INITIATIVE}\n"
@@ -136,6 +184,9 @@ esac
 case "$ROLE" in
   developer)                  MAX_TURNS=100 ;;
   product-manager)            MAX_TURNS=120 ;;
+  architect)                  MAX_TURNS=100 ;;
+  product-designer)           MAX_TURNS=80  ;;
+  scrum-master)               MAX_TURNS=80  ;;
   project-manager)            MAX_TURNS=80  ;;
   reviewer)                   MAX_TURNS=60  ;;
   integrations-engineer)      MAX_TURNS=80  ;;

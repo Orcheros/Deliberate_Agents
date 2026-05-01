@@ -15,6 +15,7 @@ agents:
   max_concurrent_developers: 3
   poll_interval_seconds: 30
   autonomy: "full"  # full | semi | supervised
+  verbose: true     # When true, agents emit step-by-step progress lines to stdout
 
 orchestration:
   tmux_session: "deliberate-{{PROJECT_SLUG}}"
