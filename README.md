@@ -17,11 +17,14 @@ Think of Deliberate Agents like hiring a small company to build your feature:
 ```
 
 1. **You** write a short description of what you want (a "one-pager")
-2. **The Product Manager** expands your idea into a full plan with requirements, success metrics, and scope
-3. **The Project Manager** breaks the plan into specific tasks and assigns each one to the right specialist
-4. **Specialist agents** execute their tasks — writing code, configuring tools, creating content, reviewing security, and more
-5. **A Reviewer** validates that everything meets the original requirements
-6. **You** review the completed work in [Cursor](https://cursor.sh/) and merge it when you're satisfied
+2. **The Product Manager** expands your idea into a full plan with requirements, success metrics, and scope (called a PRD)
+3. **Optionally, the Architect and Designer step in** — for technical features, the Architect creates an architecture document covering system design, data models, and API contracts. For UI-heavy initiatives, the Product Designer reviews the PRD (and arch doc) and produces a design study. That design study gets sent to [Claude Design](https://claude.ai) for visual design execution, and the resulting design artifacts come back to the Designer to be folded into the PRD and arch doc before anything moves forward.
+4. **The Project Manager** breaks the plan into specific tasks and assigns each one to the right specialist
+5. **Specialist agents** execute their tasks — writing code, configuring tools, creating content, reviewing security, and more
+6. **A Reviewer** validates that everything meets the original requirements
+7. **You** review the completed work in [Cursor](https://cursor.sh/) and merge it when you're satisfied
+
+Not every initiative needs the Architect or Designer — a backend API change might go straight from PRD to tasks, while a new dashboard feature would go through the full design cycle. The Product Manager's PRD determines which steps are needed.
 
 The whole process is coordinated by a simple script called the **orchestrator** that watches for completed work and launches the next step automatically. No databases, no servers — just files on your computer.
 
@@ -36,7 +39,9 @@ Deliberate Agents comes with 15 specialist agents, each with a specific role:
 | Agent | What They Do |
 |-------|-------------|
 | **Product Manager** | Reads your one-pager and writes a detailed product requirements document (PRD) covering everything the team needs to know |
-| **Project Manager** | Reads the PRD, breaks it into individual tasks, and assigns each task to the right specialist |
+| **Architect** | *(When needed)* Creates an architecture document — system design, data models, API contracts, and technical decisions for complex or technical features |
+| **Product Designer** | *(When needed)* Reviews the PRD and arch doc, produces a design study for UI-heavy features. Sends the study to Claude Design for visual execution, then folds the design artifacts back into the product docs |
+| **Project Manager** | Reads the PRD (and arch doc + design artifacts when they exist), breaks it into individual tasks, and assigns each task to the right specialist |
 | **Developer** | Writes the code. Works on one task at a time in an isolated copy of your project (called a "worktree") |
 | **Reviewer** | Checks that the completed work actually matches what was planned. Writes a summary so you know exactly what changed |
 
