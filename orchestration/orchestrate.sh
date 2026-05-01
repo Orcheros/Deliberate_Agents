@@ -437,6 +437,9 @@ main() {
 
     check_decisions
 
+    # Reconcile initiative directories with STATUS.yaml state
+    "${FRAMEWORK_DIR}/scripts/sync-initiatives.sh" "$CONFIG_FILE" --quiet --no-tracker 2>/dev/null || true
+
     # Write orchestrator heartbeat
     cat > "${STATUS_DIR}/orchestrator.yaml" <<EOF
 status: "running"

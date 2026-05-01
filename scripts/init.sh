@@ -168,6 +168,14 @@ if [[ -f "${FRAMEWORK_DIR}/templates/mcp.json.template" ]]; then
   echo "  Deployed .mcp.json to ${WORKTREES_DIR}/"
 fi
 
+# --- Create Standard Initiative Directories -----------------------------------
+
+INITIATIVES_DIR="${REPO_DIR}/${INITIATIVES_PATH}"
+echo ""
+echo "Setting up initiative lifecycle directories..."
+mkdir -p "${INITIATIVES_DIR}"/{backlog,specified,in-progress,shipped,retired}
+echo "  Created: backlog/ specified/ in-progress/ shipped/ retired/"
+
 # --- Verify Dependencies -----------------------------------------------------
 
 echo ""
@@ -183,6 +191,48 @@ echo "==========================================="
 echo ""
 echo "State directory: $DELIBERATE_DIR"
 echo "Config file:     $CONFIG_FILE"
+
+# --- Offer Initiative Organization -------------------------------------------
+
+# Check if there are top-level initiatives that could be organized
+TOP_LEVEL_COUNT=0
+if [[ -d "$INITIATIVES_DIR" ]]; then
+  while IFS= read -r entry; do
+    basename="$(basename "$entry")"
+    case "$basename" in
+      backlog|specified|in-progress|shipped|retired|.*|"Initiative Templates") continue ;;
+    esac
+    [[ -d "$entry" ]] && TOP_LEVEL_COUNT=$((TOP_LEVEL_COUNT + 1))
+  done < <(find "$INITIATIVES_DIR" -maxdepth 1 -mindepth 1 2>/dev/null)
+fi
+
+if [[ $TOP_LEVEL_COUNT -gt 0 ]]; then
+  echo ""
+  echo "Found ${TOP_LEVEL_COUNT} initiative(s) that could be organized into lifecycle directories."
+  read -rp "Would you like to organize them? (backlog → specified → in-progress → shipped → retired) [Y/n] " run_organize
+  if [[ "$run_organize" != [nN] ]]; then
+    "${SCRIPT_DIR}/organize-initiatives.sh" "$CONFIG_FILE" --skip-prompt
+  else
+    echo ""
+    echo "Skipped. You can organize later:"
+    echo "  ./scripts/organize-initiatives.sh $CONFIG_FILE"
+  fi
+fi
+
+# --- Offer Onboarding --------------------------------------------------------
+
+echo ""
+read -rp "Would you like to onboard? This explores the codebase, docs, and initiatives to build a project brief. [Y/n] " run_onboard
+if [[ "$run_onboard" != [nN] ]]; then
+  "${SCRIPT_DIR}/onboard.sh" "$CONFIG_FILE" --skip-prompt
+else
+  echo ""
+  echo "Skipped onboarding. You can run it later:"
+  echo "  ./scripts/onboard.sh $CONFIG_FILE"
+fi
+
+# --- Next Steps ---------------------------------------------------------------
+
 echo ""
 echo "Next steps:"
 echo "  1. Review the config: $CONFIG_FILE"

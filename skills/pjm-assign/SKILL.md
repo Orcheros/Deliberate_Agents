@@ -81,7 +81,20 @@ tasks:
   # ... etc
 ```
 
-### 5. Update PjM Status
+### 5. Update Initiative STATUS.yaml
+
+Update the initiative's `STATUS.yaml` in its documentation directory:
+```yaml
+state: "in-progress"
+id: "<initiative-id>"
+title: "<initiative-title>"
+updated_at: "<ISO 8601 timestamp>"
+updated_by: "project-manager"
+reason: "Tasks assigned, development starting"
+```
+The orchestrator will detect this and move the initiative directory from `specified/` to `in-progress/`.
+
+### 6. Update PjM Status
 
 ```yaml
 # .deliberate/status/project-manager.yaml

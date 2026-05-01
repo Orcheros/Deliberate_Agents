@@ -55,6 +55,17 @@ Produce a clear, concise summary for the human reviewer so they can efficiently 
    review_ready_at: "timestamp"
    ```
 
+4. **Update the initiative's STATUS.yaml** in its documentation directory:
+   ```yaml
+   state: "shipped"
+   id: "<initiative-id>"
+   title: "<initiative-title>"
+   updated_at: "<ISO 8601 timestamp>"
+   updated_by: "reviewer"
+   reason: "Review complete, ready for human merge"
+   ```
+   The orchestrator will detect this and move the initiative directory from `in-progress/` to `shipped/`.
+
 ## Done
 
 The initiative is now ready for human review. The orchestrator will surface this to the human. The session can end.

@@ -34,7 +34,18 @@ Finalize all documentation and signal that this initiative is ready for the Proj
    completed_at: "2024-01-15T10:30:00Z"
    ```
 
-4. **Update your agent status**:
+4. **Update the initiative's STATUS.yaml** in the initiative documentation directory:
+   ```yaml
+   state: "specified"
+   id: "<initiative-id>"
+   title: "<initiative-title>"
+   updated_at: "<ISO 8601 timestamp>"
+   updated_by: "product-manager"
+   reason: "PRD complete, ready for development"
+   ```
+   The orchestrator will detect this state change and move the initiative directory from `backlog/` to `specified/`.
+
+5. **Update your agent status**:
    ```yaml
    # .deliberate/status/product-manager.yaml
    status: "idle"

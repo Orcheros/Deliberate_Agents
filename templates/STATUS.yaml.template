@@ -1,0 +1,20 @@
+# Initiative Status File
+#
+# This file is the source of truth for an initiative's lifecycle state.
+# Agents update it at transition points. The orchestrator reads it to
+# reconcile the initiative's directory placement within the lifecycle
+# directories (backlog/ → specified/ → in-progress/ → shipped/ → retired/).
+#
+# Valid states:
+#   backlog       — One-pager exists, not yet fully specified
+#   specified     — PRD/architecture/task breakdown complete, ready for dev
+#   in-progress   — Worktree created, under active development
+#   shipped       — Merged to integration branch, deployed
+#   retired       — Absorbed, deferred indefinitely, or cancelled
+
+state: "{{STATE}}"
+id: "{{ID}}"
+title: "{{TITLE}}"
+updated_at: "{{UPDATED_AT}}"
+updated_by: "{{UPDATED_BY}}"
+reason: "{{REASON}}"
