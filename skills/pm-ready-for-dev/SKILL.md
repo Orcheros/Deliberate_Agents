@@ -12,19 +12,25 @@ Finalize all documentation and signal that this initiative is ready for the Proj
 
 ## Instructions
 
-1. **Review all outputs** for completeness:
+1. **Validate artifact co-location**:
+   - [ ] All artifacts (one-pager, PRD, architecture doc, design study) are in the **same initiative directory**
+   - [ ] File names follow the project's naming convention (`{slug}-{document-type}.md`)
+   - [ ] No artifacts were written to cross-cutting spec directories, shared folders, or other initiative directories
+   - [ ] The initiative directory path matches what the project's initiative guide prescribes
+
+2. **Review all outputs** for completeness:
    - [ ] PRD has numbered requirements with acceptance criteria
    - [ ] Task breakdown is ordered with dependencies noted
    - [ ] Architecture doc exists (if needed) or is explicitly noted as unnecessary
    - [ ] All file paths referenced in the PRD actually exist in the codebase
    - [ ] No TODO or placeholder sections remain in the documents
 
-2. **Validate task sizing**:
+3. **Validate task sizing**:
    - Each task should be completable by a single developer agent in one session
    - No task should touch more than ~10 files
    - Tasks with `large` complexity should be considered for splitting
 
-3. **Update the initiative state file**:
+4. **Update the initiative state file**:
    ```yaml
    status: "PRD_COMPLETE"
    prd_path: "path/to/prd.md"
@@ -34,7 +40,7 @@ Finalize all documentation and signal that this initiative is ready for the Proj
    completed_at: "2024-01-15T10:30:00Z"
    ```
 
-4. **Update the initiative's STATUS.yaml** in the initiative documentation directory:
+5. **Update the initiative's STATUS.yaml** in the initiative documentation directory:
    ```yaml
    state: "specified"
    id: "<initiative-id>"
@@ -45,7 +51,7 @@ Finalize all documentation and signal that this initiative is ready for the Proj
    ```
    The orchestrator will detect this state change and move the initiative directory from `backlog/` to `specified/`.
 
-5. **Update your agent status**:
+6. **Update your agent status**:
    ```yaml
    # .deliberate/status/product-manager.yaml
    status: "idle"
