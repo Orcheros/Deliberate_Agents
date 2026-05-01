@@ -1,37 +1,88 @@
 # Deliberate Agents
 
-A repo-agnostic multi-agent framework for autonomous software development. Point it at any project and get cooperating AI agents that plan, coordinate, and execute work — from idea to shipped code.
+**Turn an idea into working software using a team of AI agents.**
+
+You describe what you want built in plain language. Deliberate Agents assembles a virtual team — a Product Manager, Project Manager, developers, reviewers, and specialists — that plans the work, writes the code, and delivers it for your review. You stay in control of every decision that matters.
+
+## How It Works (The Big Picture)
+
+Think of Deliberate Agents like hiring a small company to build your feature:
 
 ```
-One-Pager  →  PRD  →  Tasks  →  Cross-Functional Work  →  Review
-   (you)       (PM)    (PjM)     (specialist agents)       (you)
+ You write a         A Product Manager        A Project Manager        Specialist agents       You review
+ one-pager  ──────►  turns it into a    ──────►  breaks it into   ──────►  do the work      ──────►  the finished
+ describing          detailed plan              tasks and assigns          (code, content,          product in
+ what you want       (called a PRD)             them to the right          docs, security...)       Cursor
+                                                team members
 ```
 
-You write a one-pager describing what you want built. Deliberate Agents takes it from there — a Product Manager expands it into a full PRD, a Project Manager decomposes it into routed tasks, specialist agents execute in parallel, and a Reviewer validates against acceptance criteria. You review the completed work in Cursor.
+1. **You** write a short description of what you want (a "one-pager")
+2. **The Product Manager** expands your idea into a full plan with requirements, success metrics, and scope
+3. **The Project Manager** breaks the plan into specific tasks and assigns each one to the right specialist
+4. **Specialist agents** execute their tasks — writing code, configuring tools, creating content, reviewing security, and more
+5. **A Reviewer** validates that everything meets the original requirements
+6. **You** review the completed work in [Cursor](https://cursor.sh/) and merge it when you're satisfied
 
-The orchestrator is a bash script coordinating everything through filesystem-based state. No database, no server, no message queue — just files.
+The whole process is coordinated by a simple script called the **orchestrator** that watches for completed work and launches the next step automatically. No databases, no servers — just files on your computer.
+
+---
+
+## The Team
+
+Deliberate Agents comes with 15 specialist agents, each with a specific role:
+
+### Core Pipeline
+
+| Agent | What They Do |
+|-------|-------------|
+| **Product Manager** | Reads your one-pager and writes a detailed product requirements document (PRD) covering everything the team needs to know |
+| **Project Manager** | Reads the PRD, breaks it into individual tasks, and assigns each task to the right specialist |
+| **Developer** | Writes the code. Works on one task at a time in an isolated copy of your project (called a "worktree") |
+| **Reviewer** | Checks that the completed work actually matches what was planned. Writes a summary so you know exactly what changed |
+
+### Specialists
+
+| Agent | What They Do |
+|-------|-------------|
+| **Integrations Engineer** | Configures third-party tools — CRM, analytics, email providers, payment systems |
+| **Content Writer** | Writes copy — email sequences, landing pages, in-app messaging, marketing content |
+| **Technical Writer** | Creates runbooks, API documentation, and internal reference material |
+| **Compliance Analyst** | Audits for privacy, legal, and regulatory requirements. Documents compliance needs |
+| **DevOps Engineer** | Sets up CI/CD pipelines, infrastructure, monitoring, and deployment |
+| **Security Analyst** | Reviews for security vulnerabilities, builds threat models, assesses risks |
+| **Sales Development Rep** | Researches prospects, prepares outreach, maintains pipeline data |
+| **Account Executive Assistant** | Supports deals with proposals, competitive analysis, and account research |
+| **Customer Success** | Monitors account health, identifies churn risks and expansion opportunities |
+| **Onboarding Specialist** | Designs onboarding flows tailored to different customer types |
+| **SEO Specialist** | Optimizes for search — traditional SEO, featured snippets, AI overviews, and LLM citations |
+
+Each agent knows its role and stays in its lane. The Developer never touches the PRD. The Product Manager never writes code. This prevents conflicts and keeps work organized.
 
 ---
 
 ## Getting Started
 
-### 1. Prerequisites
+### What You'll Need
 
-| Requirement | Check | Install |
-|-------------|-------|---------|
-| macOS | — | — |
-| tmux 3.0+ | `tmux -V` | `brew install tmux` |
-| Claude Code CLI | `claude --version` | [Install Claude Code](https://docs.anthropic.com/en/docs/claude-code) |
-| git | `git --version` | `brew install git` |
-| Node.js (optional) | `node --version` | `brew install node` (only needed for MCP servers) |
+Before starting, make sure you have these tools installed:
 
-Or run the dependency checker:
+| Tool | What It Is | How to Check | How to Install |
+|------|-----------|-------------|---------------|
+| **macOS** | Your operating system | — | — |
+| **tmux** | A terminal multiplexer (lets agents run in separate windows) | `tmux -V` (need 3.0+) | `brew install tmux` |
+| **Claude Code** | The AI that powers the agents | `claude --version` | [Install guide](https://docs.anthropic.com/en/docs/claude-code) |
+| **git** | Version control for your code | `git --version` | `brew install git` |
+| **Node.js** | Only needed if you want cross-LLM code review | `node --version` | `brew install node` |
+
+Not sure if you have everything? Run:
 
 ```bash
 ./scripts/install-deps.sh --check-only
 ```
 
-### 2. Clone Deliberate Agents
+It will tell you what's missing.
+
+### Step 1: Get Deliberate Agents
 
 ```bash
 cd ~/Development
@@ -39,227 +90,212 @@ git clone https://github.com/Orcheros/Deliberate_Agents.git
 cd Deliberate_Agents
 ```
 
-### 3. Initialize for Your Project
+### Step 2: Connect It to Your Project
 
-Every project you work on with Deliberate Agents gets its own initialization. This creates the state directory, deploys agent definitions and skills into your project's worktrees, and generates a config file.
+Deliberate Agents doesn't live inside your project — it's a separate tool that you **point at** your project. Think of it like plugging your project into a workstation.
 
 ```bash
 ./scripts/init.sh \
-  --name "My Project" \
-  --repo /path/to/my-project \
-  --worktrees /path/to/my-project-worktrees
+  --name "My App" \
+  --repo ~/Development/my-app \
+  --worktrees ~/Development/my-app-worktrees
 ```
 
-**What this does:**
+**What just happened?**
 
-1. Creates `.deliberate/` inside your worktrees directory with the state protocol structure:
-   ```
-   .deliberate/
-   ├── config.yaml          # Project-specific configuration
-   ├── queue/               # Initiative state files
-   ├── assignments/         # Task assignments per worktree
-   ├── status/              # Agent heartbeat files
-   ├── decisions/           # Items needing human input
-   └── logs/                # Agent session logs
-   ```
+- A `.deliberate/` folder was created in your worktrees directory. This is where agents coordinate — it contains their task queue, progress tracking, and logs.
+- Agent definitions and skills were copied into your project so they have the context they need.
+- A config file was generated with your project's settings.
 
-2. Deploys agent definitions to `{worktrees}/.claude/agents/` (14 agents)
-3. Deploys skills to `{worktrees}/.claude/skills/` (38 skills)
-4. Generates a project config from your inputs
+**Customizing for your project:**
 
-**Optional flags:**
+| Setting | Default | What It Means |
+|---------|---------|--------------|
+| `--main-branch` | `main` | Your production branch |
+| `--dev-branch` | `dev` | Where agent work gets merged (the development branch) |
+| `--test-cmd` | `bin/rails test` | How to run your unit tests |
+| `--system-test-cmd` | `bin/rails test:system` | How to run your end-to-end tests |
 
-| Flag | Default | Purpose |
-|------|---------|---------|
-| `--main-branch` | `main` | Production branch |
-| `--dev-branch` | `dev` | Development branch (agent worktrees branch from here) |
-| `--test-cmd` | `bin/rails test` | Unit test command |
-| `--system-test-cmd` | `bin/rails test:system` | System test command |
+> **About branches:** Most mature apps use three branches — `dev` (active work), `staging` (pre-production testing), and `main` (production). Agents work on `dev`. Promoting code to `staging` and `main` is always your call.
 
-**Branch model for mature apps:**
+### Step 3: Start the Orchestrator
 
-Most production Rails apps use a three-branch model: `dev` (active development) → `staging` (pre-production validation) → `main` (production). Agent worktrees branch from and merge back into `dev`. Promotion to `staging` and `main` is a human operation outside the agent pipeline.
-
-### 4. Start the Orchestrator
+The orchestrator is the coordinator. It watches for work that needs to be done and launches the right agent at the right time.
 
 ```bash
-./orchestration/orchestrate.sh /path/to/my-project-worktrees/.deliberate/config.yaml
+./orchestration/orchestrate.sh ~/Development/my-app-worktrees/.deliberate/config.yaml
 ```
 
-This starts a tmux session that polls state files every 30 seconds and launches agents as needed. It runs in the foreground — open a new terminal for other work.
+This will keep running in your terminal. Open a new terminal tab or window for your next steps.
 
-### 5. Queue an Initiative
+### Step 4: Give It Something to Build
 
-Create a YAML file in the queue directory:
+Create a file describing what you want. This is your "one-pager" — it doesn't need to be long, just clear about what you want:
 
 ```bash
-cat > /path/to/my-project-worktrees/.deliberate/queue/my-feature.yaml << 'EOF'
-initiative: my-feature
+cat > ~/Development/my-app-worktrees/.deliberate/queue/user-auth.yaml << 'EOF'
+initiative: user-auth
 status: QUEUED
 title: "Add user authentication"
 one_pager: |
-  We need login/logout functionality with email+password.
+  We need login/logout functionality with email and password.
   Users should be able to reset their password via email.
-  Session management with remember-me option.
+  Include a "remember me" option for staying logged in.
 created_at: 2026-04-30
 EOF
 ```
 
-The orchestrator detects the new initiative and launches the pipeline:
+The orchestrator will detect this new initiative and start the pipeline automatically:
 
 ```
-QUEUED → PM_IN_PROGRESS → PRD_COMPLETE → PJM_IN_PROGRESS → READY_FOR_DEV →
-DEV_IN_PROGRESS → DEV_COMPLETE → REVIEW_IN_PROGRESS → REVIEW_READY
+Your idea is queued
+  → Product Manager writes the PRD
+    → Project Manager creates tasks
+      → Developer agents write code
+        → Reviewer checks the work
+          → Ready for your review
 ```
 
-### 6. Check Status
+### Step 5: Check on Progress
 
 ```bash
-./orchestration/status.sh /path/to/my-project-worktrees/.deliberate/config.yaml
+./orchestration/status.sh ~/Development/my-app-worktrees/.deliberate/config.yaml
 ```
 
-Shows: orchestrator health, active tmux windows, initiative status, active assignments, and pending decisions.
+This shows you what's happening: which agents are active, how far along each initiative is, and whether anything needs your attention.
 
-### 7. Review Completed Work
+### Step 6: Review and Approve
 
-When an initiative reaches `REVIEW_READY`, open the worktree in Cursor:
+When the work is done, you'll see the initiative status change to `REVIEW_READY`. Open it in Cursor:
 
 ```bash
-cursor /path/to/my-project-worktrees/<worktree-name>
+cursor ~/Development/my-app-worktrees/<worktree-name>
 ```
 
-Review diffs, run tests, validate behavior. Merge when satisfied.
+Look through the changes, run the tests, try it out. When you're happy, merge it into your `dev` branch.
 
 ---
 
-## Working on Other Applications
+## Using Deliberate Agents with Multiple Projects
 
-Deliberate Agents is designed to be pointed at any project. One clone of this repo can manage multiple applications simultaneously.
+One copy of Deliberate Agents can manage as many projects as you want. Each project is completely independent.
 
-### Adding a New Project
+### Adding Another Project
 
 ```bash
 # From the Deliberate_Agents directory
 ./scripts/init.sh \
-  --name "Second Project" \
-  --repo /path/to/second-project \
-  --worktrees /path/to/second-project-worktrees \
-  --main-branch main \
-  --dev-branch develop \
+  --name "My Other App" \
+  --repo ~/Development/other-app \
+  --worktrees ~/Development/other-app-worktrees \
   --test-cmd "npm test" \
   --system-test-cmd "npm run test:e2e"
 ```
 
-Each project gets its own:
-- `.deliberate/` state directory (inside its worktrees)
-- `.claude/agents/` and `.claude/skills/` (deployed copies)
-- `config.yaml` with project-specific settings
-- Independent orchestrator process
+Notice you can change the test commands — Deliberate Agents isn't locked to any specific programming language or framework.
 
-### Running Multiple Projects
+### Running Multiple Projects at Once
 
-Each project runs its own orchestrator instance in a separate tmux session:
+Each project needs its own orchestrator running in its own terminal:
 
 ```bash
-# Terminal 1: Project A
-./orchestration/orchestrate.sh /path/to/project-a-worktrees/.deliberate/config.yaml
+# Terminal 1
+./orchestration/orchestrate.sh ~/Development/my-app-worktrees/.deliberate/config.yaml
 
-# Terminal 2: Project B
-./orchestration/orchestrate.sh /path/to/project-b-worktrees/.deliberate/config.yaml
+# Terminal 2
+./orchestration/orchestrate.sh ~/Development/other-app-worktrees/.deliberate/config.yaml
 ```
 
-Projects are fully isolated — different state directories, different agent sessions, different worktrees.
+Projects never interfere with each other. They have separate state, separate agents, and separate workspaces.
 
-### Adapting to a Different Stack
+### Adapting to Your Stack
 
-The framework ships with Rails conventions (Tailwind CSS, Stimulus JS, Minitest) but adapts to any stack:
+Deliberate Agents ships with [Ruby on Rails](https://rubyonrails.org/) conventions (Tailwind CSS, Stimulus JS, Minitest), but you can adapt it to any stack:
 
-1. **Agent definitions** — edit `.claude/agents/*.md` in your project's worktrees to reflect your stack's patterns and conventions
-2. **Skills** — edit `.claude/skills/*/SKILL.md` to match your workflow (e.g., change `bin/rails test` to `npm test`)
-3. **CLAUDE.md** — the template at `templates/CLAUDE.md.template` generates the per-worktree instructions. Customize for your stack before running `init.sh`, or edit the deployed copy directly
-4. **Config** — set `test_command` and `system_test_command` in your project's config.yaml
+1. **Agent definitions** in `.claude/agents/*.md` — tell agents about your framework's patterns
+2. **Skills** in `.claude/skills/*/SKILL.md` — adjust workflow steps for your tooling
+3. **Config** — set your test commands and branch names
 
-See [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md) for detailed customization options.
-
----
-
-## How It Works
-
-### Agent Roster
-
-| Agent | Role | Model |
-|-------|------|-------|
-| Product Manager | One-pager → full PRD with cross-functional requirements | opus |
-| Project Manager | PRD → decomposed tasks, routed to correct agent type | sonnet |
-| Developer | Code implementation in isolated worktrees | sonnet |
-| Reviewer | Validates completed work against acceptance criteria | sonnet |
-| Integrations Engineer | SaaS tool configuration (CRM, analytics, email, payments) | sonnet |
-| Content Writer | Copy, email sequences, landing pages, in-app messaging | sonnet |
-| Compliance Analyst | Privacy, legal, regulatory audit and documentation | sonnet |
-| Technical Writer | Runbooks, API docs, internal reference material | sonnet |
-| DevOps Engineer | CI/CD, infrastructure, monitoring, deployment | sonnet |
-| Security Analyst | Threat modeling, security review, vulnerability assessment | sonnet |
-| Sales Development Rep | Prospect research, outreach prep, pipeline maintenance | sonnet |
-| Account Executive Assistant | Deal support, proposals, competitive analysis | sonnet |
-| Customer Success | Account health monitoring, churn/expansion signals | sonnet |
-| Onboarding Specialist | User activation optimization, per-ICP onboarding flows | sonnet |
-| SEO Specialist | Search optimization across SEO, AEO, AIO, and GEO | sonnet |
-
-### Architecture
-
-- **Orchestrator** (`orchestration/orchestrate.sh`): Bash script polling state files on an interval. Launches and monitors agents via tmux. Zero API cost.
-- **Agents** (`.claude/agents/*.md`): Claude Code sessions using native `--agent` flag with role-specific definitions.
-- **Skills** (`skills/`): Workflow steps as Claude Code skills, lazy-loaded when invoked. Agents only consume context for the step they're executing.
-- **State** (`.deliberate/`): YAML and markdown files for inter-agent communication. Git-friendly, human-readable.
-- **Decisions** (`.deliberate/decisions/`): Items that need human input. Agents halt and wait.
-- **MCP Servers** (`mcp-servers/`): Optional cross-LLM capabilities (e.g., OpenAI code review).
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full technical design.
-
-### Design Principles
-
-- **Autonomous**: Agents run unattended until they need a human decision
-- **Coordinated**: Filesystem-based state protocol enables multi-agent cooperation
-- **Observable**: Every action is logged, every state is queryable
-- **Repo-agnostic**: Initialize once per project, works with any codebase
-- **Cost-aware**: Orchestrator is bash (zero API cost). Only agent sessions use the API.
-- **Context-efficient**: Skills are lazy-loaded — agents only consume context for the workflow step they're executing
+See [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md) for details.
 
 ---
 
-## Project Structure
+## What's in This Repo
 
 ```
 Deliberate_Agents/
-├── .claude/agents/     Agent definitions (native Claude Code format)
-├── skills/             Workflow step skills (deployed to target project)
-├── orchestration/      Coordination scripts (bash)
-├── templates/          Per-project bootstrapping templates
-├── state/              State protocol documentation
-├── scripts/            Setup and utility scripts
-├── mcp-servers/        MCP server implementations
-└── docs/               Documentation
-    ├── ARCHITECTURE.md     Full technical design
-    ├── GETTING-STARTED.md  Extended walkthrough
-    └── CUSTOMIZATION.md    Adapting agents and skills
+│
+├── .claude/agents/     Who's on the team — one file per agent defining
+│                       their role, personality, and capabilities
+│
+├── skills/             What each agent knows how to do — step-by-step
+│                       workflow instructions loaded on demand
+│
+├── orchestration/      The coordination scripts that launch agents,
+│                       monitor progress, and keep things moving
+│
+├── scripts/            Setup tools — initialize projects, check
+│                       dependencies, clean up when done
+│
+├── templates/          Starter files that get copied into your project
+│                       during initialization
+│
+├── state/              Documentation for how agents communicate with
+│                       each other through files
+│
+├── mcp-servers/        Optional add-ons for cross-LLM capabilities
+│                       (e.g., getting OpenAI to review Claude's code)
+│
+└── docs/               Detailed documentation
+    ├── ARCHITECTURE.md     How the system is designed
+    ├── GETTING-STARTED.md  Extended setup walkthrough
+    └── CUSTOMIZATION.md    Making it work with your stack
 ```
+
+Each directory has its own README explaining what's inside and how to use it.
 
 ---
 
-## Status
+## Key Concepts
 
-| Phase | Description | Status |
-|-------|-------------|--------|
-| 1. Foundation | Core agent definitions, orchestration, templates, state protocol | Complete |
-| 2. Native Refactor | Migrated to Claude Code native agents and lazy-loaded skills | Complete |
-| 3. Full Roster | 15 specialist agents with 38 skills across all functions | Complete |
-| 4. Execution | End-to-end autonomous initiative execution | Next |
+A few terms that come up often:
+
+| Term | What It Means |
+|------|--------------|
+| **Initiative** | A feature or project you want built. It starts as your one-pager and moves through the pipeline until it's done. |
+| **PRD** | Product Requirements Document. The detailed plan that the Product Manager writes from your one-pager. |
+| **Worktree** | A separate copy of your project's code where an agent can work without affecting the main codebase. Think of it like a sandbox. |
+| **Orchestrator** | The bash script that coordinates everything. It watches for completed work and launches the next agent in line. It doesn't use AI — it's just a simple script, so it costs nothing to run. |
+| **Skill** | A step-by-step instruction set that an agent follows for a specific task. Skills are loaded only when needed, keeping agents focused. |
+| **State** | The collection of files in `.deliberate/` that track what's happening — which initiatives are active, which tasks are assigned, which agents are running. |
+| **Decision** | Something that needs your input before agents can continue. Agents will pause and wait rather than guess. |
+
+---
+
+## Design Principles
+
+- **You're always in control.** Agents pause and ask when they're unsure. Merging code is always your decision. Nothing ships without your approval.
+- **Agents work independently.** Each agent runs in its own session and communicates through files, not messages. This means they can't accidentally step on each other's work.
+- **Everything is observable.** Every action is logged. Every state is visible. You can check what any agent is doing at any time.
+- **It works with any project.** Initialize once and point it at any codebase. The same agents work whether you're building a Rails app, a Node.js API, or a static site.
+- **Cost-conscious.** The orchestrator is a bash script — zero AI cost. Only the agent sessions themselves use the API. Skills are loaded on demand, not all at once.
+
+---
+
+## Project Status
+
+| Phase | What It Covers | Done? |
+|-------|---------------|-------|
+| Foundation | Core agents, orchestration, templates, state protocol | Yes |
+| Native Refactor | Migrated to Claude Code's native agent system | Yes |
+| Full Roster | 15 agents with 38 skills across all business functions | Yes |
+| Execution | First end-to-end autonomous initiative | Next |
 
 ---
 
 ## Inspiration
 
-Extends patterns from [BMAD-METHOD](https://github.com/bmadcode/BMAD-METHOD) (agent personas, step-file workflows, progressive context) into fully autonomous, multi-process coordination where agents run unattended and communicate through shared state.
+Built on patterns from [BMAD-METHOD](https://github.com/bmadcode/BMAD-METHOD) — agent personas, step-based workflows, progressive context loading — extended into fully autonomous multi-agent coordination.
 
 ## License
 
