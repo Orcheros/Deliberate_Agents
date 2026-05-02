@@ -99,38 +99,9 @@ for pair in $PROJECTS; do
   start_slack_for_config "${FRAMEWORK_DIR}/config.${slug}.yaml" "$name"
 done
 
-# --- Open Agent View ----------------------------------------------------------
-# If a tmux session exists with agent windows, open a visible Terminal window
-# so the user can see all agent tabs without running any commands.
-
-open_agent_view() {
-  for pair in $PROJECTS; do
-    slug="${pair%%:*}"
-    config_file="${FRAMEWORK_DIR}/config.${slug}.yaml"
-    local tmux_session
-    tmux_session=$(grep -E "^[[:space:]]*tmux_session:" "$config_file" 2>/dev/null | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'")
-    tmux_session="${tmux_session:-deliberate}"
-
-    if tmux has-session -t "$tmux_session" 2>/dev/null; then
-      # Check if already attached somewhere
-      local attached
-      attached=$(tmux list-clients -t "$tmux_session" 2>/dev/null | wc -l | tr -d ' ')
-      if [[ "$attached" -eq 0 ]]; then
-        osascript -e "
-          tell application \"Terminal\"
-            activate
-            do script \"tmux attach -t ${tmux_session}\"
-          end tell
-        " 2>/dev/null || true
-        STATUS_LINES+=("Agent view: opened for ${tmux_session}")
-      else
-        STATUS_LINES+=("Agent view: already attached for ${tmux_session}")
-      fi
-    fi
-  done
-}
-
-open_agent_view
+# --- Agent Tabs ---------------------------------------------------------------
+# Agents launch as Terminal.app tabs in the same window as Claude Code.
+# No separate window or tmux attachment needed — tabs appear automatically.
 
 # --- Briefings ----------------------------------------------------------------
 

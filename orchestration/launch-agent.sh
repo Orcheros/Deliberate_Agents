@@ -1,20 +1,18 @@
 #!/usr/bin/env bash
 #
-# launch-agent.sh — Spawn a headless Claude Code session in a tmux window
+# launch-agent.sh — Spawn a Claude Code agent session in a Terminal.app tab
 #
-# Uses Claude Code's native --agent flag with agent definitions from
-# .claude/agents/*.md. Dynamic context (initiative, worktree, paths)
-# is passed via --append-system-prompt instead of building a giant
-# concatenated system prompt.
+# Opens a new tab in the current Terminal window and runs Claude with
+# the specified agent role. Uses the Claude Max subscription (not API key).
+# Tracks the process via PID files so the orchestrator can detect completion.
 #
-# Usage: launch-agent.sh --session <name> --window <name> --role <role> [options]
+# Usage: launch-agent.sh --name <name> --role <role> --config <file> --framework-dir <dir> [options]
 
 set -euo pipefail
 
 # --- Argument Parsing ---------------------------------------------------------
 
-TMUX_SESSION=""
-WINDOW_NAME=""
+AGENT_NAME=""
 ROLE=""
 INITIATIVE=""
 WORKTREE=""
@@ -23,29 +21,28 @@ FRAMEWORK_DIR=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --session)      TMUX_SESSION="$2"; shift 2 ;;
-    --window)       WINDOW_NAME="$2"; shift 2 ;;
-    --role)         ROLE="$2"; shift 2 ;;
-    --initiative)   INITIATIVE="$2"; shift 2 ;;
-    --worktree)     WORKTREE="$2"; shift 2 ;;
-    --config)       CONFIG_FILE="$2"; shift 2 ;;
+    --session)       shift 2 ;;  # Legacy arg, ignored (was for tmux)
+    --window)        AGENT_NAME="$2"; shift 2 ;;
+    --name)          AGENT_NAME="$2"; shift 2 ;;
+    --role)          ROLE="$2"; shift 2 ;;
+    --initiative)    INITIATIVE="$2"; shift 2 ;;
+    --worktree)      WORKTREE="$2"; shift 2 ;;
+    --config)        CONFIG_FILE="$2"; shift 2 ;;
     --framework-dir) FRAMEWORK_DIR="$2"; shift 2 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
 done
 
-# Validate required args
-[[ -n "$TMUX_SESSION" ]] || { echo "ERROR: --session required"; exit 1; }
-[[ -n "$WINDOW_NAME" ]]  || { echo "ERROR: --window required"; exit 1; }
-[[ -n "$ROLE" ]]          || { echo "ERROR: --role required"; exit 1; }
-[[ -n "$CONFIG_FILE" ]]   || { echo "ERROR: --config required"; exit 1; }
+[[ -n "$AGENT_NAME" ]] || { echo "ERROR: --name or --window required"; exit 1; }
+[[ -n "$ROLE" ]]        || { echo "ERROR: --role required"; exit 1; }
+[[ -n "$CONFIG_FILE" ]] || { echo "ERROR: --config required"; exit 1; }
 [[ -n "$FRAMEWORK_DIR" ]] || { echo "ERROR: --framework-dir required"; exit 1; }
 
 # --- Configuration ------------------------------------------------------------
 
 parse_yaml() {
   local key="$1"
-  grep -E "^[[:space:]]*${key}:" "$CONFIG_FILE" | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'"
+  grep -E "^[[:space:]]*${key}:" "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'" || true
 }
 
 REPO_DIR="$(parse_yaml 'repo')"
@@ -53,6 +50,8 @@ WORKTREES_DIR="$(parse_yaml 'worktrees')"
 VERBOSE="$(parse_yaml 'verbose')"
 VERBOSE="${VERBOSE:-false}"
 DELIBERATE_DIR="${WORKTREES_DIR}/.deliberate"
+PID_DIR="${DELIBERATE_DIR}/pids"
+mkdir -p "$PID_DIR"
 
 # Determine working directory based on role
 case "$ROLE" in
@@ -80,8 +79,6 @@ esac
 
 # --- Build Dynamic Context ---------------------------------------------------
 
-# Only the runtime-specific context goes here — agent identity, workflow steps,
-# and skills are handled natively by the --agent flag.
 CONTEXT="# Runtime Context\n"
 CONTEXT+="- Project config: ${CONFIG_FILE}\n"
 CONTEXT+="- Framework directory: ${FRAMEWORK_DIR}\n"
@@ -203,29 +200,60 @@ case "$ROLE" in
   *)                          MAX_TURNS=80  ;;
 esac
 
-# --- Launch in tmux -----------------------------------------------------------
+# --- Launch in Terminal.app tab -----------------------------------------------
 
-LOG_FILE="${DELIBERATE_DIR}/logs/${WINDOW_NAME}-$(date +%Y%m%d-%H%M%S).log"
+LOG_FILE="${DELIBERATE_DIR}/logs/${AGENT_NAME}-$(date +%Y%m%d-%H%M%S).log"
+PID_FILE="${PID_DIR}/${AGENT_NAME}.pid"
 
-# Create a temporary file for the context prompt
 CONTEXT_FILE="$(mktemp)"
 echo -e "$CONTEXT" > "$CONTEXT_FILE"
 
-# Unset ANTHROPIC_API_KEY so Claude uses the Max subscription, not API credits.
-# --dangerously-skip-permissions avoids blocking on permission prompts in headless tmux.
-# Uses script(1) to capture output while keeping the interactive TUI visible.
-tmux new-window -t "$TMUX_SESSION" -n "$WINDOW_NAME" \
-  "cd '$WORK_DIR' && unset ANTHROPIC_API_KEY && \
-   script -q '$LOG_FILE' claude \
-    --agent $ROLE \
-    --dangerously-skip-permissions \
-    --max-turns $MAX_TURNS \
-    --append-system-prompt \"\$(cat '$CONTEXT_FILE')\" \
-    --resume no \
-    'Begin your assigned task. Read your assignment/state file first.'; \
-   echo 'Agent session ended. Press enter to close.'; read"
+# Write a launcher script that the Terminal tab will execute.
+# This avoids quote-escaping hell in AppleScript.
+LAUNCHER="$(mktemp)"
+TAB_TITLE="${ROLE}: ${INITIATIVE:-${WORKTREE:-agent}}"
 
-# Clean up context file after a delay (tmux needs it briefly)
-(sleep 5 && rm -f "$CONTEXT_FILE") &
+cat > "$LAUNCHER" <<SCRIPT
+#!/usr/bin/env bash
+printf '\e]1;${TAB_TITLE}\a'
+printf '\e]2;${TAB_TITLE}\a'
+cd '${WORK_DIR}'
+unset ANTHROPIC_API_KEY
+echo \$\$ > '${PID_FILE}'
+exec claude \\
+  --agent ${ROLE} \\
+  --dangerously-skip-permissions \\
+  --max-turns ${MAX_TURNS} \\
+  --append-system-prompt "\$(cat '${CONTEXT_FILE}')" \\
+  --resume no \\
+  'Begin your assigned task. Read your assignment/state file first.'
+SCRIPT
+chmod +x "$LAUNCHER"
 
-echo "Launched $ROLE agent in tmux window: $TMUX_SESSION:$WINDOW_NAME"
+# Open a new tab in the current terminal window.
+# Detect terminal app and use the right method.
+TERM_APP="${TERM_PROGRAM:-Terminal}"
+
+case "$TERM_APP" in
+  iTerm.app|iTerm2)
+    osascript -e "
+      tell application \"iTerm2\"
+        tell current window
+          create tab with default profile
+          tell current session of current tab
+            write text \"exec '${LAUNCHER}'\"
+          end tell
+        end tell
+      end tell
+    "
+    ;;
+  *)
+    # Terminal.app fallback
+    osascript -e "tell application \"Terminal\" to do script \"exec '${LAUNCHER}'\""
+    ;;
+esac
+
+# Clean up temp files after a delay (claude needs to start first)
+(sleep 15 && rm -f "$CONTEXT_FILE" "$LAUNCHER") &
+
+echo "Launched ${ROLE} agent in Terminal tab: ${TAB_TITLE}"

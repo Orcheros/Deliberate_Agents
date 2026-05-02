@@ -109,10 +109,29 @@ count_active_developers() {
   echo "$count"
 }
 
-# Check if a tmux window exists for an agent
+# Check if an agent process is still running (by PID file)
+PID_DIR="${DELIBERATE_DIR}/pids"
+mkdir -p "$PID_DIR" 2>/dev/null || true
+
+agent_is_running() {
+  local agent_name="$1"
+  local pid_file="${PID_DIR}/${agent_name}.pid"
+  if [[ -f "$pid_file" ]]; then
+    local pid
+    pid="$(cat "$pid_file")"
+    if kill -0 "$pid" 2>/dev/null; then
+      return 0
+    else
+      rm -f "$pid_file"
+      return 1
+    fi
+  fi
+  return 1
+}
+
+# Legacy alias for compatibility
 agent_window_exists() {
-  local window_name="$1"
-  tmux list-windows -t "$TMUX_SESSION" 2>/dev/null | grep -q "$window_name"
+  agent_is_running "$1"
 }
 
 # --- Agent Launcher (generic) -------------------------------------------------
@@ -203,9 +222,23 @@ launch_specialist_agent() {
 # --- Check if any initiative agent is currently running -----------------------
 
 any_initiative_agent_running() {
-  # Check for any product-pipeline agent window (pm-, architect-, designer-, scrum-)
-  tmux list-windows -t "$TMUX_SESSION" 2>/dev/null | \
-    grep -qE "(pm-|architect-|product-designer-|scrum-master-|project-manager-)" && return 0
+  # Check for any product-pipeline agent PID file with a live process
+  for pid_file in "$PID_DIR"/*.pid; do
+    [[ -f "$pid_file" ]] || continue
+    local name
+    name="$(basename "$pid_file" .pid)"
+    case "$name" in
+      product-manager-*|architect-*|product-designer-*|scrum-master-*|project-manager-*)
+        local pid
+        pid="$(cat "$pid_file")"
+        if kill -0 "$pid" 2>/dev/null; then
+          return 0
+        else
+          rm -f "$pid_file"
+        fi
+        ;;
+    esac
+  done
   return 1
 }
 
@@ -237,36 +270,35 @@ check_agent_completion() {
 
   case "$status" in
     PM_IN_PROGRESS)
-      if ! agent_window_exists "pm-${initiative_slug}" && \
-         ! agent_window_exists "product-manager-${initiative_slug}"; then
+      if ! agent_is_running "product-manager-${initiative_slug}"; then
         log_info "PM agent finished for ${title}"
         write_yaml_field "$initiative_file" "status" "PRD_COMPLETE"
         notify "transition" "PRD complete for ${title} — launching architect" --initiative "$initiative_slug"
       fi
       ;;
     ARCH_IN_PROGRESS)
-      if ! agent_window_exists "architect-${initiative_slug}"; then
+      if ! agent_is_running "architect-${initiative_slug}"; then
         log_info "Architect agent finished for ${title}"
         write_yaml_field "$initiative_file" "status" "ARCH_COMPLETE"
         notify "transition" "Architecture doc complete for ${title} — launching designer" --initiative "$initiative_slug"
       fi
       ;;
     DESIGN_IN_PROGRESS)
-      if ! agent_window_exists "product-designer-${initiative_slug}"; then
+      if ! agent_is_running "product-designer-${initiative_slug}"; then
         log_info "Designer agent finished for ${title}"
         write_yaml_field "$initiative_file" "status" "DESIGN_COMPLETE"
         notify "transition" "Design brief complete for ${title} — launching scrum master" --initiative "$initiative_slug"
       fi
       ;;
     SCRUM_IN_PROGRESS)
-      if ! agent_window_exists "scrum-master-${initiative_slug}"; then
+      if ! agent_is_running "scrum-master-${initiative_slug}"; then
         log_info "Scrum master finished for ${title}"
         write_yaml_field "$initiative_file" "status" "SPECIFIED"
         notify "progress" "${title} is fully specified — ready for handoff to Design or Engineering" --initiative "$initiative_slug"
       fi
       ;;
     PJM_IN_PROGRESS)
-      if ! agent_window_exists "project-manager-${initiative_slug}"; then
+      if ! agent_is_running "project-manager-${initiative_slug}"; then
         log_info "Project Manager finished for ${title}"
         write_yaml_field "$initiative_file" "status" "READY_FOR_DEV"
         notify "transition" "${title} has tasks assigned — ready for development" --initiative "$initiative_slug"
