@@ -247,36 +247,40 @@ process_queue() {
     local status
     status="$(read_yaml_field "$initiative_file" 'status')"
 
+    local title
+    title="$(read_yaml_field "$initiative_file" 'title')"
+    title="${title:-$slug}"
+
     case "$status" in
       QUEUED)
         log_info "Detected queued initiative: $slug"
-        notify "transition" "QUEUED → PM_IN_PROGRESS" --initiative "$slug"
+        notify "transition" "Starting product definition for ${title}" --initiative "$slug"
         launch_pm_agent "$slug"
         ;;
       PRD_COMPLETE)
         log_info "Detected PRD complete for: $slug"
-        notify "transition" "PRD_COMPLETE → PJM_IN_PROGRESS" --initiative "$slug"
+        notify "transition" "PRD complete for ${title} — handing off to project planning" --initiative "$slug"
         launch_pjm_agent "$slug"
         ;;
       READY_FOR_DEV)
         log_info "Detected ready-for-dev: $slug — checking assignments"
-        notify "transition" "READY_FOR_DEV — assigning developers" --initiative "$slug"
+        notify "transition" "${title} is ready for development — assigning engineers" --initiative "$slug"
         process_assignments
         ;;
       DEV_COMPLETE)
         log_info "Detected dev complete for: $slug"
-        notify "transition" "DEV_COMPLETE → REVIEW" --initiative "$slug"
+        notify "transition" "Development complete for ${title} — starting code review" --initiative "$slug"
         launch_review_agent "$slug"
         ;;
       REVIEW_READY)
         log_info "Initiative $slug is ready for human review"
-        notify "transition" "REVIEW_READY — awaiting human review" --initiative "$slug"
+        notify "progress" "${title} is ready for your review — branch is waiting in Cursor" --initiative "$slug"
         ;;
       BLOCKED)
         local reason
         reason="$(read_yaml_field "$initiative_file" 'blocker')"
         log_warn "Initiative $slug is BLOCKED: $reason"
-        notify "alert" "Initiative BLOCKED: $reason" --initiative "$slug"
+        notify "alert" "${title} is blocked: ${reason}" --initiative "$slug"
         ;;
       PM_IN_PROGRESS|PJM_IN_PROGRESS|DEV_IN_PROGRESS|REVIEW_IN_PROGRESS)
         log_debug "Initiative $slug is in progress ($status)"
@@ -504,6 +508,8 @@ main() {
 
   local consecutive_errors=0
   local poll_count=0
+  local was_idle=false
+  local was_all_blocked=false
 
   while true; do
     if (( consecutive_errors >= 5 )); then
@@ -535,12 +541,60 @@ main() {
     # Reconcile initiative directories with STATUS.yaml state
     "${FRAMEWORK_DIR}/scripts/sync-initiatives.sh" "$CONFIG_FILE" --quiet --no-tracker 2>/dev/null || true
 
+    # --- Idle / All-Blocked Detection ---
+    local active_count
+    active_count="$(count_active_developers)"
+    local pending_count=0
+    local blocked_count=0
+    local review_count=0
+
+    for f in "$QUEUE_DIR"/*.yaml; do
+      [[ -f "$f" ]] || continue
+      local st
+      st="$(read_yaml_field "$f" 'status')"
+      case "$st" in
+        BLOCKED) ((blocked_count++)) ;;
+        REVIEW_READY|DEV_COMPLETE) ((review_count++)) ;;
+      esac
+    done
+
+    for f in "$DECISIONS_DIR"/*.md; do
+      [[ -f "$f" ]] || continue
+      local res
+      res="$(sed -n '/^## Resolution/,/^##/p' "$f" 2>/dev/null | grep -v '^##' | tr -d '[:space:]')"
+      [[ -z "$res" ]] && ((pending_count++))
+    done 2>/dev/null
+
+    # All agents idle — send a wrap-up summary (once)
+    if (( active_count == 0 )) && ! $was_idle; then
+      was_idle=true
+      local summary="All agents are idle."
+      (( review_count > 0 )) && summary+=" ${review_count} branch(es) ready for your review."
+      (( pending_count > 0 )) && summary+=" ${pending_count} decision(s) waiting on you."
+      (( blocked_count > 0 )) && summary+=" ${blocked_count} item(s) blocked."
+      (( review_count == 0 && pending_count == 0 && blocked_count == 0 )) && summary+=" Nothing needs your attention — all clear."
+      notify "report" "$summary"
+      log_info "$summary"
+    elif (( active_count > 0 )); then
+      was_idle=false
+    fi
+
+    # Everything blocked — escalate (once)
+    if (( blocked_count > 0 && active_count == 0 && pending_count > 0 )) && ! $was_all_blocked; then
+      was_all_blocked=true
+      notify "alert" "Work is stalled — ${pending_count} decision(s) need your input before agents can continue. Check Slack threads or .deliberate/decisions/"
+    elif (( blocked_count == 0 || active_count > 0 )); then
+      was_all_blocked=false
+    fi
+
     # Write orchestrator heartbeat
     cat > "${STATUS_DIR}/orchestrator.yaml" <<EOF
 status: "running"
 last_poll: "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-active_developers: $(count_active_developers)
-pending_decisions: $(ls "$DECISIONS_DIR"/*.md 2>/dev/null | wc -l | tr -d ' ')
+active_developers: ${active_count}
+pending_decisions: ${pending_count}
+blocked: ${blocked_count}
+review_ready: ${review_count}
 poll_count: ${poll_count}
 slack_enabled: ${SLACK_ENABLED}
 EOF

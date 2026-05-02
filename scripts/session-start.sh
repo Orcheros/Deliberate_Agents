@@ -2,20 +2,43 @@
 #
 # session-start.sh — Housekeeping at the start of every Claude Code session
 #
-# Called by the SessionStart hook. Handles sleep prevention, Slack bot,
-# and time-awareness so the human doesn't have to remember anything.
+# Called by the SessionStart hook. Handles:
+#   1. Detect available project configs
+#   2. Sleep prevention (caffeinate, overnight detection)
+#   3. Slack bot launch
+#   4. Project briefing (what needs attention, what's in progress)
 #
-# Outputs JSON with a systemMessage for Claude to act on.
+# Outputs JSON with a systemMessage instructing Claude on what to do next.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FRAMEWORK_DIR="$(dirname "$SCRIPT_DIR")"
-CONFIG_FILE="${FRAMEWORK_DIR}/config.henry.yaml"
 
 STATUS_LINES=()
 HOUR=$(date +%H)
 IS_LATE="false"
+
+# --- Discover Projects --------------------------------------------------------
+
+discover_projects() {
+  local projects=()
+  for f in "$FRAMEWORK_DIR"/config.*.yaml; do
+    [[ -f "$f" ]] || continue
+    local basename
+    basename="$(basename "$f")"
+    [[ "$basename" == "config.example.yaml" ]] && continue
+    local name
+    name=$(grep -E "^[[:space:]]*name:" "$f" | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'")
+    local slug
+    slug=$(echo "$basename" | sed 's/^config\.\(.*\)\.yaml$/\1/')
+    projects+=("${slug}:${name}")
+  done
+  echo "${projects[*]}"
+}
+
+PROJECTS="$(discover_projects)"
+PROJECT_COUNT=$(echo "$PROJECTS" | wc -w | tr -d ' ')
 
 # --- Sleep Prevention ---------------------------------------------------------
 
@@ -36,58 +59,96 @@ if (( HOUR >= 22 || HOUR < 5 )); then
   IS_LATE="true"
 fi
 
-# --- Slack Bot ----------------------------------------------------------------
+# --- Slack Bot (start for each project that has it enabled) -------------------
 
-start_slack() {
-  if [[ ! -f "$CONFIG_FILE" ]]; then
-    STATUS_LINES+=("Slack bot: no config file found")
-    return
-  fi
+start_slack_for_config() {
+  local config_file="$1"
+  local project_name="$2"
 
   local slack_enabled
-  slack_enabled=$(grep -E "^[[:space:]]*slack_enabled:" "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'")
+  slack_enabled=$(grep -E "^[[:space:]]*slack_enabled:" "$config_file" 2>/dev/null | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'")
 
   if [[ "${slack_enabled:-false}" != "true" ]]; then
-    STATUS_LINES+=("Slack bot: disabled in config")
     return
   fi
 
   local tmux_session
-  tmux_session=$(grep -E "^[[:space:]]*tmux_session:" "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'")
+  tmux_session=$(grep -E "^[[:space:]]*tmux_session:" "$config_file" 2>/dev/null | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'")
   tmux_session="${tmux_session:-deliberate}"
 
-  # Ensure tmux session exists
   if ! tmux has-session -t "$tmux_session" 2>/dev/null; then
     tmux new-session -d -s "$tmux_session"
   fi
 
-  # Check if already running
   if tmux list-windows -t "$tmux_session" 2>/dev/null | grep -q "slack-bot"; then
-    STATUS_LINES+=("Slack bot: already running in $tmux_session:slack-bot")
+    STATUS_LINES+=("Slack ($project_name): already running")
     return
   fi
 
   local slack_start="${FRAMEWORK_DIR}/integrations/slack/start.sh"
   if [[ -x "$slack_start" ]]; then
     local result
-    result=$("$slack_start" "$CONFIG_FILE" 2>&1 | tail -1)
-    STATUS_LINES+=("Slack bot: $result")
-  else
-    STATUS_LINES+=("Slack bot: start.sh not found")
+    result=$("$slack_start" "$config_file" 2>&1 | tail -1)
+    STATUS_LINES+=("Slack ($project_name): $result")
   fi
 }
 
-start_slack
+for pair in $PROJECTS; do
+  slug="${pair%%:*}"
+  name="${pair#*:}"
+  start_slack_for_config "${FRAMEWORK_DIR}/config.${slug}.yaml" "$name"
+done
+
+# --- Briefings ----------------------------------------------------------------
+
+BRIEFINGS=""
+BRIEFING_SCRIPT="${FRAMEWORK_DIR}/orchestration/briefing.sh"
+
+if [[ -x "$BRIEFING_SCRIPT" ]]; then
+  for pair in $PROJECTS; do
+    slug="${pair%%:*}"
+    name="${pair#*:}"
+    config_file="${FRAMEWORK_DIR}/config.${slug}.yaml"
+    briefing=$("$BRIEFING_SCRIPT" "$config_file" 2>/dev/null || echo "(no state directory found for $name — this project may not have been initialized yet)")
+    BRIEFINGS+="--- ${name} (config.${slug}.yaml) ---\n${briefing}\n\n"
+  done
+fi
 
 # --- Build System Message -----------------------------------------------------
 
 STATUS=$(printf '%s\n' "${STATUS_LINES[@]}")
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M %Z')
 
+MSG="Session started at ${TIMESTAMP}.\n\n"
+
+# Time awareness
 if [[ "$IS_LATE" == "true" ]]; then
-  MSG="Session started at ${TIMESTAMP}. It's after 10 PM — before beginning work, ask the user if they plan to run overnight. If yes, run \`sudo pmset -c sleep 0 && sudo pmset -c displaysleep 0 && sudo pmset -c disksleep 0 && sudo pmset -c powernap 0 && sudo pmset -c hibernatemode 0\` to prevent sleep, then proceed. If no, caffeinate is already running and will keep things awake for this session. Either way, do NOT ask the user to run commands — handle it yourself.\n\nStartup status:\n${STATUS}"
-else
-  MSG="Session started at ${TIMESTAMP}. Housekeeping complete — caffeinate and Slack bot are handled. Proceed with the user's work.\n\nStartup status:\n${STATUS}"
+  MSG+="It's after 10 PM. Before beginning work, ask the user if they plan to run overnight. If yes, run \`sudo pmset -c sleep 0 && sudo pmset -c displaysleep 0 && sudo pmset -c disksleep 0 && sudo pmset -c powernap 0 && sudo pmset -c hibernatemode 0\` to keep the Mac awake all night. If no, caffeinate is already handling it for this session. Do NOT ask the user to run commands — handle it yourself.\n\n"
 fi
+
+# Project selection
+if [[ "$PROJECT_COUNT" -eq 0 ]]; then
+  MSG+="No project configs found. Ask the user which project they'd like to work on, then help them create a config file.\n\n"
+elif [[ "$PROJECT_COUNT" -eq 1 ]]; then
+  slug="${PROJECTS%%:*}"
+  name="${PROJECTS#*:}"
+  MSG+="One project available: ${name}. Ask the user to confirm this is the project they want to work on today, then present the briefing below and ask what they'd like to focus on.\n\n"
+else
+  MSG+="Multiple projects available. Ask the user which project they'd like to work on today:\n"
+  for pair in $PROJECTS; do
+    slug="${pair%%:*}"
+    name="${pair#*:}"
+    MSG+="  - ${name} (config.${slug}.yaml)\n"
+  done
+  MSG+="\nOnce they choose, present that project's briefing and ask what they'd like to focus on.\n\n"
+fi
+
+# Briefings
+if [[ -n "$BRIEFINGS" ]]; then
+  MSG+="PROJECT BRIEFINGS:\n\n${BRIEFINGS}"
+fi
+
+# System status
+MSG+="Startup status:\n${STATUS}\n"
 
 printf '%s' "$MSG" | jq -Rs '{"systemMessage": .}'
