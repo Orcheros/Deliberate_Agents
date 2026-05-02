@@ -211,13 +211,15 @@ LOG_FILE="${DELIBERATE_DIR}/logs/${WINDOW_NAME}-$(date +%Y%m%d-%H%M%S).log"
 CONTEXT_FILE="$(mktemp)"
 echo -e "$CONTEXT" > "$CONTEXT_FILE"
 
+# Unset ANTHROPIC_API_KEY so Claude uses the Max subscription, not API credits.
+# --dangerously-skip-permissions avoids blocking on permission prompts in headless tmux.
 tmux new-window -t "$TMUX_SESSION" -n "$WINDOW_NAME" \
-  "cd '$WORK_DIR' && claude --print \
+  "cd '$WORK_DIR' && unset ANTHROPIC_API_KEY && claude \
     --agent $ROLE \
-    --permission-mode auto \
+    --dangerously-skip-permissions \
     --max-turns $MAX_TURNS \
     --append-system-prompt \"\$(cat '$CONTEXT_FILE')\" \
-    'Begin your assigned task. Read your assignment/state file first.' \
+    -p 'Begin your assigned task. Read your assignment/state file first.' \
     2>&1 | tee '$LOG_FILE'; echo 'Agent session ended. Press enter to close.'; read"
 
 # Clean up context file after a delay (tmux needs it briefly)

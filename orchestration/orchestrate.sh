@@ -21,6 +21,9 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
   exit 1
 fi
 
+# Resolve to absolute path so tmux subprocesses don't break on cwd changes
+CONFIG_FILE="$(cd "$(dirname "$CONFIG_FILE")" && pwd)/$(basename "$CONFIG_FILE")"
+
 # Parse YAML config (simple key extraction — no yq dependency)
 parse_yaml() {
   local key="$1"
@@ -112,49 +115,32 @@ agent_window_exists() {
   tmux list-windows -t "$TMUX_SESSION" 2>/dev/null | grep -q "$window_name"
 }
 
-# --- Agent Launchers ----------------------------------------------------------
+# --- Agent Launcher (generic) -------------------------------------------------
 
-launch_pm_agent() {
-  local initiative_slug="$1"
+launch_agent() {
+  local role="$1"
+  local initiative_slug="$2"
+  local new_status="$3"
   local initiative_file="${QUEUE_DIR}/${initiative_slug}.yaml"
-  local window_name="pm-${initiative_slug}"
+  local window_name="${role}-${initiative_slug}"
 
   if agent_window_exists "$window_name"; then
-    log_debug "PM agent already running for $initiative_slug"
+    log_debug "${role} agent already running for $initiative_slug"
     return
   fi
 
-  log_info "Launching Product Manager agent for initiative: $initiative_slug"
+  local title
+  title="$(read_yaml_field "$initiative_file" 'title')"
+  title="${title:-$initiative_slug}"
 
-  write_yaml_field "$initiative_file" "status" "PM_IN_PROGRESS"
+  log_info "Launching ${role} agent for: ${title}"
+
+  write_yaml_field "$initiative_file" "status" "$new_status"
 
   "${SCRIPT_DIR}/launch-agent.sh" \
     --session "$TMUX_SESSION" \
     --window "$window_name" \
-    --role "product-manager" \
-    --initiative "$initiative_slug" \
-    --config "$CONFIG_FILE" \
-    --framework-dir "$FRAMEWORK_DIR"
-}
-
-launch_pjm_agent() {
-  local initiative_slug="$1"
-  local initiative_file="${QUEUE_DIR}/${initiative_slug}.yaml"
-  local window_name="pjm-${initiative_slug}"
-
-  if agent_window_exists "$window_name"; then
-    log_debug "PjM agent already running for $initiative_slug"
-    return
-  fi
-
-  log_info "Launching Project Manager agent for initiative: $initiative_slug"
-
-  write_yaml_field "$initiative_file" "status" "PJM_IN_PROGRESS"
-
-  "${SCRIPT_DIR}/launch-agent.sh" \
-    --session "$TMUX_SESSION" \
-    --window "$window_name" \
-    --role "project-manager" \
+    --role "$role" \
     --initiative "$initiative_slug" \
     --config "$CONFIG_FILE" \
     --framework-dir "$FRAMEWORK_DIR"
@@ -188,26 +174,6 @@ launch_dev_agent() {
     --framework-dir "$FRAMEWORK_DIR"
 }
 
-launch_review_agent() {
-  local initiative_slug="$1"
-  local window_name="review-${initiative_slug}"
-
-  if agent_window_exists "$window_name"; then
-    log_debug "Review agent already running for $initiative_slug"
-    return
-  fi
-
-  log_info "Launching review agent for initiative: $initiative_slug"
-
-  "${SCRIPT_DIR}/launch-agent.sh" \
-    --session "$TMUX_SESSION" \
-    --window "$window_name" \
-    --role "reviewer" \
-    --initiative "$initiative_slug" \
-    --config "$CONFIG_FILE" \
-    --framework-dir "$FRAMEWORK_DIR"
-}
-
 launch_specialist_agent() {
   local agent_type="$1"
   local worktree_name="$2"
@@ -234,11 +200,100 @@ launch_specialist_agent() {
     --framework-dir "$FRAMEWORK_DIR"
 }
 
+# --- Check if any initiative agent is currently running -----------------------
+
+any_initiative_agent_running() {
+  # Check for any product-pipeline agent window (pm-, architect-, designer-, scrum-)
+  tmux list-windows -t "$TMUX_SESSION" 2>/dev/null | \
+    grep -qE "(pm-|architect-|product-designer-|scrum-master-|project-manager-)" && return 0
+  return 1
+}
+
+get_active_initiative() {
+  # Return the slug of the initiative currently being processed
+  for initiative_file in "$QUEUE_DIR"/*.yaml; do
+    [[ -f "$initiative_file" ]] || continue
+    local status
+    status="$(read_yaml_field "$initiative_file" 'status')"
+    case "$status" in
+      PM_IN_PROGRESS|ARCH_IN_PROGRESS|DESIGN_IN_PROGRESS|SCRUM_IN_PROGRESS|PJM_IN_PROGRESS)
+        basename "$initiative_file" .yaml
+        return
+        ;;
+    esac
+  done
+}
+
+# --- Detect agent completion (window gone = agent finished) -------------------
+
+check_agent_completion() {
+  local initiative_slug="$1"
+  local initiative_file="${QUEUE_DIR}/${initiative_slug}.yaml"
+  local status
+  status="$(read_yaml_field "$initiative_file" 'status')"
+  local title
+  title="$(read_yaml_field "$initiative_file" 'title')"
+  title="${title:-$initiative_slug}"
+
+  case "$status" in
+    PM_IN_PROGRESS)
+      if ! agent_window_exists "pm-${initiative_slug}" && \
+         ! agent_window_exists "product-manager-${initiative_slug}"; then
+        log_info "PM agent finished for ${title}"
+        write_yaml_field "$initiative_file" "status" "PRD_COMPLETE"
+        notify "transition" "PRD complete for ${title} — launching architect" --initiative "$initiative_slug"
+      fi
+      ;;
+    ARCH_IN_PROGRESS)
+      if ! agent_window_exists "architect-${initiative_slug}"; then
+        log_info "Architect agent finished for ${title}"
+        write_yaml_field "$initiative_file" "status" "ARCH_COMPLETE"
+        notify "transition" "Architecture doc complete for ${title} — launching designer" --initiative "$initiative_slug"
+      fi
+      ;;
+    DESIGN_IN_PROGRESS)
+      if ! agent_window_exists "product-designer-${initiative_slug}"; then
+        log_info "Designer agent finished for ${title}"
+        write_yaml_field "$initiative_file" "status" "DESIGN_COMPLETE"
+        notify "transition" "Design brief complete for ${title} — launching scrum master" --initiative "$initiative_slug"
+      fi
+      ;;
+    SCRUM_IN_PROGRESS)
+      if ! agent_window_exists "scrum-master-${initiative_slug}"; then
+        log_info "Scrum master finished for ${title}"
+        write_yaml_field "$initiative_file" "status" "SPECIFIED"
+        notify "progress" "${title} is fully specified — ready for handoff to Design or Engineering" --initiative "$initiative_slug"
+      fi
+      ;;
+    PJM_IN_PROGRESS)
+      if ! agent_window_exists "project-manager-${initiative_slug}"; then
+        log_info "Project Manager finished for ${title}"
+        write_yaml_field "$initiative_file" "status" "READY_FOR_DEV"
+        notify "transition" "${title} has tasks assigned — ready for development" --initiative "$initiative_slug"
+      fi
+      ;;
+  esac
+}
+
 # --- Poll Functions -----------------------------------------------------------
 
 process_queue() {
   [[ -d "$QUEUE_DIR" ]] || return
 
+  # Check if the active initiative's agent finished and advance the pipeline
+  local active_slug
+  active_slug="$(get_active_initiative)"
+  if [[ -n "$active_slug" ]]; then
+    check_agent_completion "$active_slug"
+  fi
+
+  # If an agent is still running, don't launch anything new
+  if any_initiative_agent_running; then
+    return
+  fi
+
+  # Find the current active initiative (may have just advanced to a new state)
+  # or pick the next QUEUED one
   for initiative_file in "$QUEUE_DIR"/*.yaml; do
     [[ -f "$initiative_file" ]] || continue
 
@@ -246,48 +301,85 @@ process_queue() {
     slug="$(basename "$initiative_file" .yaml)"
     local status
     status="$(read_yaml_field "$initiative_file" 'status')"
-
     local title
     title="$(read_yaml_field "$initiative_file" 'title')"
     title="${title:-$slug}"
 
     case "$status" in
+
+      # --- Product Pipeline (serial, one initiative at a time) ---
+
       QUEUED)
-        log_info "Detected queued initiative: $slug"
+        log_info "Starting product pipeline for: ${title}"
         notify "transition" "Starting product definition for ${title}" --initiative "$slug"
-        launch_pm_agent "$slug"
+        launch_agent "product-manager" "$slug" "PM_IN_PROGRESS"
+        return  # Only one at a time
         ;;
+
       PRD_COMPLETE)
-        log_info "Detected PRD complete for: $slug"
-        notify "transition" "PRD complete for ${title} — handing off to project planning" --initiative "$slug"
-        launch_pjm_agent "$slug"
+        log_info "Advancing ${title} to architecture"
+        launch_agent "architect" "$slug" "ARCH_IN_PROGRESS"
+        return
         ;;
+
+      ARCH_COMPLETE)
+        log_info "Advancing ${title} to design"
+        launch_agent "product-designer" "$slug" "DESIGN_IN_PROGRESS"
+        return
+        ;;
+
+      DESIGN_COMPLETE)
+        log_info "Advancing ${title} to scrum breakdown"
+        launch_agent "scrum-master" "$slug" "SCRUM_IN_PROGRESS"
+        return
+        ;;
+
+      SPECIFIED)
+        log_info "${title} is fully specified — awaiting handoff decision"
+        notify "progress" "${title} is fully specified. Handoff artifacts are ready — assign to Design (Claude Design) or Engineering when ready." --initiative "$slug"
+        write_yaml_field "$initiative_file" "status" "AWAITING_HANDOFF"
+        ;;
+
+      AWAITING_HANDOFF)
+        log_debug "${title} is awaiting handoff decision"
+        ;;
+
+      # --- Engineering Pipeline (after handoff) ---
+
       READY_FOR_DEV)
-        log_info "Detected ready-for-dev: $slug — checking assignments"
+        log_info "${title} ready for dev — checking assignments"
         notify "transition" "${title} is ready for development — assigning engineers" --initiative "$slug"
         process_assignments
         ;;
+
       DEV_COMPLETE)
-        log_info "Detected dev complete for: $slug"
+        log_info "Dev complete for ${title}"
         notify "transition" "Development complete for ${title} — starting code review" --initiative "$slug"
-        launch_review_agent "$slug"
+        launch_agent "reviewer" "$slug" "REVIEW_IN_PROGRESS"
+        return
         ;;
+
       REVIEW_READY)
-        log_info "Initiative $slug is ready for human review"
+        log_info "${title} ready for human review"
         notify "progress" "${title} is ready for your review — branch is waiting in Cursor" --initiative "$slug"
         ;;
+
       BLOCKED)
         local reason
         reason="$(read_yaml_field "$initiative_file" 'blocker')"
-        log_warn "Initiative $slug is BLOCKED: $reason"
+        log_warn "${title} is BLOCKED: $reason"
         notify "alert" "${title} is blocked: ${reason}" --initiative "$slug"
         ;;
-      PM_IN_PROGRESS|PJM_IN_PROGRESS|DEV_IN_PROGRESS|REVIEW_IN_PROGRESS)
-        log_debug "Initiative $slug is in progress ($status)"
+
+      PM_IN_PROGRESS|ARCH_IN_PROGRESS|DESIGN_IN_PROGRESS|SCRUM_IN_PROGRESS|\
+      PJM_IN_PROGRESS|DEV_IN_PROGRESS|REVIEW_IN_PROGRESS)
+        log_debug "${title} is in progress ($status)"
         ;;
+
       COMPLETE)
-        log_debug "Initiative $slug is complete"
+        log_debug "${title} is complete"
         ;;
+
       *)
         log_warn "Unknown status '$status' for initiative $slug"
         ;;

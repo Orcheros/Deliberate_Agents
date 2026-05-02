@@ -2,6 +2,14 @@
 #
 # Copy this file and customize for your project.
 # See docs/CUSTOMIZATION.md for details on each setting.
+#
+# Product Pipeline (serial, one initiative at a time):
+#   QUEUED → PM → PRD_COMPLETE → Architect → ARCH_COMPLETE →
+#   Designer → DESIGN_COMPLETE → Scrum Master → SPECIFIED →
+#   AWAITING_HANDOFF (human decides: Design or Engineering)
+#
+# Engineering Pipeline (parallel, up to max_concurrent_developers):
+#   READY_FOR_DEV → Developer(s) → DEV_COMPLETE → Reviewer → REVIEW_READY
 
 project:
   name: "My Project"

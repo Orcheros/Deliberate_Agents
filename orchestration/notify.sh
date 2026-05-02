@@ -50,7 +50,7 @@ done
 
 parse_yaml() {
   local key="$1"
-  grep -E "^[[:space:]]*${key}:" "$CONFIG_FILE" | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'"
+  grep -E "^[[:space:]]*${key}:" "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'" || true
 }
 
 SLACK_WEBHOOK="$(parse_yaml 'slack_webhook_url')"
@@ -80,14 +80,51 @@ emoji_for_type() {
   esac
 }
 
-# --- Slack Posting (Webhook) --------------------------------------------------
+# --- Slack Posting (Bot API) --------------------------------------------------
+
+post_via_bot() {
+  local text="$1"
+  local thread="${2:-}"
+
+  [[ "$SLACK_ENABLED" == "true" ]] || return 0
+
+  # Resolve bot token from env or config
+  local token="${SLACK_BOT_TOKEN:-}"
+  if [[ -z "$token" ]]; then
+    token="$(parse_yaml 'slack_bot_token')"
+  fi
+  [[ -n "$token" ]] || return 0
+
+  local payload
+  if [[ -n "$thread" ]]; then
+    payload=$(jq -n \
+      --arg channel "$SLACK_CHANNEL" \
+      --arg text "$text" \
+      --arg thread "$thread" \
+      '{channel: $channel, text: $text, thread_ts: $thread, unfurl_links: false}')
+  else
+    payload=$(jq -n \
+      --arg channel "$SLACK_CHANNEL" \
+      --arg text "$text" \
+      '{channel: $channel, text: $text, unfurl_links: false}')
+  fi
+
+  curl -s -X POST "https://slack.com/api/chat.postMessage" \
+    -H "Authorization: Bearer ${token}" \
+    -H "Content-Type: application/json" \
+    -d "$payload" \
+    --max-time 5 \
+    > /dev/null 2>&1 || true
+}
+
+# --- Slack Posting (Webhook — fallback) ---------------------------------------
 
 post_via_webhook() {
   local text="$1"
   local thread="${2:-}"
 
   [[ "$SLACK_ENABLED" == "true" ]] || return 0
-  [[ -n "$SLACK_WEBHOOK" ]] || return 0
+  [[ -n "$SLACK_WEBHOOK" ]] || { post_via_bot "$text" "$thread"; return; }
 
   local payload
   if [[ -n "$thread" ]]; then
