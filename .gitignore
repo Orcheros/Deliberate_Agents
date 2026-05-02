@@ -19,3 +19,7 @@
 # Project configs (contain machine-specific paths)
 config.*.yaml
 !config.example.yaml
+
+# Secrets
+.env
+!.env.example
