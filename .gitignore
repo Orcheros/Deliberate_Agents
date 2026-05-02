@@ -20,6 +20,9 @@
 config.*.yaml
 !config.example.yaml
 
+# Claude Code local settings (machine-specific)
+.claude/settings.local.json
+
 # Secrets
 .env
 !.env.example

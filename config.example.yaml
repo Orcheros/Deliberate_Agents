@@ -21,6 +21,7 @@ orchestration:
   tmux_session: "deliberate-my-project"
   log_dir: ".deliberate/logs"
   report_interval_cycles: 10  # Post a full Slack report every N poll cycles
+  wake_mode: "day"            # day = caffeinate (auto), night = pmset (requires sudo setup)
 
 notifications:
   slack_enabled: false            # Set to true to enable Slack integration

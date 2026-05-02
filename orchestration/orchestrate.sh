@@ -551,6 +551,11 @@ EOF
 
 # --- Entry Point --------------------------------------------------------------
 
-trap 'log_info "Orchestrator shutting down"; exit 0' SIGTERM SIGINT
+trap 'log_info "Orchestrator shutting down"; kill 0 2>/dev/null; exit 0' SIGTERM SIGINT
+
+# Prevent macOS sleep for the duration of this process
+caffeinate -dimsu -w $$ &
+CAFF_PID=$!
+log_info "caffeinate active (PID $CAFF_PID) — Mac will stay awake"
 
 main
