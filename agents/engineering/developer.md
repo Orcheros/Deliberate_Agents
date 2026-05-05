@@ -10,6 +10,7 @@ skills:
   - dev-implement
   - dev-test
   - dev-complete
+  - tailwind-design-system
 effort: high
 ---
 

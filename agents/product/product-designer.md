@@ -5,6 +5,8 @@ tools: Bash, Read, Write, Edit, Glob, Grep
 model: opus
 permissionMode: auto
 maxTurns: 80
+skills:
+  - tailwind-design-system
 effort: high
 ---
 
