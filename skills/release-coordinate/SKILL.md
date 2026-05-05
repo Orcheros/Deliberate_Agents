@@ -34,6 +34,12 @@ Shepherd the release through pre-deploy checks, team coordination, and go/no-go 
    - Write recommendation to `.deliberate/decisions/release-{version}-go-no-go.md`
    - This requires human approval before proceeding
 
+   **Hotfix protocol** (when a post-deploy issue needs urgent fix):
+   - Determine hotfix severity (see `/release-verify` for classification)
+   - **Hotfix-Critical**: Create `hotfix/{version}-{description}` branch from release tag, assign developer, bypass normal sprint process, require abbreviated QA (smoke tests + affected area only), deploy independently
+   - **Hotfix-Standard**: Cherry-pick to staging, fast-track through QA, bundle with next scheduled deploy
+   - Document all hotfixes in the release record — every hotfix indicates a gap in pre-deploy validation
+
 4. **Post-deploy coordination** (after human approves):
    - Monitor Release Engineer's deployment execution
    - Coordinate Release Comms to send announcements

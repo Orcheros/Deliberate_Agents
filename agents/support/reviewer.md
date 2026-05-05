@@ -8,6 +8,7 @@ maxTurns: 60
 skills:
   - review-validate
   - review-summarize
+  - api-design-review
 effort: high
 ---
 

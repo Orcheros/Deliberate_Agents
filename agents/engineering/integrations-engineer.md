@@ -9,6 +9,7 @@ skills:
   - integrations-assess
   - integrations-configure
   - integrations-verify
+  - stripe-lifecycle
 effort: high
 ---
 
