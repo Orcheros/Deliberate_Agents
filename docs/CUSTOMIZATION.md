@@ -156,7 +156,7 @@ The orchestrator (`orchestration/orchestrate.sh`) behavior is controlled by the 
 
 ### Current Agent Roster
 
-The framework ships with 14 agents. See `docs/ARCHITECTURE.md` for the full list with descriptions and skill mappings.
+The framework ships with 30 agents across 7 teams, backed by 99 skills. See `docs/ARCHITECTURE.md` for the full list with descriptions and skill mappings.
 
 ### Agent Type Routing
 

@@ -14,6 +14,7 @@ skills:
   - pm-cross-functional
   - pm-ready-for-dev
   - competitive-teardown
+  - design-before-code
 effort: high
 ---
 

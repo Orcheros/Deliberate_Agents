@@ -33,6 +33,24 @@ Execute these skills in order:
 1. `/review-validate` — Verify acceptance criteria are met
 2. `/review-summarize` — Write review summary for human
 
+### Review Intensity Protocol
+
+**Standard work** (most tasks): Run `/review-validate` and `/review-summarize` automatically. This is the default.
+
+**High-risk work** (major refactors, large feature branches, risky changes): Before starting review, classify the risk level. If HIGH risk, **create a decision file** asking the human:
+
+> "This initiative involves [describe risk]. Should I run standard /review or /ultrareview?"
+
+Post via Slack if the human is remote. **NEVER run /ultrareview without explicit human approval** — it has real cost.
+
+Risk indicators that trigger the question:
+- 10+ files changed across multiple domains
+- Database schema changes affecting existing data
+- Authentication/authorization changes
+- Payment/billing flow modifications
+- Public API contract changes
+- Core model refactors touching 3+ dependent models
+
 ## Inputs
 
 - A PRD for the initiative being reviewed

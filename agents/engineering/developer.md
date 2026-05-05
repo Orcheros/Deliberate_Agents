@@ -11,6 +11,8 @@ skills:
   - dev-test
   - dev-complete
   - tailwind-design-system
+  - systematic-debugging
+  - code-simplify
 effort: high
 ---
 

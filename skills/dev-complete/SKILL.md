@@ -12,7 +12,15 @@ Produce clean, atomic commits and signal task completion.
 
 ## Instructions
 
-1. **Review your changes**:
+1. **Verification gate** — Before claiming work is complete, verify with FRESH evidence:
+   - Run the full test suite right now (not "I ran it earlier")
+   - Read the acceptance criteria one more time — check each item against your actual code
+   - If any criterion isn't met, go back and implement it
+   - If you can't verify a criterion (e.g., visual behavior without a browser), say so explicitly
+
+   **Iron Law: No completion claims without fresh verification evidence.**
+
+2. **Review your changes**:
    ```bash
    git diff
    git status
@@ -21,7 +29,7 @@ Produce clean, atomic commits and signal task completion.
    - Any debug output left in?
    - Any files that shouldn't be committed (`.env`, temp files)?
 
-2. **Stage and commit**:
+3. **Stage and commit**:
    - Group related changes into atomic commits
    - Use the commit message format:
      ```
@@ -34,13 +42,13 @@ Produce clean, atomic commits and signal task completion.
      ```
    - Separate structural changes (migrations, routes) from behavioral changes (models, controllers) if it makes sense
 
-3. **Final test run**:
+4. **Final test run**:
    ```bash
    bin/rails test
    ```
    Confirm all tests still pass after committing.
 
-4. **Update your assignment status** in `.deliberate/assignments/{worktree}.md`:
+5. **Update your assignment status** in `.deliberate/assignments/{worktree}.md`:
 
    Add a `## Completion` section at the end:
    ```markdown
@@ -53,7 +61,7 @@ Produce clean, atomic commits and signal task completion.
    - **Notes**: Any relevant notes for the project manager
    ```
 
-5. **Update your agent status** in `.deliberate/status/developer-{worktree}.md`:
+6. **Update your agent status** in `.deliberate/status/developer-{worktree}.md`:
    ```markdown
    # Status: Developer ({worktree})
 

@@ -10,6 +10,21 @@ allowed-tools: Bash, Read, Write, Edit, Glob, Grep
 
 Verify your implementation works correctly and doesn't break existing functionality.
 
+## TDD Discipline
+
+When implementing new features or fixing bugs, follow Red-Green-Refactor:
+
+1. **Red** — Write a failing test first. The test must fail for the RIGHT reason (testing the behavior you're about to implement, not a syntax error).
+2. **Green** — Write the minimum code to make the test pass. Resist the urge to write the "complete" solution.
+3. **Refactor** — Clean up with full test coverage as your safety net. Run tests after each refactor step.
+
+**Why order matters:** Writing the test first forces you to think about the interface before the implementation. If you write code first, your tests will be biased toward testing what you built rather than what was needed.
+
+Common rationalizations to resist:
+- "I'll write tests after" → Tests become an afterthought and miss edge cases
+- "I already tested it manually" → Manual testing isn't repeatable or reliable
+- "This is too simple to test" → Simple code gets complex fast; the test documents intent
+
 ## Instructions
 
 1. **Write tests using your assignment's test strategy**:

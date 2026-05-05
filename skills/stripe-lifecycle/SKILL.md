@@ -84,6 +84,32 @@ Implement or extend Stripe subscription lifecycle features following the project
    - Use Pay's test helpers and fixtures (`test/fixtures/pay/subscriptions.yml`)
    - Test edge cases: expired trial, failed payment, downgrade with usage above new tier limit
 
+## Stripe API Best Practices
+
+**Deprecated APIs — never use these:**
+
+| API | Status | Use Instead |
+|-----|--------|-------------|
+| Charges API | Never use | PaymentIntents (via Pay gem) |
+| Sources API | Deprecated | PaymentMethods (via Pay gem) |
+| Tokens API | Outdated | Confirmation Tokens / Setup Intents |
+| Card Element | Legacy | Payment Element |
+| Plan object | Deprecated | Price object |
+| Legacy Accounts API (v1) | Deprecated for new | Accounts v2 API (if using Connect) |
+
+**Integration rules:**
+- Never store API keys in source code — use Rails encrypted credentials
+- Prefer restricted API keys (`rk_`) over secret keys (`sk_`) for service-specific access
+- Always verify webhook signatures (Pay gem handles this)
+- Use test mode (`stripe_test_*`) for development and testing
+- Pin to a specific API version in `config/initializers/stripe.rb`
+
+**Security:**
+- Roll compromised API keys immediately
+- Never expose keys in client-side JavaScript
+- Use Stripe.js for all PCI-sensitive operations (card collection)
+- Verify webhook signatures on every request
+
 ## Quality Checks
 
 - [ ] No direct `Stripe::` API calls outside of Pay callbacks and the usage reporting job

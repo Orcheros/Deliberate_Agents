@@ -7,6 +7,8 @@ permissionMode: auto
 maxTurns: 80
 skills:
   - tailwind-design-system
+  - frontend-design-rails
+  - design-before-code
 effort: high
 ---
 

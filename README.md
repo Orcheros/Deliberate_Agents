@@ -32,34 +32,72 @@ The whole process is coordinated by a simple script called the **orchestrator** 
 
 ## The Team
 
-Deliberate Agents comes with 15 specialist agents, each with a specific role:
+Deliberate Agents comes with 30 specialist agents organized into 7 teams, backed by 99 skills:
 
-### Core Pipeline
+### Product Team (definition phase)
 
 | Agent | What They Do |
 |-------|-------------|
 | **Product Manager** | Reads your one-pager and writes a detailed product requirements document (PRD) covering everything the team needs to know |
 | **Architect** | *(When needed)* Creates an architecture document — system design, data models, API contracts, and technical decisions for complex or technical features |
 | **Product Designer** | *(When needed)* Reviews the PRD and arch doc, produces a design study for UI-heavy features. Sends the study to Claude Design for visual execution, then folds the design artifacts back into the product docs |
-| **Project Manager** | Reads the PRD (and arch doc + design artifacts when they exist), breaks it into individual tasks, and assigns each task to the right specialist |
-| **Developer** | Writes the code. Works on one task at a time in an isolated copy of your project (called a "worktree") |
-| **Reviewer** | Checks that the completed work actually matches what was planned. Writes a summary so you know exactly what changed |
+| **Scrum Master** | Bridges product → engineering. Shards PRDs into Epics, Sprints, and Stories |
 
-### Specialists
+### Engineering Team (execution phase)
 
 | Agent | What They Do |
 |-------|-------------|
-| **Integrations Engineer** | Configures third-party tools — CRM, analytics, email providers, payment systems |
+| **Project Manager** | Reads the PRD, breaks it into individual tasks, and assigns each task to the right specialist |
+| **Developer** | Writes the code. Works on one task at a time in an isolated copy of your project (called a "worktree") |
+| **Database Specialist** | Schema design, migrations, indexing, and query performance |
+| **Integrations Engineer** | Configures third-party tools — CRM, analytics, email providers, payment systems (Stripe lifecycle) |
+| **DevOps Engineer** | Sets up CI/CD pipelines, infrastructure, monitoring, observability, and incident command |
+
+### QA Team
+
+| Agent | What They Do |
+|-------|-------------|
+| **QA Lead** | Plans test strategy, assigns test work, coordinates QA across initiatives |
+| **Integration Tester** | Tests cross-system behavior — API contracts, data flows, webhook pipelines |
+| **Security Analyst** | Reviews for security vulnerabilities, dependency audits, incident response |
+| **UX/UI Reviewer** | Validates design fidelity, WCAG 2.1 AA accessibility, responsive behavior |
+
+### Support Team (cross-cutting)
+
+| Agent | What They Do |
+|-------|-------------|
+| **Reviewer** | Checks that completed work matches what was planned. Reviews API design quality. Writes summaries for human review |
+| **Data Analyst** | SaaS metrics, product analytics, cohort analysis, funnel reporting |
+| **Compliance Analyst** | Audits for privacy, legal, and regulatory requirements (GDPR, SOC2). Documents compliance needs |
+| **Help Desk** | Triages support tickets, drafts responses, escalates product issues |
+
+### Release Team
+
+| Agent | What They Do |
+|-------|-------------|
+| **Release Manager** | Plans releases, makes go/no-go recommendations, tracks release metrics, runs retrospectives |
+| **Release Engineer** | Executes deployments — preflight checks, deploy, post-deploy verification and rollback |
+| **Release Comms** | Writes changelogs, release notes, and internal/external announcements |
+| **Release Marketer** | Plans launch campaigns, creates marketing content, measures adoption |
+
+### GTM Team (go-to-market)
+
+| Agent | What They Do |
+|-------|-------------|
+| **Growth Strategist** | Pricing strategy, experiment design, referral programs, competitive analysis |
 | **Content Writer** | Writes copy — email sequences, landing pages, in-app messaging, marketing content |
 | **Technical Writer** | Creates runbooks, API documentation, and internal reference material |
-| **Compliance Analyst** | Audits for privacy, legal, and regulatory requirements. Documents compliance needs |
-| **DevOps Engineer** | Sets up CI/CD pipelines, infrastructure, monitoring, and deployment |
-| **Security Analyst** | Reviews for security vulnerabilities, builds threat models, assesses risks |
 | **Sales Development Rep** | Researches prospects, prepares outreach, maintains pipeline data |
 | **Account Executive Assistant** | Supports deals with proposals, competitive analysis, and account research |
 | **Customer Success** | Monitors account health, identifies churn risks and expansion opportunities |
-| **Onboarding Specialist** | Designs onboarding flows tailored to different customer types |
+| **Onboarding Specialist** | Designs onboarding flows, activation metrics, and trial-to-paid conversion |
 | **SEO Specialist** | Optimizes for search — traditional SEO, featured snippets, AI overviews, and LLM citations |
+
+### Orchestrator
+
+| Agent | What They Do |
+|-------|-------------|
+| **Orchestrator** | Persistent coordinator — manages the initiative queue, daily work log, team routing, and Slack communication |
 
 Each agent knows its role and stays in its lane. The Developer never touches the PRD. The Product Manager never writes code. This prevents conflicts and keeps work organized.
 
@@ -339,7 +377,7 @@ A few terms that come up often:
 |-------|---------------|-------|
 | Foundation | Core agents, orchestration, templates, state protocol | Yes |
 | Native Refactor | Migrated to Claude Code's native agent system | Yes |
-| Full Roster | 15 agents with 38 skills across all business functions | Yes |
+| Full Roster | 30 agents with 99 skills across 7 teams | Yes |
 | Execution | First end-to-end autonomous initiative | Next |
 
 ---

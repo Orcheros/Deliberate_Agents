@@ -50,59 +50,106 @@ This design keeps the coordination layer cheap (zero API cost), deterministic (n
 
 ### AI Agents
 
-Each AI agent runs as an independent Claude Code session using native agent definitions.
+Each AI agent runs as an independent Claude Code session using native agent definitions. 30 agents are organized into 7 teams:
 
-**Core Pipeline Agents:**
+**Product Team** (`agents/product/`):
 
-- **Product Manager** (`.claude/agents/product-manager.md`): Transforms one-pagers into 22-section PRDs with cross-functional requirements for all agent types. Model: opus.
-- **Project Manager** (`.claude/agents/project-manager.md`): Decomposes PRDs into tasks routed by `agent_type` field. Coordinates multi-agent execution.
-- **Developer(s)** (`.claude/agents/developer.md`): Executes code tasks in isolated worktrees. Writes code, runs tests, produces commits. Multiple can run concurrently.
-- **Reviewer** (`.claude/agents/reviewer.md`): Validates completed work against acceptance criteria. Read-only tools.
+- **Product Manager**: Transforms one-pagers into 22-section PRDs with cross-functional requirements. Model: opus.
+- **Architect**: Produces architecture documents with system design, data models, and API contracts.
+- **Product Designer**: Writes design briefs with component specs, accessibility requirements. Flags human for Claude Design artifacts.
+- **Scrum Master**: Bridges product → engineering. Shards PRDs into Epics, Sprints, and Stories.
 
-**Engineering Specialists:**
+**Engineering Team** (`agents/engineering/`):
 
-- **Integrations Engineer** (`.claude/agents/integrations-engineer.md`): Configures SaaS tools — CRM, analytics, lifecycle email, payment, DNS/email auth.
-- **DevOps Engineer** (`.claude/agents/devops-engineer.md`): CI/CD pipelines, infrastructure, monitoring, deployment.
-- **Security Analyst** (`.claude/agents/security-analyst.md`): Threat modeling, security review, vulnerability assessment. Read-only tools.
+- **Project Manager**: Decomposes PRDs into tasks routed by `agent_type` field. Coordinates multi-agent execution.
+- **Developer(s)**: Executes code tasks in isolated worktrees. Writes code, runs tests, produces commits. Multiple can run concurrently.
+- **Database Specialist**: Schema design, migrations, indexing, query performance. PostgreSQL expertise.
+- **Integrations Engineer**: Configures SaaS tools — CRM, analytics, lifecycle email, payment (Stripe), DNS/email auth.
+- **DevOps Engineer**: CI/CD pipelines, infrastructure, monitoring, observability design, incident command.
 
-**Content & Compliance:**
+**QA Team** (`agents/qa/`):
 
-- **Content Writer** (`.claude/agents/content-writer.md`): Copy, email sequences, landing pages, in-app messaging. No Bash access.
-- **Technical Writer** (`.claude/agents/technical-writer.md`): Runbooks, API docs, internal reference material.
-- **Compliance Analyst** (`.claude/agents/compliance-analyst.md`): Privacy, legal, regulatory audit. Cites specific regulations.
+- **QA Lead**: Plans test strategy, assigns test work, coordinates QA across initiatives.
+- **Integration Tester**: Tests cross-system behavior — API contracts, data flows, webhook pipelines.
+- **Security Analyst**: Threat modeling, security review, dependency audits, incident response. Read-only tools.
+- **UX/UI Reviewer**: Validates design fidelity, WCAG 2.1 AA accessibility, responsive behavior.
 
-**GTM & Customer Operations:**
+**Support Team** (`agents/support/`):
 
-- **Sales Development Rep** (`.claude/agents/sales-development-rep.md`): Prospect research, outreach preparation, pipeline maintenance.
-- **Account Executive Assistant** (`.claude/agents/account-executive-assistant.md`): Deal support, proposals, competitive analysis, pre-call briefs.
-- **Customer Success** (`.claude/agents/customer-success.md`): Account health monitoring (Green/Yellow/Red), churn/expansion signals.
-- **Onboarding Specialist** (`.claude/agents/onboarding-specialist.md`): Per-ICP onboarding flows, activation metrics, email-product coordination.
+- **Reviewer**: Validates completed work against acceptance criteria and API design quality. Read-only tools.
+- **Data Analyst**: SaaS metrics, product analytics, cohort analysis, funnel reporting.
+- **Compliance Analyst**: Privacy, legal, regulatory audit (GDPR, SOC2). Cites specific regulations.
+- **Help Desk**: Support ticket triage, response drafting, escalation.
 
-**Marketing:**
+**Release Team** (`agents/release/`):
 
-- **SEO Specialist** (`.claude/agents/seo-specialist.md`): Search optimization across all four dimensions — traditional SEO, AEO (featured snippets), AIO (AI Overviews), and GEO (LLM citation).
+- **Release Manager**: Plans releases, go/no-go decisions, release metrics tracking, retrospectives.
+- **Release Engineer**: Preflight checks, deployment execution, post-deploy verification and rollback.
+- **Release Comms**: Changelogs (with conventional commit parsing), release notes, announcements.
+- **Release Marketer**: Launch campaigns, marketing content, adoption measurement.
+
+**GTM Team** (`agents/gtm/`):
+
+- **Growth Strategist**: Pricing strategy, experiment design, referral programs, competitive teardowns.
+- **Content Writer**: Copy, email sequences, landing pages, in-app messaging. No Bash access.
+- **Technical Writer**: Runbooks, API docs, internal reference material.
+- **Sales Development Rep**: Prospect research, outreach preparation, pipeline maintenance.
+- **Account Executive Assistant**: Deal support, proposals, competitive analysis, pre-call briefs.
+- **Customer Success**: Account health monitoring (Green/Yellow/Red), churn prevention, expansion signals.
+- **Onboarding Specialist**: Per-ICP onboarding flows, activation metrics, trial-to-paid optimization.
+- **SEO Specialist**: Search optimization — traditional SEO, AEO (featured snippets), AIO (AI Overviews), GEO (LLM citation).
+
+**Orchestrator** (`agents/orchestrator.md`):
+
+- **Orchestrator**: Persistent coordinator — manages initiative queue, daily work log, team routing, Slack communication.
 
 ### Skills (Workflow Steps)
 
 Workflow steps are implemented as Claude Code skills in `skills/`. Skills are lazy-loaded — they appear in the agent's awareness but only consume context when invoked. This replaces the previous approach of concatenating all step files into a single system prompt (~8,000 tokens upfront → ~500 tokens baseline).
 
-Each agent's definition lists its available skills. 38 skills across 15 agents:
+Each agent's definition lists its available skills. 99 skills across 30 agents:
 
-- **Developer**: `dev-understand`, `dev-implement`, `dev-test`, `dev-complete`
-- **Product Manager**: `pm-assess`, `pm-research`, `pm-expand-prd`, `pm-architecture`, `pm-cross-functional`, `pm-ready-for-dev`
-- **Project Manager**: `pjm-decompose`, `pjm-assign`, `pjm-coordinate`, `review-validate`, `review-summarize`
-- **Reviewer**: `review-validate`, `review-summarize`
-- **Integrations Engineer**: `integrations-assess`, `integrations-configure`, `integrations-verify`
-- **Content Writer**: `content-brief`, `content-draft`, `content-review`
-- **Compliance Analyst**: `compliance-assess`, `compliance-document`
-- **Technical Writer**: `docs-assess`, `docs-write`
-- **DevOps Engineer**: `devops-assess`, `devops-implement`
-- **Security Analyst**: `security-assess`, `security-review`
-- **Sales Development Rep**: `sales-research`, `sales-outreach-prep`, `sales-pipeline`
-- **Account Executive Assistant**: `sales-research`, `sales-pipeline`
-- **Customer Success**: `cs-health-check`, `cs-intervention`
-- **Onboarding Specialist**: `onboarding-assess`, `onboarding-design`
-- **SEO Specialist**: `seo-audit`, `seo-strategy`, `seo-implement`
+**Product Team:**
+- **Product Manager** (9): `pm-intake`, `pm-assess`, `pm-research`, `pm-expand-prd`, `pm-architecture`, `pm-cross-functional`, `pm-ready-for-dev`, `competitive-teardown`, `design-before-code`
+- **Product Designer** (3): `tailwind-design-system`, `frontend-design-rails`, `design-before-code`
+
+**Engineering Team:**
+- **Developer** (7): `dev-understand`, `dev-implement`, `dev-test`, `dev-complete`, `tailwind-design-system`, `systematic-debugging`, `code-simplify`
+- **Project Manager** (3): `pjm-decompose`, `pjm-assign`, `pjm-coordinate`
+- **Database Specialist** (3): `db-assess`, `db-migrate`, `db-seed`
+- **Integrations Engineer** (4): `integrations-assess`, `integrations-configure`, `integrations-verify`, `stripe-lifecycle`
+- **DevOps Engineer** (4): `devops-assess`, `devops-implement`, `observability-design`, `incident-command`
+
+**QA Team:**
+- **QA Lead** (4): `qa-plan`, `qa-assign`, `qa-coordinate`, `qa-report`
+- **Integration Tester** (3): `test-plan-review`, `test-integration`, `test-report`
+- **Security Analyst** (4): `security-assess`, `security-review`, `dep-audit`, `incident-respond`
+- **UX/UI Reviewer** (3): `ux-review-design`, `ux-review-accessibility`, `ux-review-report`
+
+**Support Team:**
+- **Reviewer** (3): `review-validate`, `review-summarize`, `api-design-review`
+- **Data Analyst** (5): `data-query`, `data-report`, `data-investigate`, `saas-metrics`, `product-analytics`
+- **Compliance Analyst** (4): `compliance-assess`, `compliance-document`, `soc2-compliance`, `gdpr-compliance`
+- **Help Desk** (3): `support-triage`, `support-respond`, `support-escalate`
+
+**Release Team:**
+- **Release Manager** (3): `release-plan`, `release-coordinate`, `release-retro`
+- **Release Engineer** (3): `release-preflight`, `release-deploy`, `release-verify`
+- **Release Comms** (3): `release-changelog`, `release-notes`, `release-announce`
+- **Release Marketer** (4): `release-campaign`, `release-content`, `release-measure`, `launch-strategy`
+
+**GTM Team:**
+- **Growth Strategist** (7): `growth-assess`, `growth-strategy`, `growth-plan`, `pricing-strategy`, `experiment-design`, `referral-program`, `competitive-teardown`
+- **Content Writer** (4): `content-brief`, `content-draft`, `content-review`, `email-sequence`
+- **Technical Writer** (2): `docs-assess`, `docs-write`
+- **Sales Development Rep** (3): `sales-research`, `sales-outreach-prep`, `sales-pipeline`
+- **Account Executive Assistant** (2): `sales-research`, `sales-pipeline`
+- **Customer Success** (3): `cs-health-check`, `cs-intervention`, `churn-prevent`
+- **Onboarding Specialist** (3): `onboarding-assess`, `onboarding-design`, `onboarding-optimize`
+- **SEO Specialist** (3): `seo-audit`, `seo-strategy`, `seo-implement`
+
+**Standalone skills** (not assigned to a specific agent's workflow but available for reference):
+- `founder-coach`, `saas-metrics`, `product-analytics`, `pricing-strategy`, `experiment-design`, `referral-program`, `launch-strategy`, `churn-prevent`, `email-sequence`, `onboarding-optimize`, `soc2-compliance`, `gdpr-compliance`, `dep-audit`, `incident-respond`, `observability-design`, `incident-command`, `competitive-teardown`, `api-design-review`, `stripe-lifecycle`, `tailwind-design-system`
 
 ### MCP Servers
 
