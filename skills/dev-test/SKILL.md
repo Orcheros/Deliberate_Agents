@@ -12,8 +12,10 @@ Verify your implementation works correctly and doesn't break existing functional
 
 ## Instructions
 
-1. **Write tests for new behavior**:
-   - Follow the project's existing test patterns (Minitest or RSpec)
+1. **Write tests using your assignment's test strategy**:
+   - Write tests in the file specified by `test_strategy.test_file` in your assignment
+   - Read and mirror the structure of the `test_strategy.model_after` file — match its setup patterns, assertion style, and naming conventions
+   - Use the fixtures listed in `test_strategy.fixtures`
    - Test happy path for each acceptance criterion
    - Test edge cases explicitly mentioned in the task
    - Test validation errors and error states

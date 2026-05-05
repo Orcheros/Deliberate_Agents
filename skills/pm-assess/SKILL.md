@@ -12,8 +12,9 @@ Evaluate the incoming one-pager for completeness, clarity, and feasibility befor
 
 ## Instructions
 
-1. **Verify branch state**:
-   - Confirm you are NOT on `staging` or `main`. If you are, create a feature branch: `git checkout -b product/{initiative-slug}` from staging.
+1. **Create the product branch** (this initiative has been selected for grooming):
+   - Ensure you are on a clean staging branch: `git checkout staging && git pull origin staging`
+   - Create the initiative's product branch: `git checkout -b product/{initiative-number}-{initiative-name}`
    - Create a bookend commit: `git commit --allow-empty -m "Start: {initiative name} — product definition"`
    - Read the project's initiative guide (`.documentation/initiatives/CLAUDE.md` or equivalent) to learn artifact naming and directory conventions.
 

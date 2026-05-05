@@ -22,6 +22,12 @@ read_yaml_field() {
   grep -E "^\s*${field}:" "$file" 2>/dev/null | head -1 | sed 's/.*:\s*//' | tr -d '"' | tr -d "'"
 }
 
+read_md_field() {
+  local file="$1"
+  local field="$2"
+  grep -E "\*\*${field}\*\*:" "$file" 2>/dev/null | head -1 | sed 's/.*\*\*:[[:space:]]*//' | tr -d '"' | tr -d "'"
+}
+
 PROJECT_NAME="$(parse_yaml 'name')"
 WORKTREES_DIR="$(parse_yaml 'worktrees')"
 TMUX_SESSION="$(parse_yaml 'tmux_session')"
@@ -37,9 +43,9 @@ echo "==========================================="
 echo ""
 
 echo "## Orchestrator"
-if [[ -f "${DELIBERATE_DIR}/status/orchestrator.yaml" ]]; then
-  orch_status="$(read_yaml_field "${DELIBERATE_DIR}/status/orchestrator.yaml" 'status')"
-  last_poll="$(read_yaml_field "${DELIBERATE_DIR}/status/orchestrator.yaml" 'last_poll')"
+if [[ -f "${DELIBERATE_DIR}/status/orchestrator.md" ]]; then
+  orch_status="$(read_md_field "${DELIBERATE_DIR}/status/orchestrator.md" 'Status')"
+  last_poll="$(read_md_field "${DELIBERATE_DIR}/status/orchestrator.md" 'Last Poll')"
   echo "  Status: $orch_status"
   echo "  Last poll: $last_poll"
 else
@@ -77,12 +83,12 @@ echo ""
 echo "## Active Assignments"
 if [[ -d "${DELIBERATE_DIR}/assignments" ]]; then
   assignment_count=0
-  for f in "${DELIBERATE_DIR}/assignments/"*.yaml; do
+  for f in "${DELIBERATE_DIR}/assignments/"*.md; do
     [[ -f "$f" ]] || continue
     ((assignment_count++))
-    worktree="$(basename "$f" .yaml)"
-    status="$(read_yaml_field "$f" 'status')"
-    task_title="$(read_yaml_field "$f" 'title')"
+    worktree="$(basename "$f" .md)"
+    status="$(read_md_field "$f" 'Status')"
+    task_title="$(read_md_field "$f" 'ID')"
     printf "  %-20s %-12s %s\n" "$worktree" "$status" "$task_title"
   done
   if (( assignment_count == 0 )); then
@@ -111,11 +117,11 @@ echo ""
 
 echo "## Agent Status"
 if [[ -d "${DELIBERATE_DIR}/status" ]]; then
-  for f in "${DELIBERATE_DIR}/status/"*.yaml; do
+  for f in "${DELIBERATE_DIR}/status/"*.md; do
     [[ -f "$f" ]] || continue
-    agent="$(basename "$f" .yaml)"
+    agent="$(basename "$f" .md)"
     [[ "$agent" == "orchestrator" ]] && continue
-    status="$(read_yaml_field "$f" 'status')"
+    status="$(read_md_field "$f" 'Status')"
     printf "  %-25s %s\n" "$agent" "$status"
   done
 else

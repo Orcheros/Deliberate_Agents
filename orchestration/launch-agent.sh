@@ -68,7 +68,8 @@ case "$ROLE" in
   integrations-engineer|content-writer|compliance-analyst|\
   technical-writer|devops-engineer|security-analyst|\
   sales-development-rep|account-executive-assistant|\
-  customer-success|onboarding-specialist|seo-specialist)
+  customer-success|onboarding-specialist|seo-specialist|\
+  orchestrator|qa-lead|integration-tester|ux-ui-reviewer)
     WORK_DIR="$REPO_DIR"
     ;;
   *)
@@ -76,6 +77,29 @@ case "$ROLE" in
     exit 1
     ;;
 esac
+
+# --- Sync Agent Definitions to Target Repo -----------------------------------
+
+# Source of truth is agents/ (organized by team), deployed flat to .claude/agents/
+FRAMEWORK_AGENTS="${FRAMEWORK_DIR}/agents"
+TARGET_AGENTS="${WORK_DIR}/.claude/agents"
+if [[ -d "$FRAMEWORK_AGENTS" ]]; then
+  mkdir -p "$TARGET_AGENTS"
+  find "$FRAMEWORK_AGENTS" -name "*.md" -type f -exec cp {} "$TARGET_AGENTS/" \;
+fi
+
+# Also sync skills
+FRAMEWORK_SKILLS="${FRAMEWORK_DIR}/skills"
+TARGET_SKILLS="${WORK_DIR}/.claude/skills"
+if [[ -d "$FRAMEWORK_SKILLS" ]]; then
+  mkdir -p "$TARGET_SKILLS"
+  for skill_dir in "$FRAMEWORK_SKILLS"/*/; do
+    [[ -d "$skill_dir" ]] || continue
+    local_name="$(basename "$skill_dir")"
+    mkdir -p "$TARGET_SKILLS/$local_name"
+    cp "$skill_dir"* "$TARGET_SKILLS/$local_name/" 2>/dev/null || true
+  done
+fi
 
 # --- Build Dynamic Context ---------------------------------------------------
 
@@ -154,7 +178,7 @@ case "$ROLE" in
   developer)
     CONTEXT+="- Worktree: ${WORKTREE}\n"
     CONTEXT+="- Worktree path: ${WORK_DIR}\n"
-    CONTEXT+="- Assignment file: ${DELIBERATE_DIR}/assignments/${WORKTREE}.yaml\n"
+    CONTEXT+="- Assignment file: ${DELIBERATE_DIR}/assignments/${WORKTREE}.md\n"
     CONTEXT+="\n## Your Task\n\n"
     CONTEXT+="Execute the development task assigned in your assignment file. Follow the development workflow steps in order.\n"
     CONTEXT+="Start by reading your assignment file.\n"
@@ -165,7 +189,7 @@ case "$ROLE" in
   customer-success|onboarding-specialist|seo-specialist)
     CONTEXT+="- Initiative: ${INITIATIVE}\n"
     if [[ -n "$WORKTREE" ]]; then
-      CONTEXT+="- Assignment file: ${DELIBERATE_DIR}/assignments/${WORKTREE}.yaml\n"
+      CONTEXT+="- Assignment file: ${DELIBERATE_DIR}/assignments/${WORKTREE}.md\n"
     elif [[ -n "$INITIATIVE" ]]; then
       CONTEXT+="- Initiative state file: ${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml\n"
     fi
@@ -173,6 +197,31 @@ case "$ROLE" in
     CONTEXT+="\n## Your Task\n\n"
     CONTEXT+="Execute the task described in your assignment file. Follow your workflow skills in order.\n"
     CONTEXT+="Start by reading your assignment file.\n"
+    ;;
+  orchestrator)
+    CONTEXT+="- Queue directory: ${DELIBERATE_DIR}/queue/\n"
+    CONTEXT+="- Assignments directory: ${DELIBERATE_DIR}/assignments/\n"
+    CONTEXT+="- Decisions directory: ${DELIBERATE_DIR}/decisions/\n"
+    CONTEXT+="- Status directory: ${DELIBERATE_DIR}/status/\n"
+    CONTEXT+="\n## Your Task\n\n"
+    CONTEXT+="You are the orchestrator. Poll for initiative state changes, launch teams, manage handoffs, and route all human communication through Slack.\n"
+    CONTEXT+="Start by reading all initiative queue files and current status.\n"
+    ;;
+  qa-lead)
+    CONTEXT+="- Initiative: ${INITIATIVE}\n"
+    CONTEXT+="- Initiative state file: ${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml\n"
+    CONTEXT+="- QA directory: ${DELIBERATE_DIR}/qa/${INITIATIVE}/\n"
+    CONTEXT+="\n## Your Task\n\n"
+    CONTEXT+="Create and execute the QA test plan for initiative '${INITIATIVE}'.\n"
+    CONTEXT+="Read all specification artifacts, create the test plan, assign to teammates, coordinate execution, and produce the QA report.\n"
+    ;;
+  integration-tester|ux-ui-reviewer)
+    CONTEXT+="- Initiative: ${INITIATIVE}\n"
+    CONTEXT+="- QA assignment file: ${DELIBERATE_DIR}/qa/${INITIATIVE}/assignments/${ROLE}.md\n"
+    CONTEXT+="- QA results directory: ${DELIBERATE_DIR}/qa/${INITIATIVE}/results/\n"
+    CONTEXT+="\n## Your Task\n\n"
+    CONTEXT+="Execute your assigned test cases for initiative '${INITIATIVE}'.\n"
+    CONTEXT+="Start by reading your assignment file, then follow your workflow skills in order.\n"
     ;;
 esac
 
@@ -197,6 +246,10 @@ case "$ROLE" in
   customer-success)           MAX_TURNS=60  ;;
   onboarding-specialist)      MAX_TURNS=60  ;;
   seo-specialist)             MAX_TURNS=80  ;;
+  orchestrator)               MAX_TURNS=200 ;;
+  qa-lead)                    MAX_TURNS=100 ;;
+  integration-tester)         MAX_TURNS=80  ;;
+  ux-ui-reviewer)             MAX_TURNS=80  ;;
   *)                          MAX_TURNS=80  ;;
 esac
 
@@ -220,13 +273,61 @@ printf '\e]2;${TAB_TITLE}\a'
 cd '${WORK_DIR}'
 unset ANTHROPIC_API_KEY
 echo \$\$ > '${PID_FILE}'
-exec claude \\
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║  ${ROLE}: ${INITIATIVE:-${WORKTREE:-agent}}"
+echo "║  Working in: ${WORK_DIR}"
+echo "╚══════════════════════════════════════════════════════════════╝"
+echo ""
+
+# Stream progress via script(1) pty wrapper + stream-json.
+# script forces unbuffered output; jq filter shows human-readable progress.
+# Fallback heartbeat in case stream-json produces no parseable output.
+STREAM_RAW="\$(mktemp)"
+LAST_ACTIVITY=\$(date +%s)
+
+script -q /dev/null claude \\
   --agent ${ROLE} \\
   --dangerously-skip-permissions \\
   --max-turns ${MAX_TURNS} \\
   --append-system-prompt "\$(cat '${CONTEXT_FILE}')" \\
-  --resume no \\
-  'Begin your assigned task. Read your assignment/state file first.'
+  --output-format stream-json \\
+  --verbose \\
+  -p 'Begin your assigned task. Read your assignment/state file first.' 2>/dev/null | \\
+while IFS= read -r line; do
+  # Skip lines that aren't valid JSON
+  type=\$(echo "\$line" | jq -r '.type // empty' 2>/dev/null) || continue
+  [[ -z "\$type" ]] && continue
+  case "\$type" in
+    assistant)
+      msg=\$(echo "\$line" | jq -r '.message.content[]? | select(.type=="text") | .text // empty' 2>/dev/null)
+      [[ -n "\$msg" ]] && printf "\n%s\n" "\$msg"
+      ;;
+    result)
+      cost=\$(echo "\$line" | jq -r '.total_cost_usd // "?"' 2>/dev/null)
+      turns=\$(echo "\$line" | jq -r '.num_turns // "?"' 2>/dev/null)
+      reason=\$(echo "\$line" | jq -r '.terminal_reason // .subtype // "done"' 2>/dev/null)
+      printf "\n━━━ SESSION COMPLETE ━━━\n"
+      printf "Turns: %s | Cost: \$%s | Reason: %s\n" "\$turns" "\$cost" "\$reason"
+      ;;
+    tool_use)
+      tool=\$(echo "\$line" | jq -r '.tool_name // empty' 2>/dev/null)
+      case "\$tool" in
+        Read)   printf "  Reading: %s\n" "\$(echo "\$line" | jq -r '.tool_input.file_path // empty' 2>/dev/null)" ;;
+        Write)  printf "  Writing: %s\n" "\$(echo "\$line" | jq -r '.tool_input.file_path // empty' 2>/dev/null)" ;;
+        Edit)   printf "  Editing: %s\n" "\$(echo "\$line" | jq -r '.tool_input.file_path // empty' 2>/dev/null)" ;;
+        Bash)   printf "  Running: %s\n" "\$(echo "\$line" | jq -r '.tool_input.command // empty' 2>/dev/null | head -c 100)" ;;
+        Grep)   printf "  Searching: %s\n" "\$(echo "\$line" | jq -r '.tool_input.pattern // empty' 2>/dev/null)" ;;
+        Glob)   printf "  Finding: %s\n" "\$(echo "\$line" | jq -r '.tool_input.pattern // empty' 2>/dev/null)" ;;
+        *)      printf "  %s\n" "\$tool" ;;
+      esac
+      ;;
+  esac
+done
+
+rm -f "\$STREAM_RAW" '${PID_FILE}'
+echo ""
+echo "=== Agent session complete. This tab can be closed. ==="
+read -r
 SCRIPT
 chmod +x "$LAUNCHER"
 

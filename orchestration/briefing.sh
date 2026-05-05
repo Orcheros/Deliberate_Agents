@@ -34,6 +34,12 @@ read_yaml_field() {
   grep -E "^[[:space:]]*${field}:" "$file" 2>/dev/null | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'"
 }
 
+read_md_field() {
+  local file="$1"
+  local field="$2"
+  grep -E "\*\*${field}\*\*:" "$file" 2>/dev/null | head -1 | sed 's/.*\*\*:[[:space:]]*//' | tr -d '"' | tr -d "'"
+}
+
 # --- Collect State ------------------------------------------------------------
 
 completed=()
@@ -105,13 +111,13 @@ fi
 
 # Blocked assignments
 if [[ -d "$ASSIGNMENTS_DIR" ]]; then
-  for f in "$ASSIGNMENTS_DIR"/*.yaml; do
+  for f in "$ASSIGNMENTS_DIR"/*.md; do
     [[ -f "$f" ]] || continue
-    status="$(read_yaml_field "$f" 'status')"
+    status="$(read_md_field "$f" 'Status')"
     if [[ "$status" == "blocked" ]]; then
-      initiative="$(read_yaml_field "$f" 'initiative')"
-      reason="$(read_yaml_field "$f" 'blocker')"
-      blocked+=("${initiative:-$(basename "$f" .yaml)} — ${reason:-unknown}")
+      initiative="$(read_md_field "$f" 'Initiative')"
+      reason="$(read_md_field "$f" 'Blocker')"
+      blocked+=("${initiative:-$(basename "$f" .md)} — ${reason:-unknown}")
     fi
   done
 fi
@@ -119,11 +125,11 @@ fi
 # Active agents
 active_agents=0
 if [[ -d "$STATUS_DIR" ]]; then
-  for f in "$STATUS_DIR"/*.yaml; do
+  for f in "$STATUS_DIR"/*.md; do
     [[ -f "$f" ]] || continue
-    name="$(basename "$f" .yaml)"
+    name="$(basename "$f" .md)"
     [[ "$name" == "orchestrator" || "$name" == "report" || "$name" == "slack_bot" ]] && continue
-    agent_status="$(read_yaml_field "$f" 'status')"
+    agent_status="$(read_md_field "$f" 'Status')"
     if [[ "$agent_status" == "active" ]]; then
       ((active_agents++))
     fi
@@ -132,8 +138,8 @@ fi
 
 # Last orchestrator heartbeat
 last_poll=""
-if [[ -f "${STATUS_DIR}/orchestrator.yaml" ]]; then
-  last_poll="$(read_yaml_field "${STATUS_DIR}/orchestrator.yaml" 'last_poll')"
+if [[ -f "${STATUS_DIR}/orchestrator.md" ]]; then
+  last_poll="$(read_md_field "${STATUS_DIR}/orchestrator.md" 'Last Poll')"
 fi
 
 # --- Generate Briefing --------------------------------------------------------

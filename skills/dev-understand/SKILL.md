@@ -12,39 +12,52 @@ Thoroughly understand what needs to be built before writing any code. Reading ex
 
 ## Instructions
 
-1. **Read your assignment file** (`.deliberate/assignments/{worktree}.yaml`):
-   - Task description and acceptance criteria
-   - Relevant file paths
+1. **Read your assignment file** (`.deliberate/assignments/{worktree}.md`):
+   - Task description, use cases, and acceptance criteria
+   - Before/after behavior — understand what changes
+   - Boundary — what is explicitly out of scope (respect this strictly)
    - Dependencies and their completion status
 
-2. **Read the referenced PRD** for broader initiative context:
+2. **Read the pattern reference file FIRST**:
+   - The `pattern_reference` field points to an existing file that follows the same pattern you should use
+   - Read it carefully — mirror its structure, naming conventions, and approach
+   - This is your single most important context signal
+
+3. **Read the "read before starting" files in order**:
+   - The `read_before_starting` list is ordered by importance
+   - Read every file listed, top to bottom
+   - These give you the context needed to make good implementation decisions
+
+4. **Internalize the anti-patterns**:
+   - The `anti_patterns` field lists things that look correct but are wrong for this codebase
+   - These are hard-won lessons — do not ignore them
+   - If you find yourself tempted to do something listed here, stop and reconsider
+
+5. **Review the test strategy**:
+   - `test_file`: where to write your tests
+   - `model_after`: an existing test file to use as a template for structure and conventions
+   - `fixtures`: which fixture files to use for test data
+   - Read the model-after test file before writing any tests
+
+6. **Read the referenced PRD** for broader initiative context:
    - Where does this task fit in the overall feature?
    - What tasks come before and after this one?
    - Are there cross-cutting concerns?
 
-3. **Explore the existing codebase**:
-   - Read every file listed in `relevant_files`
-   - Understand the current data models involved (schema, validations, relationships)
-   - Read existing controllers and views in the affected area
-   - Check for Stimulus controllers that may need modification
-   - Look at existing test coverage for the area you'll be modifying
+7. **Explore additional codebase context** (beyond what was listed):
    - Check `config/routes.rb` for relevant routes
+   - Look for shared concerns, service objects, or helpers in the pattern reference area
+   - Check for Stimulus controllers that may need modification
 
-4. **Identify patterns** already established in the project:
-   - How are similar features structured?
-   - What naming conventions are used?
-   - Are there shared concerns, service objects, or helpers?
-   - What Tailwind component patterns exist?
-
-5. **Plan your approach** (mental model, not a written document):
+8. **Plan your approach** (mental model, not a written document):
    - What files will you create or modify?
    - What's the order of operations?
-   - Are there any risks or unknowns?
+   - Does your plan stay within the boundary? If not, adjust.
 
-6. **Update your assignment status**:
+9. **Update your assignment status**:
    ```yaml
-   status: "in_progress"
-   started_at: "timestamp"
+   - **Status**: in_progress
+   - **Started**: timestamp
    ```
 
 ## Blockers

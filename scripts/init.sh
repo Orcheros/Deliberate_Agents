@@ -83,7 +83,7 @@ echo "  Worktrees: $WORKTREES_DIR"
 echo "  State: $DELIBERATE_DIR"
 echo ""
 
-mkdir -p "$DELIBERATE_DIR"/{queue,assignments,status,decisions,logs}
+mkdir -p "$DELIBERATE_DIR"/{queue,assignments,status,decisions,logs,qa,pids,feedback}
 
 # --- Generate Config ----------------------------------------------------------
 
@@ -143,14 +143,15 @@ echo "Created .gitignore"
 echo ""
 echo "Deploying agent definitions and skills..."
 
-# Deploy .claude/agents/ to the worktrees root so agents in any worktree can find them
+# Deploy agents/ to the worktrees root so agents in any worktree can find them
+# Source of truth is agents/ (organized by team), deployed flat to .claude/agents/
 TARGET_CLAUDE_DIR="${WORKTREES_DIR}/.claude"
 mkdir -p "${TARGET_CLAUDE_DIR}/agents"
-if [[ -d "${FRAMEWORK_DIR}/.claude/agents" ]]; then
-  cp -R "${FRAMEWORK_DIR}/.claude/agents/"*.md "${TARGET_CLAUDE_DIR}/agents/" 2>/dev/null || true
+if [[ -d "${FRAMEWORK_DIR}/agents" ]]; then
+  find "${FRAMEWORK_DIR}/agents" -name "*.md" -type f -exec cp {} "${TARGET_CLAUDE_DIR}/agents/" \;
   echo "  Deployed agent definitions to ${TARGET_CLAUDE_DIR}/agents/"
 else
-  echo "  WARNING: No agent definitions found at ${FRAMEWORK_DIR}/.claude/agents/"
+  echo "  WARNING: No agent definitions found at ${FRAMEWORK_DIR}/agents/"
 fi
 
 # Deploy skills/ to .claude/skills/ in the worktrees root

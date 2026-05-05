@@ -47,6 +47,12 @@ read_yaml_field() {
   grep -E "^\s*${field}:" "$file" 2>/dev/null | head -1 | sed 's/.*:\s*//' | tr -d '"' | tr -d "'"
 }
 
+read_md_field() {
+  local file="$1"
+  local field="$2"
+  grep -E "\*\*${field}\*\*:" "$file" 2>/dev/null | head -1 | sed 's/.*\*\*:[[:space:]]*//' | tr -d '"' | tr -d "'"
+}
+
 # --- Collect State ------------------------------------------------------------
 
 # Initiative summary
@@ -68,13 +74,13 @@ fi
 declare -A active_agents
 
 if [[ -d "$STATUS_DIR" ]]; then
-  for f in "$STATUS_DIR"/*.yaml; do
+  for f in "$STATUS_DIR"/*.md; do
     [[ -f "$f" ]] || continue
-    name="$(basename "$f" .yaml)"
+    name="$(basename "$f" .md)"
     [[ "$name" == "orchestrator" || "$name" == "report" ]] && continue
-    agent_status="$(read_yaml_field "$f" 'status')"
-    role="$(read_yaml_field "$f" 'role')"
-    progress="$(read_yaml_field "$f" 'progress')"
+    agent_status="$(read_md_field "$f" 'Status')"
+    role="$(read_md_field "$f" 'Role')"
+    progress="$(read_md_field "$f" 'Progress')"
     if [[ "$agent_status" == "active" ]]; then
       active_agents["$name"]="${role}: ${progress:-working...}"
     fi
@@ -97,12 +103,12 @@ fi
 # Blocked assignments
 blocked_items=()
 if [[ -d "$ASSIGNMENTS_DIR" ]]; then
-  for f in "$ASSIGNMENTS_DIR"/*.yaml; do
+  for f in "$ASSIGNMENTS_DIR"/*.md; do
     [[ -f "$f" ]] || continue
-    status="$(read_yaml_field "$f" 'status')"
+    status="$(read_md_field "$f" 'Status')"
     if [[ "$status" == "blocked" ]]; then
-      blocker="$(read_yaml_field "$f" 'blocker')"
-      blocked_items+=("$(basename "$f" .yaml): ${blocker:-unknown reason}")
+      blocker="$(read_md_field "$f" 'Blocker')"
+      blocked_items+=("$(basename "$f" .md): ${blocker:-unknown reason}")
     fi
   done
 fi

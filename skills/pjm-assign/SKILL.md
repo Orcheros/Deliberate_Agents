@@ -14,32 +14,69 @@ Convert the decomposition plan into actual assignment files that the orchestrato
 
 ### 1. Create Assignment Files
 
-For each task, create `.deliberate/assignments/{worktree-or-task-id}.yaml`:
+For each task, create `.deliberate/assignments/{worktree-or-task-id}.md`:
 
-```yaml
-task:
-  id: "init-001-task-01"
-  initiative: "initiative-slug"
-  title: "Short description"
-  description: "Detailed description of what to implement"
-  acceptance_criteria:
-    - "Criterion 1"
-    - "Criterion 2"
-  relevant_files:
-    - "path/to/relevant/file.rb"
-  depends_on: []          # Other task IDs that must complete first
-  branch: "feature/initiative-slug-task-01"  # For dev tasks
-  prd_section: "FR-03"    # Which PRD section this fulfills
+```markdown
+# Task: {Short title}
 
-agent_type: "developer"   # developer | integrations-engineer | content-writer |
-                          # compliance-analyst | technical-writer | devops-engineer |
-                          # security-analyst | reviewer
-status: "assigned"
-worktree: "worktree-name" # For developer tasks
-initiative: "initiative-slug"
-phase: "A"                # Which deployment phase
-priority: 1               # Lower = higher priority within phase
+## Meta
+- **ID**: init-001-task-01
+- **Initiative**: initiative-slug
+- **Story**: Story 1.1
+- **Agent**: developer
+- **Status**: assigned
+- **Worktree**: worktree-name
+- **Branch**: feature/initiative-slug-task-01
+- **Phase**: A
+- **Priority**: 1
+- **PRD Section**: FR-03
+- **Depends On**: (none)
+
+## Description
+Detailed description of what to implement.
+
+## Use Cases
+- As a {user type}, I {action} so that {outcome}
+
+## Acceptance Criteria
+- [ ] Given {precondition}, when {action}, then {expected result}
+- [ ] Given {precondition}, when {action}, then {expected result}
+
+## Before/After Behavior
+**Before**: What the system does now — specific, observable behavior.
+
+**After**: What the system should do after this task — specific, observable behavior.
+
+## Pattern Reference
+Implement like `app/controllers/similar_controller.rb` — mirror its structure, naming, and conventions.
+
+## Read Before Starting
+Read these files in order before writing any code:
+1. `app/models/relevant_model.rb`
+2. `app/controllers/relevant_controller.rb`
+3. `test/controllers/relevant_controller_test.rb`
+
+## Anti-Patterns
+- Do not use `has_many :through` — we use a service object for this relationship
+- {Other codebase-specific warnings}
+
+## Test Strategy
+- **Test file**: `test/controllers/feature_test.rb`
+- **Model after**: `test/controllers/existing_similar_test.rb`
+- **Fixtures**: `users`, `relevant_model`
+
+## Boundary (Out of Scope)
+- Do not modify the navigation partial
+- Ignore mobile layout — that is Story 2.3
+
+## Relevant Files
+- `path/to/relevant/file.rb`
+- `path/to/another/file.rb`
 ```
+
+### Carrying Context from Stories to Assignments
+
+The Scrum Master's backlog stories contain rich AI-developer context (pattern references, anti-patterns, test strategy, boundaries). When creating assignments, **preserve all of this context** — copy it directly from the story into the assignment markdown. Do not summarize or omit fields. The developer agent's output quality is directly proportional to the context it receives.
 
 ### 2. Agent Type Routing
 
@@ -96,19 +133,24 @@ The orchestrator will detect this and move the initiative directory from `specif
 
 ### 6. Update PjM Status
 
-```yaml
-# .deliberate/status/project-manager.yaml
-status: "active"
-current_initiative: "initiative-slug"
-tasks_assigned: 15
-tasks_by_type:
-  developer: 6
-  integrations-engineer: 3
-  content-writer: 2
-  compliance-analyst: 1
-  technical-writer: 1
-  devops-engineer: 1
-  security-analyst: 1
+Update `.deliberate/status/project-manager.md`:
+```markdown
+# Status: Project Manager
+
+- **Status**: active
+- **Current Initiative**: initiative-slug
+- **Tasks Assigned**: 15
+
+## Tasks by Type
+| Agent Type | Count |
+|------------|-------|
+| developer | 6 |
+| integrations-engineer | 3 |
+| content-writer | 2 |
+| compliance-analyst | 1 |
+| technical-writer | 1 |
+| devops-engineer | 1 |
+| security-analyst | 1 |
 ```
 
 ## Transition

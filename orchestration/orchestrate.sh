@@ -81,6 +81,13 @@ read_yaml_field() {
   grep -E "^[[:space:]]*${field}:" "$file" 2>/dev/null | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'"
 }
 
+# Read a field from a markdown status/assignment file (- **Field**: value)
+read_md_field() {
+  local file="$1"
+  local field="$2"
+  grep -E "\*\*${field}\*\*:" "$file" 2>/dev/null | head -1 | sed 's/.*\*\*:[[:space:]]*//' | tr -d '"' | tr -d "'"
+}
+
 # Write/update a field in a YAML file
 write_yaml_field() {
   local file="$1"
@@ -93,16 +100,28 @@ write_yaml_field() {
   fi
 }
 
+# Write/update a field in a markdown status/assignment file
+write_md_field() {
+  local file="$1"
+  local field="$2"
+  local value="$3"
+  if grep -qE "\*\*${field}\*\*:" "$file" 2>/dev/null; then
+    sed -i '' "s|\(\*\*${field}\*\*:\).*|\1 ${value}|" "$file"
+  else
+    echo "- **${field}**: ${value}" >> "$file"
+  fi
+}
+
 # Count running developer agents
 count_active_developers() {
   local count=0
   if [[ -d "$ASSIGNMENTS_DIR" ]]; then
-    for f in "$ASSIGNMENTS_DIR"/*.yaml; do
+    for f in "$ASSIGNMENTS_DIR"/*.md; do
       [[ -f "$f" ]] || continue
       local status
-      status="$(read_yaml_field "$f" 'status')"
-      if [[ "$status" == "in_progress" || "$status" == "assigned" ]]; then
-        ((count++))
+      status="$(read_md_field "$f" 'Status')"
+      if [[ "$status" == "in_progress" ]]; then
+        ((count++)) || true
       fi
     done
   fi
@@ -167,7 +186,7 @@ launch_agent() {
 
 launch_dev_agent() {
   local worktree_name="$1"
-  local assignment_file="${ASSIGNMENTS_DIR}/${worktree_name}.yaml"
+  local assignment_file="${ASSIGNMENTS_DIR}/${worktree_name}.md"
   local window_name="dev-${worktree_name}"
 
   if agent_window_exists "$window_name"; then
@@ -196,7 +215,7 @@ launch_dev_agent() {
 launch_specialist_agent() {
   local agent_type="$1"
   local worktree_name="$2"
-  local assignment_file="${ASSIGNMENTS_DIR}/${worktree_name}.yaml"
+  local assignment_file="${ASSIGNMENTS_DIR}/${worktree_name}.md"
   local window_name="${agent_type}-${worktree_name}"
 
   if agent_window_exists "$window_name"; then
@@ -205,7 +224,7 @@ launch_specialist_agent() {
   fi
 
   local initiative
-  initiative="$(read_yaml_field "$assignment_file" 'initiative')"
+  initiative="$(read_md_field "$assignment_file" 'Initiative')"
 
   log_info "Launching ${agent_type} agent for assignment: $worktree_name"
 
@@ -223,12 +242,19 @@ launch_specialist_agent() {
 
 any_initiative_agent_running() {
   # Check for any product-pipeline agent PID file with a live process
+  # Optional arg: --exclude-parallel to ignore doc-only agents (designer, scrum-master)
+  local exclude_parallel=false
+  [[ "${1:-}" == "--exclude-parallel" ]] && exclude_parallel=true
+
   for pid_file in "$PID_DIR"/*.pid; do
     [[ -f "$pid_file" ]] || continue
     local name
     name="$(basename "$pid_file" .pid)"
     case "$name" in
       product-manager-*|architect-*|product-designer-*|scrum-master-*|project-manager-*)
+        if $exclude_parallel; then
+          case "$name" in product-designer-*|scrum-master-*) continue ;; esac
+        fi
         local pid
         pid="$(cat "$pid_file")"
         if kill -0 "$pid" 2>/dev/null; then
@@ -240,6 +266,17 @@ any_initiative_agent_running() {
     esac
   done
   return 1
+}
+
+count_running_designers() {
+  local count=0
+  for pid_file in "$PID_DIR"/product-designer-*.pid; do
+    [[ -f "$pid_file" ]] || continue
+    local pid
+    pid="$(cat "$pid_file")"
+    kill -0 "$pid" 2>/dev/null && { ((count++)) || true; } || rm -f "$pid_file"
+  done
+  echo "$count"
 }
 
 get_active_initiative() {
@@ -259,6 +296,31 @@ get_active_initiative() {
 
 # --- Detect agent completion (window gone = agent finished) -------------------
 
+agent_crashed() {
+  local agent_name="$1"
+  local pid_file="${PID_DIR}/${agent_name}.pid"
+  # If PID file was removed by agent_is_running (process dead), check the log
+  # for a recent launch — if the agent ran less than 2 minutes, it crashed
+  local log_entry
+  log_entry="$(grep "Launching.*${agent_name}" "$LOG_FILE" 2>/dev/null | tail -1)"
+  if [[ -z "$log_entry" ]]; then
+    return 1
+  fi
+  local launch_time
+  launch_time="$(echo "$log_entry" | grep -oE '\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')"
+  if [[ -z "$launch_time" ]]; then
+    return 1
+  fi
+  local launch_epoch now_epoch
+  launch_epoch="$(date -j -f '%Y-%m-%d %H:%M:%S' "$launch_time" '+%s' 2>/dev/null)" || return 1
+  now_epoch="$(date '+%s')"
+  local elapsed=$(( now_epoch - launch_epoch ))
+  if (( elapsed < 120 )); then
+    return 0
+  fi
+  return 1
+}
+
 check_agent_completion() {
   local initiative_slug="$1"
   local initiative_file="${QUEUE_DIR}/${initiative_slug}.yaml"
@@ -268,64 +330,82 @@ check_agent_completion() {
   title="$(read_yaml_field "$initiative_file" 'title')"
   title="${title:-$initiative_slug}"
 
+  # Map status to agent name prefix
+  local agent_name=""
+  local next_status=""
+  local notify_msg=""
   case "$status" in
     PM_IN_PROGRESS)
-      if ! agent_is_running "product-manager-${initiative_slug}"; then
-        log_info "PM agent finished for ${title}"
-        write_yaml_field "$initiative_file" "status" "PRD_COMPLETE"
-        notify "transition" "PRD complete for ${title} — launching architect" --initiative "$initiative_slug"
-      fi
+      agent_name="product-manager-${initiative_slug}"
+      next_status="PRD_COMPLETE"
+      notify_msg="PRD complete for ${title} — launching architect"
       ;;
     ARCH_IN_PROGRESS)
-      if ! agent_is_running "architect-${initiative_slug}"; then
-        log_info "Architect agent finished for ${title}"
-        write_yaml_field "$initiative_file" "status" "ARCH_COMPLETE"
-        notify "transition" "Architecture doc complete for ${title} — launching designer" --initiative "$initiative_slug"
-      fi
+      agent_name="architect-${initiative_slug}"
+      next_status="ARCH_COMPLETE"
+      notify_msg="Architecture doc complete for ${title} — launching designer"
       ;;
     DESIGN_IN_PROGRESS)
-      if ! agent_is_running "product-designer-${initiative_slug}"; then
-        log_info "Designer agent finished for ${title}"
-        write_yaml_field "$initiative_file" "status" "DESIGN_COMPLETE"
-        notify "transition" "Design brief complete for ${title} — launching scrum master" --initiative "$initiative_slug"
-      fi
+      agent_name="product-designer-${initiative_slug}"
+      next_status="DESIGN_COMPLETE"
+      notify_msg="Design brief complete for ${title} — launching scrum master"
       ;;
     SCRUM_IN_PROGRESS)
-      if ! agent_is_running "scrum-master-${initiative_slug}"; then
-        log_info "Scrum master finished for ${title}"
-        write_yaml_field "$initiative_file" "status" "SPECIFIED"
-        notify "progress" "${title} is fully specified — ready for handoff to Design or Engineering" --initiative "$initiative_slug"
-      fi
+      agent_name="scrum-master-${initiative_slug}"
+      next_status="SPECIFIED"
+      notify_msg="${title} is fully specified — ready for handoff"
       ;;
     PJM_IN_PROGRESS)
-      if ! agent_is_running "project-manager-${initiative_slug}"; then
-        log_info "Project Manager finished for ${title}"
-        write_yaml_field "$initiative_file" "status" "READY_FOR_DEV"
-        notify "transition" "${title} has tasks assigned — ready for development" --initiative "$initiative_slug"
-      fi
+      agent_name="project-manager-${initiative_slug}"
+      next_status="READY_FOR_DEV"
+      notify_msg="${title} has tasks assigned — ready for development"
       ;;
+    *) return ;;
   esac
+
+  if agent_is_running "$agent_name"; then
+    return
+  fi
+
+  # Agent is not running — did it crash or complete?
+  if agent_crashed "$agent_name"; then
+    log_error "Agent $agent_name crashed for ${title} (ran < 2 minutes)"
+    write_yaml_field "$initiative_file" "status" "BLOCKED"
+    write_yaml_field "$initiative_file" "blocker" "Agent ${agent_name} crashed — check logs"
+    notify "alert" "Agent crashed for ${title} — needs investigation" --initiative "$initiative_slug"
+  else
+    log_info "Agent $agent_name finished for ${title}"
+    write_yaml_field "$initiative_file" "status" "$next_status"
+    notify "transition" "$notify_msg" --initiative "$initiative_slug"
+  fi
 }
 
 # --- Poll Functions -----------------------------------------------------------
 
 process_queue() {
-  [[ -d "$QUEUE_DIR" ]] || return
+  [[ -d "$QUEUE_DIR" ]] || return 0
 
-  # Check if the active initiative's agent finished and advance the pipeline
-  local active_slug
-  active_slug="$(get_active_initiative)"
-  if [[ -n "$active_slug" ]]; then
-    check_agent_completion "$active_slug"
-  fi
+  # Check all in-progress initiatives for agent completion
+  for initiative_file in "$QUEUE_DIR"/*.yaml; do
+    [[ -f "$initiative_file" ]] || continue
+    local check_status
+    check_status="$(read_yaml_field "$initiative_file" 'status')"
+    case "$check_status" in
+      PM_IN_PROGRESS|ARCH_IN_PROGRESS|DESIGN_IN_PROGRESS|SCRUM_IN_PROGRESS|PJM_IN_PROGRESS)
+        check_agent_completion "$(basename "$initiative_file" .yaml)"
+        ;;
+    esac
+  done
 
-  # If an agent is still running, don't launch anything new
-  if any_initiative_agent_running; then
-    return
-  fi
+  # If a serial agent (PM, architect, PJM) is running, don't launch another serial agent.
+  # Designers and scrum-masters can run in parallel (doc-only, separate branches).
+  local serial_blocked=false
+  any_initiative_agent_running --exclude-parallel && serial_blocked=true
 
-  # Find the current active initiative (may have just advanced to a new state)
-  # or pick the next QUEUED one
+  local running_designers
+  running_designers="$(count_running_designers)"
+  local max_parallel_designers=3
+
   for initiative_file in "$QUEUE_DIR"/*.yaml; do
     [[ -f "$initiative_file" ]] || continue
 
@@ -342,45 +422,73 @@ process_queue() {
       # --- Product Pipeline (serial, one initiative at a time) ---
 
       QUEUED)
+        $serial_blocked && continue
         log_info "Starting product pipeline for: ${title}"
         notify "transition" "Starting product definition for ${title}" --initiative "$slug"
         launch_agent "product-manager" "$slug" "PM_IN_PROGRESS"
         return  # Only one at a time
         ;;
 
-      PRD_COMPLETE)
+      PRD_COMPLETE|PM_COMPLETE)
+        $serial_blocked && continue
         log_info "Advancing ${title} to architecture"
         launch_agent "architect" "$slug" "ARCH_IN_PROGRESS"
         return
         ;;
 
-      ARCH_COMPLETE)
+      ARCH_COMPLETE|ARCHITECT_COMPLETE)
+        if (( running_designers >= max_parallel_designers )); then
+          log_debug "Designer cap reached ($running_designers/$max_parallel_designers) — ${title} waiting"
+          continue
+        fi
         log_info "Advancing ${title} to design"
         launch_agent "product-designer" "$slug" "DESIGN_IN_PROGRESS"
-        return
+        ((running_designers++)) || true
         ;;
 
-      DESIGN_COMPLETE)
+      DESIGN_COMPLETE|DESIGNER_COMPLETE)
         log_info "Advancing ${title} to scrum breakdown"
         launch_agent "scrum-master" "$slug" "SCRUM_IN_PROGRESS"
         return
-        ;;
-
-      SPECIFIED)
-        log_info "${title} is fully specified — awaiting handoff decision"
-        notify "progress" "${title} is fully specified. Handoff artifacts are ready — assign to Design (Claude Design) or Engineering when ready." --initiative "$slug"
-        write_yaml_field "$initiative_file" "status" "AWAITING_HANDOFF"
         ;;
 
       AWAITING_HANDOFF)
         log_debug "${title} is awaiting handoff decision"
         ;;
 
+      SPECIFIED)
+        log_info "${title} is specified — promoting to READY_FOR_DEV"
+        write_yaml_field "$initiative_file" "status" "READY_FOR_DEV"
+        write_yaml_field "$initiative_file" "phase" "engineering"
+        write_yaml_field "$initiative_file" "specified_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        notify "transition" "${title} promoted to engineering — ready for dev assignment" --initiative "$slug"
+        # Fall through to READY_FOR_DEV
+        $serial_blocked && continue
+        log_info "${title} ready for dev — launching project manager to create assignments"
+        launch_agent "project-manager" "$slug" "PJM_IN_PROGRESS"
+        return
+        ;;
+
       # --- Engineering Pipeline (after handoff) ---
 
       READY_FOR_DEV)
-        log_info "${title} ready for dev — checking assignments"
-        notify "transition" "${title} is ready for development — assigning engineers" --initiative "$slug"
+        $serial_blocked && continue
+        log_info "${title} ready for dev — launching project manager to create assignments"
+        launch_agent "project-manager" "$slug" "PJM_IN_PROGRESS"
+        return
+        ;;
+
+      PJM_IN_PROGRESS)
+        log_debug "${title} — project manager is creating assignments"
+        ;;
+
+      PJM_COMPLETE|SCRUM_COMPLETE)
+        log_info "${title} — assignments ready, checking for developer agents to launch"
+        write_yaml_field "$initiative_file" "status" "DEV_IN_PROGRESS"
+        process_assignments
+        ;;
+
+      DEV_IN_PROGRESS)
         process_assignments
         ;;
 
@@ -404,7 +512,8 @@ process_queue() {
         ;;
 
       PM_IN_PROGRESS|ARCH_IN_PROGRESS|DESIGN_IN_PROGRESS|SCRUM_IN_PROGRESS|\
-      PJM_IN_PROGRESS|DEV_IN_PROGRESS|REVIEW_IN_PROGRESS)
+      PJM_IN_PROGRESS|DEV_IN_PROGRESS|REVIEW_IN_PROGRESS|\
+      SCRUM_COMPLETE|PJM_COMPLETE)
         log_debug "${title} is in progress ($status)"
         ;;
 
@@ -420,18 +529,18 @@ process_queue() {
 }
 
 process_assignments() {
-  [[ -d "$ASSIGNMENTS_DIR" ]] || return
+  [[ -d "$ASSIGNMENTS_DIR" ]] || return 0
 
-  for assignment_file in "$ASSIGNMENTS_DIR"/*.yaml; do
+  for assignment_file in "$ASSIGNMENTS_DIR"/*.md; do
     [[ -f "$assignment_file" ]] || continue
 
     local worktree
-    worktree="$(basename "$assignment_file" .yaml)"
+    worktree="$(basename "$assignment_file" .md)"
     local status
-    status="$(read_yaml_field "$assignment_file" 'status')"
+    status="$(read_md_field "$assignment_file" 'Status')"
 
     local agent_type
-    agent_type="$(read_yaml_field "$assignment_file" 'agent_type')"
+    agent_type="$(read_md_field "$assignment_file" 'Agent')"
     agent_type="${agent_type:-developer}"
 
     case "$status" in
@@ -466,7 +575,7 @@ process_assignments() {
         ;;
       blocked)
         local reason
-        reason="$(read_yaml_field "$assignment_file" 'blocker')"
+        reason="$(read_md_field "$assignment_file" 'Blocker')"
         log_warn "Assignment $worktree is BLOCKED: $reason"
         ;;
     esac
@@ -480,11 +589,11 @@ check_agent_health() {
   if ! agent_window_exists "$window_name"; then
     log_warn "Agent window $window_name disappeared — session may have crashed"
     local status
-    status="$(read_yaml_field "$state_file" 'status')"
+    status="$(read_md_field "$state_file" 'Status')"
     if [[ "$status" == "in_progress" ]]; then
       log_warn "Marking $state_file as blocked (agent crashed)"
-      write_yaml_field "$state_file" "status" "blocked"
-      write_yaml_field "$state_file" "blocker" "Agent session crashed unexpectedly"
+      write_md_field "$state_file" "Status" "blocked"
+      write_md_field "$state_file" "Blocker" "Agent session crashed unexpectedly"
       notify "alert" "Agent $window_name crashed — session marked as blocked"
     fi
   fi
@@ -493,18 +602,18 @@ check_agent_health() {
 check_initiative_completion() {
   local assignment_file="$1"
   local initiative
-  initiative="$(read_yaml_field "$assignment_file" 'initiative')"
+  initiative="$(read_md_field "$assignment_file" 'Initiative')"
 
-  [[ -n "$initiative" ]] || return
+  [[ -n "$initiative" ]] || return 0
 
   local all_complete=true
-  for f in "$ASSIGNMENTS_DIR"/*.yaml; do
+  for f in "$ASSIGNMENTS_DIR"/*.md; do
     [[ -f "$f" ]] || continue
     local init
-    init="$(read_yaml_field "$f" 'initiative')"
+    init="$(read_md_field "$f" 'Initiative')"
     [[ "$init" == "$initiative" ]] || continue
     local status
-    status="$(read_yaml_field "$f" 'status')"
+    status="$(read_md_field "$f" 'Status')"
     if [[ "$status" != "complete" ]]; then
       all_complete=false
       break
@@ -523,7 +632,7 @@ check_initiative_completion() {
 }
 
 check_decisions() {
-  [[ -d "$DECISIONS_DIR" ]] || return
+  [[ -d "$DECISIONS_DIR" ]] || return 0
 
   local pending_count=0
   for f in "$DECISIONS_DIR"/*.md; do
@@ -539,12 +648,12 @@ check_decisions() {
         log_info "Decision resolved: $(basename "$f" .md)"
         rm -f "$notified_marker"
       else
-        ((pending_count++))
+        ((pending_count++)) || true
       fi
       continue
     fi
 
-    ((pending_count++))
+    ((pending_count++)) || true
 
     # Extract context for notification
     local initiative
@@ -647,7 +756,7 @@ main() {
     if process_queue && process_assignments; then
       consecutive_errors=0
     else
-      ((consecutive_errors++))
+      ((consecutive_errors++)) || true
       log_error "Error during poll cycle ($consecutive_errors consecutive)"
     fi
 
@@ -657,7 +766,7 @@ main() {
     compile_report
 
     # Post full Slack report every N cycles
-    ((poll_count++))
+    ((poll_count++)) || true
     if (( poll_count % REPORT_INTERVAL == 0 )); then
       compile_and_post_report
     fi
@@ -677,8 +786,8 @@ main() {
       local st
       st="$(read_yaml_field "$f" 'status')"
       case "$st" in
-        BLOCKED) ((blocked_count++)) ;;
-        REVIEW_READY|DEV_COMPLETE) ((review_count++)) ;;
+        BLOCKED) ((blocked_count++)) || true ;;
+        REVIEW_READY|DEV_COMPLETE) ((review_count++)) || true ;;
       esac
     done
 
@@ -686,11 +795,14 @@ main() {
       [[ -f "$f" ]] || continue
       local res
       res="$(sed -n '/^## Resolution/,/^##/p' "$f" 2>/dev/null | grep -v '^##' | tr -d '[:space:]')"
-      [[ -z "$res" ]] && ((pending_count++))
+      [[ -z "$res" ]] && { ((pending_count++)) || true; }
     done 2>/dev/null
 
     # All agents idle — send a wrap-up summary (once)
-    if (( active_count == 0 )) && ! $was_idle; then
+    local pipeline_running=false
+    any_initiative_agent_running && pipeline_running=true
+
+    if (( active_count == 0 )) && ! $pipeline_running && ! $was_idle; then
       was_idle=true
       local summary="All agents are idle."
       (( review_count > 0 )) && summary+=" ${review_count} branch(es) ready for your review."
@@ -699,28 +811,31 @@ main() {
       (( review_count == 0 && pending_count == 0 && blocked_count == 0 )) && summary+=" Nothing needs your attention — all clear."
       notify "report" "$summary"
       log_info "$summary"
-    elif (( active_count > 0 )); then
+    elif (( active_count > 0 )) || $pipeline_running; then
       was_idle=false
     fi
 
     # Everything blocked — escalate (once)
-    if (( blocked_count > 0 && active_count == 0 && pending_count > 0 )) && ! $was_all_blocked; then
+    if (( blocked_count > 0 && active_count == 0 && pending_count > 0 )) && ! $pipeline_running && ! $was_all_blocked; then
       was_all_blocked=true
       notify "alert" "Work is stalled — ${pending_count} decision(s) need your input before agents can continue. Check Slack threads or .deliberate/decisions/"
-    elif (( blocked_count == 0 || active_count > 0 )); then
+    elif (( blocked_count == 0 || active_count > 0 )) || $pipeline_running; then
       was_all_blocked=false
     fi
 
     # Write orchestrator heartbeat
-    cat > "${STATUS_DIR}/orchestrator.yaml" <<EOF
-status: "running"
-last_poll: "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-active_developers: ${active_count}
-pending_decisions: ${pending_count}
-blocked: ${blocked_count}
-review_ready: ${review_count}
-poll_count: ${poll_count}
-slack_enabled: ${SLACK_ENABLED}
+    cat > "${STATUS_DIR}/orchestrator.md" <<EOF
+# Status: Orchestrator
+
+- **Status**: running
+- **Last Poll**: $(date -u '+%Y-%m-%dT%H:%M:%SZ')
+- **Active Developers**: ${active_count}
+- **Pipeline Agent Running**: ${pipeline_running}
+- **Pending Decisions**: ${pending_count}
+- **Blocked**: ${blocked_count}
+- **Review Ready**: ${review_count}
+- **Poll Count**: ${poll_count}
+- **Slack Enabled**: ${SLACK_ENABLED}
 EOF
 
     sleep "$POLL_INTERVAL"

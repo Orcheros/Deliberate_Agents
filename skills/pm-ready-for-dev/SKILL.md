@@ -52,11 +52,13 @@ Finalize all documentation and signal that this initiative is ready for the Proj
    The orchestrator will detect this state change and move the initiative directory from `backlog/` to `specified/`.
 
 6. **Update your agent status**:
-   ```yaml
-   # .deliberate/status/product-manager.yaml
-   status: "idle"
-   last_completed: "initiative-slug"
-   completed_at: "2024-01-15T10:30:00Z"
+   Update `.deliberate/status/product-manager.md`:
+   ```markdown
+   # Status: Product Manager
+
+   - **Status**: idle
+   - **Last Completed**: initiative-slug
+   - **Completed**: 2024-01-15T10:30:00Z
    ```
 
 ## Output

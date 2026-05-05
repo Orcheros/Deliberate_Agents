@@ -17,7 +17,7 @@ Monitor task completion across all agent types, manage phase transitions, and ha
 Check all assignment files for status updates:
 ```bash
 # Check all assignments for this initiative
-for f in .deliberate/assignments/*.yaml; do
+for f in .deliberate/assignments/*.md; do
   echo "$(basename $f): $(grep 'status:' $f | head -1)"
 done
 ```

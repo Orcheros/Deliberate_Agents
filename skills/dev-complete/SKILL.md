@@ -40,23 +40,26 @@ Produce clean, atomic commits and signal task completion.
    ```
    Confirm all tests still pass after committing.
 
-4. **Update your assignment status**:
-   ```yaml
-   # .deliberate/assignments/{worktree}.yaml
-   status: "complete"
-   completed_at: "timestamp"
-   commits:
-     - "abc1234 - Short description"
-   test_result: "pass"
-   notes: "Any relevant notes for the project manager"
+4. **Update your assignment status** in `.deliberate/assignments/{worktree}.md`:
+
+   Add a `## Completion` section at the end:
+   ```markdown
+   ## Completion
+   - **Status**: complete
+   - **Completed**: timestamp
+   - **Test Result**: pass
+   - **Commits**:
+     - `abc1234` — Short description
+   - **Notes**: Any relevant notes for the project manager
    ```
 
-5. **Update your agent status**:
-   ```yaml
-   # .deliberate/status/developer-{worktree}.yaml
-   status: "idle"
-   last_completed: "task-id"
-   completed_at: "timestamp"
+5. **Update your agent status** in `.deliberate/status/developer-{worktree}.md`:
+   ```markdown
+   # Status: Developer ({worktree})
+
+   - **Status**: idle
+   - **Last Completed**: task-id
+   - **Completed**: timestamp
    ```
 
 ## Do NOT

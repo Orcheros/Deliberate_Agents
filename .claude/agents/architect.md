@@ -1,0 +1,1 @@
+../../agents/product/architect.md
