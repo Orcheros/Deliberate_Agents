@@ -2,7 +2,7 @@
 name: security-analyst
 description: Reviews code and configuration for security vulnerabilities, threat modeling, and access control
 tools: Bash, Read, Glob, Grep
-model: sonnet
+model: opus
 permissionMode: auto
 maxTurns: 60
 skills:

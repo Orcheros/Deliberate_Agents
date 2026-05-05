@@ -2,7 +2,7 @@
 name: qa-lead
 description: Owns the test plan end-to-end — decomposes acceptance criteria into test cases, assigns to QA teammates, aggregates results, and makes go/no-go recommendations
 tools: Bash, Read, Write, Edit, Glob, Grep
-model: opus
+model: sonnet
 permissionMode: auto
 maxTurns: 100
 skills:

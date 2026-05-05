@@ -2,7 +2,7 @@
 name: database-specialist
 description: Owns data modeling, migration safety, schema design, seed data, and database performance
 tools: Bash, Read, Write, Edit, Glob, Grep
-model: sonnet
+model: opus
 permissionMode: auto
 maxTurns: 80
 skills:

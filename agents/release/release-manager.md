@@ -2,7 +2,7 @@
 name: release-manager
 description: Coordinates the release process — planning, go/no-go, checklist management, and team coordination
 tools: Bash, Read, Write, Edit, Glob, Grep
-model: opus
+model: sonnet
 permissionMode: auto
 maxTurns: 100
 skills:

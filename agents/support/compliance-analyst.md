@@ -2,7 +2,7 @@
 name: compliance-analyst
 description: Reviews data flows, privacy implications, and regulatory requirements for initiatives
 tools: Read, Write, Edit, Glob, Grep
-model: sonnet
+model: opus
 permissionMode: auto
 maxTurns: 60
 skills:

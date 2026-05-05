@@ -2,7 +2,7 @@
 name: developer
 description: Executes a single development task in an isolated git worktree
 tools: Bash, Read, Write, Edit, Glob, Grep
-model: sonnet
+model: opus
 permissionMode: auto
 maxTurns: 100
 skills:

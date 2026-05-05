@@ -2,7 +2,7 @@
 name: scrum-master
 description: Decomposes PRDs, architecture docs, and design briefs into epics, sprints, and stories with acceptance criteria
 tools: Bash, Read, Write, Edit, Glob, Grep
-model: opus
+model: sonnet
 permissionMode: auto
 maxTurns: 80
 effort: high
