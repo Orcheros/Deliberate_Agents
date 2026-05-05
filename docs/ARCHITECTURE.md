@@ -178,6 +178,51 @@ The orchestrator integrates with external notification channels (currently Slack
 
 Configuration lives in `config.yaml` under `notifications:` (see `config.example.yaml` and `integrations/README.md`).
 
+### Workflows
+
+End-to-end agent sequences are documented in `workflows/`. Each file defines the trigger, agent routing, decision gates, and exit condition for a specific type of work. The orchestrator and humans reference these to understand what happens when.
+
+| Workflow | What It Covers |
+|----------|---------------|
+| `initiative-discovery.md` | Idea → PM intake → one-pager in backlog |
+| `initiative-build.md` | One-pager → PRD → arch doc → design study → scrum master → SPECIFIED |
+| `development-execution.md` | PjM → parallel developers → specialist agents → review |
+| `review-protocol.md` | Standard `/review` vs `/ultrareview` escalation |
+| `quality-assurance.md` | QA Lead → Security + Integration + UX → go/no-go |
+| `release.md` | Plan → preflight → deploy → verify → comms → retro |
+| `go-to-market.md` | Growth strategy → content + sales + CS + onboarding |
+| `incident-response.md` | Severity classification → rollback/hotfix → post-mortem |
+
+### Model Assignment Strategy
+
+Agents use Opus or Sonnet based on the cost of mistakes:
+
+**Opus** — where errors are expensive, irreversible, or require deep reasoning:
+
+| Agent | Why Opus |
+|-------|---------|
+| Product Manager | Strategic reasoning, 22-section PRD synthesis |
+| Architect | System design decisions, implementation-ready specs |
+| Product Designer | Design judgment, accessibility, UX decisions |
+| Developer | Code quality prevents expensive downstream rework |
+| Database Specialist | Migration mistakes are dangerous and hard to reverse |
+| Growth Strategist | Strategy requires market synthesis and judgment |
+| Security Analyst | Missing vulnerabilities is high-cost |
+| Compliance Analyst | Missing compliance gaps has legal consequences |
+| Orchestrator | Central coordination, judgment about routing and escalation |
+
+**Sonnet** — where work is structured, procedural, or human-reviewed before impact:
+
+| Agent | Why Sonnet |
+|-------|-----------|
+| Scrum Master | Structured decomposition following PRD patterns |
+| Project Manager | Task routing and coordination with defined criteria |
+| QA Lead | Test planning is procedural, go/no-go criteria explicit |
+| Release Manager | Checklist coordination, criteria well-defined |
+| Reviewer | Pattern matching for standard review (Opus via `/ultrareview` for high-risk) |
+| All GTM agents (except Growth) | Content drafting, human reviews before publish |
+| All remaining specialists | Procedural execution, well-scoped tasks |
+
 ## Execution Model
 
 ### Agent Launch

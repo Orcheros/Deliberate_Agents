@@ -28,6 +28,8 @@ Not every initiative needs the Architect or Designer — a backend API change mi
 
 The whole process is coordinated by a simple script called the **orchestrator** that watches for completed work and launches the next step automatically. No databases, no servers — just files on your computer.
 
+For the full detail on each workflow — including decision gates, optional branches, and handoff conditions — see the [workflows/](workflows/) directory.
+
 ---
 
 ## The Team
@@ -314,11 +316,14 @@ See [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md) for details.
 ```
 Deliberate_Agents/
 │
-├── .claude/agents/     Who's on the team — one file per agent defining
-│                       their role, personality, and capabilities
+├── agents/             Who's on the team — one file per agent defining
+│                       their role, model, and capabilities
 │
 ├── skills/             What each agent knows how to do — step-by-step
 │                       workflow instructions loaded on demand
+│
+├── workflows/          How agents coordinate — end-to-end sequences
+│                       with triggers, handoffs, and decision gates
 │
 ├── orchestration/      The coordination scripts that launch agents,
 │                       monitor progress, and keep things moving
@@ -331,6 +336,9 @@ Deliberate_Agents/
 │
 ├── state/              Documentation for how agents communicate with
 │                       each other through files
+│
+├── integrations/       External system connectors (Slack bot for
+│                       question routing and agent unblocking)
 │
 ├── mcp-servers/        Optional add-ons for cross-LLM capabilities
 │                       (e.g., getting OpenAI to review Claude's code)
