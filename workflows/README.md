@@ -8,6 +8,7 @@ Workflows do NOT duplicate skill content or agent identity. Those live in `skill
 
 | Workflow | Trigger | Teams Involved |
 |----------|---------|---------------|
+| [Initiative Lifecycle](initiative-lifecycle.md) | Artifact created or flag set | **Ruleset** — governs directory promotion for all workflows |
 | [Initiative Discovery](initiative-discovery.md) | Founder has a scoped idea | Product (PM only) |
 | [Initiative Build](initiative-build.md) | One-pager selected for grooming | Product (PM → Architect → Designer → Scrum Master) |
 | [Development Execution](development-execution.md) | Initiative status → `READY_FOR_DEV` | Engineering (PjM → Developers → Review) |
@@ -20,9 +21,14 @@ Workflows do NOT duplicate skill content or agent identity. Those live in `skill
 ## How Workflows Connect
 
 ```
-Initiative Discovery ──→ Initiative Build ──→ Development Execution ──→ Review Protocol ──→ Quality Assurance ──→ Release
-                                                                                                                    ↓
-                                                                                                              Go-to-Market
+                                    Initiative Lifecycle (ruleset — governs all directory promotions)
+                                    ════════════════════════════════════════════════════════════════
+
+  backlog/          needs-prd/        needs-architecture/   needs-design-study/   needs-stories/       needs-engineering/    needs-qa/        shipped/
+     │                  │                    │                      │                   │                      │                  │               │
+     ▼                  ▼                    ▼                      ▼                   ▼                      ▼                  ▼               ▼
+Initiative      Initiative Build ─────────────────────────────────────────→ Dev Execution ──→ Review ──→ QA ──→ Release ──→ Go-to-Market
+Discovery       (PM → Arch → Designer → Scrum Master)                      (PjM → Devs)       Protocol
 ```
 
-Human approval gates sit between each major transition. The orchestrator enforces sequencing.
+Human approval gates sit between each major transition. The orchestrator enforces sequencing. The Initiative Lifecycle ruleset defines the binary promotion checks that move initiative folders between directories — all other workflows produce artifacts that trigger those promotions.

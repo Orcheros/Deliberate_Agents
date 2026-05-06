@@ -40,7 +40,7 @@ None — this is a one-agent workflow. The PM makes judgment calls about scope a
 
 ## Exit Condition
 
-One-pager exists in `backlog/` and queue file has status `QUEUED`. The initiative sits in the backlog until the founder selects it for grooming, which triggers the **Initiative Build** workflow.
+One-pager exists in `backlog/` and queue file has status `QUEUED`. The initiative sits in the backlog until the founder selects it for grooming, which promotes it to `needs-prd/` (see [Initiative Lifecycle](initiative-lifecycle.md) Rule 1) and triggers the **Initiative Build** workflow.
 
 ## Timing
 

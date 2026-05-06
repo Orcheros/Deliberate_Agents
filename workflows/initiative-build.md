@@ -6,46 +6,47 @@ Take a one-pager from the backlog and produce everything needed for engineering 
 
 ## Trigger
 
-Founder selects a `QUEUED` initiative for grooming.
+Founder promotes initiative from `backlog/` to `needs-prd/` (see [Initiative Lifecycle](initiative-lifecycle.md) Rule 1).
 
 ## Agent Sequence
 
 ```
-One-pager (QUEUED)
+needs-prd/  (initiative selected for build)
   ↓
 Product Manager
-  /pm-assess → /pm-research → /pm-expand-prd → /pm-cross-functional → /pm-ready-for-dev
+  /pm-assess → /pm-research → /pm-expand-prd → /pm-cross-functional
+  ↓ PRD written → promote to needs-architecture/ (or skip)
+  ┌─── requires_architecture? ──┐
+  │ YES                          │ NO
+  ↓                              │
+Architect                        │
+  (arch doc)                     │
+  ↓ promote to needs-design-study/ (or skip)
+  ←──────────────────────────────┘
   ↓
-  ┌─── Needs architecture? ───┐
-  │ YES                        │ NO
-  ↓                            │
-Architect                      │
-  (arch doc)                   │
-  ↓                            │
-  ←────────────────────────────┘
-  ↓
-  ┌─── Needs design? ─────────┐
-  │ YES                        │ NO
-  ↓                            │
-Product Designer               │
-  (design study)               │
-  ↓                            │
-  ┌─ Needs Claude Design? ─┐  │
-  │ YES                     │  │
-  ↓                         │  │
-  BLOCKED: Human takes      │  │
-  study → Claude Design     │  │
-  → commits artifacts       │  │
-  ↓                         │  │
-  Designer incorporates     │  │
-  ←─────────────────────────┘  │
-  ←────────────────────────────┘
-  ↓
+  ┌─── requires_design_study? ──┐
+  │ YES                          │ NO
+  ↓                              │
+Product Designer                 │
+  (design study)                 │
+  ↓ promote to needs-design/ (or skip)
+  ┌─ requires_design? ──┐       │
+  │ YES                  │       │
+  ↓                      │       │
+  BLOCKED: Human takes   │       │
+  study → Claude Design  │       │
+  → commits artifacts    │       │
+  → design_complete=true │       │
+  ←──────────────────────┘       │
+  ←──────────────────────────────┘
+  ↓ promote to needs-stories/
 Scrum Master
   (epics → sprints → stories)
-  ↓
-SPECIFIED — ready for human sign-off
+  ↓ promote to needs-engineering/
+READY_FOR_DEV — ready for human sign-off
 ```
+
+Each `promote` step moves the initiative folder to the next directory per [Initiative Lifecycle](initiative-lifecycle.md) rules.
 
 ## Detailed Steps
 
@@ -166,4 +167,4 @@ SPECIFIED — ready for human sign-off
 
 ## Exit Condition
 
-Initiative status is `SPECIFIED`. All artifacts (PRD, arch doc if applicable, design study if applicable, backlog with stories) exist on the product branch. Human signs off to transition to `READY_FOR_DEV`, which triggers the **Development Execution** workflow.
+Initiative is in `needs-engineering/`. All artifacts (PRD, arch doc if applicable, design study if applicable, stories) exist in the initiative folder. Human signs off, which triggers the **Development Execution** workflow. See [Initiative Lifecycle](initiative-lifecycle.md) for the full promotion ruleset.
