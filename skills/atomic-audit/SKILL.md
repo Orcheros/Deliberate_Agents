@@ -107,6 +107,21 @@ Review existing or new code for atomic design violations. Find duplicated markup
    |---------|-------------|----------------|-------|----------|
    ```
 
+### Violation 5: Data Traversal Anti-Patterns
+
+**What to look for:**
+- Instance variables (`@`) used in atoms or molecules (should only be in organisms+)
+- Partials receiving 5+ locals (should use a presenter)
+- Locals passed through a middle layer untouched (prop drilling)
+- Proc/lambda locals for interactivity (should use Stimulus)
+- Sibling components sharing state via ERB logic (should use Stimulus outlets/dispatch)
+
+**How to detect:**
+- Grep for `@` in `app/views/components/_*.html.erb`
+- Count `local_assigns` usage per partial — flag any with 5+
+- Look for render calls where a local is received only to be passed to a child unchanged
+- Find ViewComponent usage (forbidden — flag for removal)
+
 4. **Score the health** of the audited code:
    - 90-100%: Excellent atomic hygiene
    - 70-89%: Good with minor violations

@@ -99,18 +99,158 @@ Implement UI components bottom-up following atomic design principles. Each compo
    - Pages fill templates with real organisms and data
    - Pages should contain minimal direct markup — mostly `render` calls
 
-7. **Single-source-of-truth enforcement:**
+7. **Data traversal between atomic layers:**
+
+   The core challenge: how does data flow from pages through organisms and molecules down to atoms without painful prop drilling or invisible coupling?
+
+   **Pattern A — Presenter objects (solves prop drilling):**
+
+   Instead of drilling individual locals through every render layer, pass a single presenter that each level queries for what it needs:
+
+   ```ruby
+   # app/presenters/card_presenter.rb
+   class CardPresenter
+     attr_reader :resource
+
+     def initialize(resource)
+       @resource = resource
+     end
+
+     def title = resource.name
+     def subtitle = resource.category&.name
+     def status_variant = resource.active? ? :success : :muted
+     def action_label = resource.draft? ? "Edit Draft" : "View"
+     def action_path = resource.draft? ? edit_path : show_path
+   end
+   ```
+
+   ```erb
+   <%# Organism — passes presenter, not 10 separate locals %>
+   <%= render "components/status_card", presenter: presenter %>
+
+   <%# Molecule — pulls what it needs from presenter %>
+   <%= render "components/card_header", title: presenter.title, subtitle: presenter.subtitle %>
+   <%= render "components/badge", variant: presenter.status_variant %>
+   ```
+
+   **Rule**: If a partial needs 4+ locals, it should receive a presenter instead.
+
+   **Pattern B — Content blocks + capture (solves context injection):**
+
+   Higher levels inject rendered content into lower levels without intermediate layers knowing the data shape:
+
+   ```erb
+   <%# Page-level: knows the data, injects rendered content %>
+   <%= render "components/data_table" do |table| %>
+     <% @users.each do |user| %>
+       <%= render "components/table_row" do %>
+         <%= render "components/avatar", src: user.avatar_url, size: :sm %>
+         <span class="font-medium"><%= user.name %></span>
+       <% end %>
+     <% end %>
+   <% end %>
+   ```
+
+   ```erb
+   <%# Molecule: doesn't know about users — just yields a slot %>
+   <tr class="table-row">
+     <td class="table-cell"><%= yield %></td>
+   </tr>
+   ```
+
+   **Rule**: When a molecule doesn't need to know _what_ it contains, use `yield` instead of passing data through.
+
+   **Pattern C — Stimulus outlets + dispatch (solves sibling coordination):**
+
+   When atoms/molecules in the same organism need to react to each other, use Stimulus — not ERB data passing:
+
+   ```erb
+   <%# Organism with coordinating siblings %>
+   <div data-controller="filter-list">
+     <%= render "components/search_input", action: "input->filter-list#filter" %>
+     <%= render "components/results_list", target: "filter-list.results" %>
+     <%= render "components/empty_state", target: "filter-list.empty" %>
+   </div>
+   ```
+
+   ```javascript
+   // Stimulus controller owns the coordination logic
+   export default class extends Controller {
+     static targets = ["results", "empty"]
+
+     filter(event) {
+       const query = event.target.value.toLowerCase()
+       // Toggle visibility of result items, show/hide empty state
+     }
+   }
+   ```
+
+   **Rule**: If two siblings need to know about each other's state, wrap them in a Stimulus controller. Never pass callbacks or state through ERB locals.
+
+   **Pattern D — View helpers for page-level context:**
+
+   When deeply nested atoms need page-level context (current user, feature flags, permissions), use helpers — not drilling through locals:
+
+   ```ruby
+   # app/helpers/context_helper.rb
+   module ContextHelper
+     def current_permissions
+       @_permissions ||= PermissionSet.for(current_user, controller_name)
+     end
+
+     def feature_enabled?(flag)
+       Flipper.enabled?(flag, current_user)
+     end
+   end
+   ```
+
+   ```erb
+   <%# Atom can call helpers directly — no prop drilling %>
+   <% if feature_enabled?(:new_badge_style) %>
+     <span class="badge badge-v2"><%= label %></span>
+   <% else %>
+     <span class="badge"><%= label %></span>
+   <% end %>
+   ```
+
+   **Rule**: Helpers are the view layer's "ambient context." Use them for cross-cutting concerns (auth, features, i18n). Do NOT use instance variables (`@`) in atoms/molecules — only organisms and above may reference `@`.
+
+   **Data traversal decision tree:**
+   ```
+   Need to pass data down 2+ levels?
+   └── YES → Use a presenter object (Pattern A)
+
+   Parent doesn't care what child contains?
+   └── YES → Use yield / content blocks (Pattern B)
+
+   Siblings need to coordinate?
+   └── YES → Stimulus controller wraps them (Pattern C)
+
+   Deep component needs app-level context?
+   └── YES → View helper (Pattern D)
+
+   Simple 1-level pass of 1-3 values?
+   └── YES → Plain locals are fine
+   ```
+
+8. **Single-source-of-truth enforcement:**
    - Every visual element has ONE canonical definition
    - Consumers `render` or apply the CSS class — they never copy markup
    - To change a button's appearance globally: edit `components/buttons.css` or `_button.html.erb` once
    - If you find yourself writing markup that looks like an existing component: stop and use `render`
 
-8. **Follow `/tailwind-design-system` conventions:**
+9. **Follow `/tailwind-design-system` conventions:**
    - CSS tokens in `app/assets/tailwind/themes/`
    - Component CSS in `app/assets/tailwind/components/` with `@import` in `application.css`
    - ERB partials in `app/views/components/`
    - Stimulus controllers in `app/javascript/controllers/`
    - Symbol keys for variants, `local_assigns[:class]` for overrides
+
+## Hard Constraints
+
+- **No ViewComponent.** Do not use the `view_component` gem. It introduces indirection, complex slot APIs, and debugging pain that outweighs its benefits. Plain ERB partials + presenters + Stimulus cover all needs.
+- **No instance variables below organism level.** Atoms and molecules receive data via locals or presenters only. `@` vars are reserved for organisms, templates, and pages.
+- **No callback locals.** Never pass procs/lambdas as locals for interactivity. Use Stimulus for all dynamic behavior between components.
 
 ## Build Checklist
 

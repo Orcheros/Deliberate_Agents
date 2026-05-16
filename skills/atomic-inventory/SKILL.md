@@ -99,6 +99,11 @@ Produce a complete inventory of existing UI components classified by atomic desi
    - Opportunities for single-source-of-truth consolidation
    ```
 
+## Hard Constraints
+
+- **No ViewComponent.** Do not use or recommend the `view_component` gem. Inventory should flag any existing ViewComponent usage as a migration candidate.
+- **Instance variable audit**: Note which atoms/molecules improperly use `@` — these are data traversal violations.
+
 ## Workflow Transitions
 
 - **After inventory**: Run `/atomic-decompose` for new feature work informed by what exists

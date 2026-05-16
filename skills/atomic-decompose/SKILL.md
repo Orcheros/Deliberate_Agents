@@ -84,11 +84,35 @@ Given a feature or page requirement, decompose it into the atomic design hierarc
    - {N} new components to create
    ```
 
-6. **Reuse-first gates** — reject decompositions that violate these:
+6. **Plan data traversal at decomposition time:**
+
+   For each organism, answer these questions before building:
+   - What data does each atom need? Can it be satisfied by 1-3 plain locals?
+   - If an organism passes 4+ values to a molecule → plan a presenter object
+   - If a molecule doesn't care about its content → plan a `yield` slot
+   - If siblings need to coordinate → plan a Stimulus controller wrapper
+   - If atoms need page-level context (current user, permissions) → plan a view helper
+
+   Add a **Data Flow** column to the decomposition tree:
+   ```
+   ├── Organism: UserCard [CREATE] → receives presenter
+   │   ├── Molecule: CardHeader [CREATE] → title, subtitle from presenter
+   │   │   ├── Atom: Avatar [EXISTS] → src, size (plain locals)
+   │   │   └── Atom: Heading [EXISTS] → yield (content block)
+   │   └── Molecule: CardActions [CREATE] → Stimulus coordinates buttons
+   ```
+
+7. **Reuse-first gates** — reject decompositions that violate these:
    - A new atom MUST NOT duplicate an existing atom's purpose
    - A new molecule MUST compose existing atoms (not redefine them inline)
    - If 70%+ of a molecule's atoms are new, question whether the molecule is at the right level
    - Prefer extending an existing component with a variant over creating a parallel component
+
+## Hard Constraints
+
+- **No ViewComponent.** Do not use or recommend the `view_component` gem. Use plain ERB partials + presenters + Stimulus.
+- **No instance variables below organism level.** Atoms and molecules receive data via locals or presenters only.
+- **No callback locals.** Never pass procs/lambdas. Use Stimulus for cross-component interactivity.
 
 ## Workflow Transitions
 
