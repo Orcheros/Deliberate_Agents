@@ -1,0 +1,12 @@
+name: content-draft
+description: Run linkedin-copywriter agent to draft posts from approved ideas
+agent: linkedin-copywriter
+schedule:
+  frequency: weekly
+  day: tuesday
+  time: "09:00"
+  timezone: "America/New_York"
+trigger_condition:
+  type: notion_status_exists
+  status: "Approved"
+  description: "Only fires if at least one Notion page has Status = Approved"

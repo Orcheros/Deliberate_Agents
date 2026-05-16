@@ -1,0 +1,8 @@
+name: content-report
+description: Generate weekly content performance report with metrics and strategic recommendations
+agent: content-reporter
+schedule:
+  frequency: weekly
+  day: friday
+  time: "16:00"
+  timezone: "America/New_York"

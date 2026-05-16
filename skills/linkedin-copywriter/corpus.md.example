@@ -1,0 +1,142 @@
+# Voice Corpus — Example File
+
+This file demonstrates the format for corpus entries. Each entry is a past post that represents the author's voice, style, and content approach.
+
+**How to build your corpus:**
+- Include 10-30 of your best-performing posts
+- Represent the full range of your content: tactical, personal, promotional, philosophical
+- Include posts with different hooks and structures for variety
+- The agent will analyze these to build a voice profile — the more diverse and representative the corpus, the better the match
+
+**File naming**: Each entry can be its own file (e.g., `2024-03-15-biggest-client.md`) or multiple entries can live in one file separated by `---`. Place all files in the path specified by `content.voice_corpus_path` (default: `content/corpus/`).
+
+---
+
+## Entry 1 — Contrarian + Story-Lesson
+
+```
+---
+date: 2024-03-15
+engagement: 45000 impressions, 892 likes, 234 comments
+hook_type: contrarian
+structure: story-lesson
+---
+
+The best engineers I've hired had no CS degree.
+
+Here's what they had instead:
+
+Relentless curiosity. The kind where they'd reverse-engineer
+a product just to understand how the auth flow worked.
+
+One of them was a music teacher. She taught herself Python
+to automate her grading system. Within a year she was
+leading our data pipeline.
+
+Another was a mechanic. He'd been scripting diagnostics
+for fun. His code was cleaner than half our senior team's.
+
+The pattern I keep seeing:
+
+People who learned to code because they needed to solve
+a real problem — not because a curriculum told them to —
+write better software.
+
+Degrees measure compliance.
+Projects measure capability.
+
+Hire for the portfolio. Not the pedigree.
+```
+
+---
+
+## Entry 2 — Data Hook + List-Post
+
+```
+---
+date: 2024-04-22
+engagement: 32000 impressions, 654 likes, 189 comments
+hook_type: data
+structure: list-post
+---
+
+I tracked every sales call for 6 months. 247 calls total.
+
+Here's what the data showed:
+
+1. Calls under 20 minutes closed 3x more often than calls over 45.
+   Shorter = more focused = better qualification.
+
+2. Asking "What does success look like?" in the first 5 minutes
+   doubled our close rate. Context before pitch. Always.
+
+3. The follow-up email within 1 hour had a 68% reply rate.
+   After 24 hours? 11%.
+
+4. Prospects who asked about pricing first churned 2x faster.
+   Price-first buyers are discount buyers.
+
+5. Our best month? The one where I said "this isn't a fit"
+   to 4 prospects. Better pipeline. Better clients.
+
+Stop guessing. Start measuring.
+
+What's one metric you track in your sales process?
+```
+
+---
+
+## Entry 3 — Vulnerability Hook + Before-After
+
+```
+---
+date: 2024-05-10
+engagement: 58000 impressions, 1243 likes, 412 comments
+hook_type: vulnerability
+structure: before-after
+---
+
+I almost quit 3 months ago.
+
+Not in a dramatic, throw-my-laptop kind of way.
+In the quiet way. Where you just stop caring.
+
+Meetings felt pointless.
+Wins felt empty.
+I was going through the motions.
+
+My calendar was full. My energy was gone.
+
+Then I did something uncomfortable:
+I cancelled everything for a week.
+
+No calls. No Slack. No "quick syncs."
+Just me, a notebook, and the question:
+"What would I do if I were starting over today?"
+
+The answer was terrifying and clarifying.
+
+I was building someone else's version of success.
+
+Now:
+- I run 2 focused projects instead of 7
+- I protect 3 hours of deep work every morning
+- I say "no" more than "yes"
+
+Revenue is the same. Energy is completely different.
+
+Burnout isn't a badge. It's a signal.
+
+If you're running on empty, the answer probably isn't
+"more discipline." It might be "fewer commitments."
+```
+
+---
+
+## Notes
+
+- **Engagement data** is optional but helps the agent identify what resonates with your audience
+- **Hook type and structure tags** help the agent understand your natural content patterns
+- Posts don't need to be perfect — they represent your real voice, not an idealized version
+- Include posts that flopped too, if they represent your authentic style. The agent needs to know how you actually write, not just your highlight reel.
+- Update the corpus regularly as your voice evolves

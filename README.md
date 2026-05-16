@@ -394,6 +394,23 @@ A few terms that come up often:
 
 Built on patterns from [BMAD-METHOD](https://github.com/bmadcode/BMAD-METHOD) — agent personas, step-based workflows, progressive context loading — extended into fully autonomous multi-agent coordination.
 
+## TODO — Content Automation Setup
+
+- [ ] Populate `content/corpus/` with 15-30 top-performing LinkedIn posts (one file per post, see `content/corpus/README.md` for format)
+- [ ] Create Notion integration database with schema from `integrations/notion/schema.md`
+- [ ] Set environment variable `NOTION_TOKEN` (create at https://www.notion.so/my-integrations)
+- [ ] Set environment variable `NOTION_CONTENT_DB` (database ID from Notion URL)
+- [ ] Share Notion database with your integration
+- [ ] Set environment variables `UNIPILE_API_KEY` and `UNIPILE_ACCOUNT_ID` (or evaluate alternative LinkedIn providers)
+- [ ] Test Notion integration: `./integrations/notion/start.sh --test`
+- [ ] Test LinkedIn provider: `./integrations/linkedin/start.sh --test --dry-run`
+- [ ] Manual test: invoke `/linkedin-copywriter` skill in a Claude Code session to verify corpus loading and slop scrub
+- [ ] Run `orchestration/check-schedules.sh` with a schedule set to "now" to verify assignment file creation
+- [ ] End-to-end dry run: set schedule to fire immediately → verify researcher creates Notion Idea → mark Approved → copywriter drafts → mark Approved → publisher posts (dry-run mode)
+- [ ] Verify backward compatibility: run existing engineering workflow (create initiative, process through PM/dev) with no regressions
+- [ ] Review and customize `content/slop-blacklist.yaml` for your voice and industry
+- [ ] Update `config.henry.yaml` with your `notion_content_db` value once database is created
+
 ## License
 
 MIT

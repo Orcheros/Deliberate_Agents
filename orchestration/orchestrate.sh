@@ -552,7 +552,9 @@ process_assignments() {
           integrations-engineer|content-writer|compliance-analyst|\
           technical-writer|devops-engineer|security-analyst|\
           sales-development-rep|account-executive-assistant|\
-          customer-success|onboarding-specialist|seo-specialist)
+          customer-success|onboarding-specialist|seo-specialist|\
+          content-researcher|linkedin-copywriter|content-publisher|\
+          engagement-tracker|content-reporter)
             launch_specialist_agent "$agent_type" "$worktree"
             ;;
           *)
@@ -773,6 +775,9 @@ main() {
 
     # Reconcile initiative directories with STATUS.yaml state
     "${FRAMEWORK_DIR}/scripts/sync-initiatives.sh" "$CONFIG_FILE" --quiet --no-tracker 2>/dev/null || true
+
+    # Evaluate recurring content schedules and create assignments for due items
+    "${FRAMEWORK_DIR}/orchestration/check-schedules.sh" "$CONFIG_FILE" "$FRAMEWORK_DIR" 2>/dev/null || true
 
     # --- Idle / All-Blocked Detection ---
     local active_count

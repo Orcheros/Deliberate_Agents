@@ -1,0 +1,142 @@
+# Slop Blacklist - Words, phrases, and patterns that kill authentic voice
+# Used by slop-scrub skill to flag and clean content
+
+banned_words:
+  - delve
+  - navigate
+  - landscape
+  - leverage
+  - synergy
+  - unlock
+  - game-changer
+  - revolutionize
+  - paradigm
+  - elevate
+  - empower
+  - seamless
+  - robust
+  - holistic
+  - cutting-edge
+  - groundbreaking
+  - innovative
+  - disruptive
+  - transformative
+  - unprecedented
+  - foster
+  - facilitate
+  - optimize
+  - streamline
+  - harness
+  - spearhead
+  - supercharge
+  - turbocharge
+  - skyrocket
+
+banned_phrases:
+  - "in today's fast-paced world"
+  - "let that sink in"
+  - "read that again"
+  - "here's the thing"
+  - "hot take"
+  - "unpopular opinion"
+  - "I'll say it louder for the people in the back"
+  - "this is the way"
+  - "full stop"
+  - "period"
+  - "mic drop"
+  - "plot twist"
+  - "spoiler alert"
+  - "pro tip"
+  - "the secret nobody tells you"
+  - "what they don't want you to know"
+  - "change my mind"
+  - "I said what I said"
+
+structural_rules:
+  - id: emoji-limit
+    rule: Maximum 2 emoji per post
+    rationale: Overuse of emoji signals low-effort content and reduces professional credibility
+
+  - id: hashtag-limit
+    rule: No more than 3 hashtags per post
+    rationale: Hashtag spam looks desperate for reach and clutters the message
+
+  - id: no-caps-emphasis
+    rule: Do not use ALL CAPS for emphasis
+    rationale: Caps shouting undermines authority; strong words don't need formatting crutches
+
+  - id: hook-first
+    rule: First line must be a hook, not context-setting
+    rationale: Context-first posts lose readers before delivering value; lead with tension or payoff
+
+  - id: no-agree-cta
+    rule: Do not end with "agree?" as a call to action
+    rationale: Lazy engagement bait that signals you have nothing real to say
+
+  - id: no-thread-bait
+    rule: Do not tease a thread without delivering substance
+    rationale: Bait-and-switch erodes trust; if you promise value, deliver it immediately
+
+  - id: no-self-congrats
+    rule: Do not open with self-congratulatory statements
+    rationale: Leading with "I'm proud to announce" or "Excited to share" centers you instead of the reader
+
+regex_patterns:
+  - pattern: "(?i)\\b(just|simply|easily)\\b"
+    description: Minimizing language that dismisses complexity
+    replacement_guidance: Remove the word entirely or acknowledge the actual difficulty
+
+  - pattern: "!!+"
+    description: Multiple exclamation marks
+    replacement_guidance: Use a single exclamation mark or restructure for emphasis through word choice
+
+  - pattern: "(?i)\\b(very|really|extremely|incredibly|absolutely)\\b"
+    description: Weak intensifiers that add no meaning
+    replacement_guidance: Remove the intensifier or choose a more precise adjective
+
+  - pattern: "(?i)^(so|look|listen|okay so)\\b"
+    description: Filler openers that delay the point
+    replacement_guidance: Delete and start with the actual statement
+
+  - pattern: "(?i)\\b(everyone|nobody|always|never)\\b"
+    description: Absolute generalizations that invite disagreement
+    replacement_guidance: Use specific qualifiers (most people, rarely, in my experience)
+
+  - pattern: "\\.{3,}"
+    description: Excessive ellipsis for dramatic effect
+    replacement_guidance: Use a single em-dash or restructure the sentence
+
+  - pattern: "(?i)\\b(literally)\\b"
+    description: Misused intensifier (unless describing something literal)
+    replacement_guidance: Remove unless the statement is factually literal
+
+replacement_guidance:
+  delve: examine, explore, dig into, look at
+  navigate: work through, handle, deal with, figure out
+  landscape: market, space, field, industry
+  leverage: use, apply, build on
+  synergy: collaboration, combined effect, working together
+  unlock: enable, open up, make possible
+  game-changer: significant shift, major improvement, turning point
+  revolutionize: change, reshape, rethink
+  paradigm: model, approach, framework
+  elevate: improve, raise, strengthen
+  empower: enable, equip, give tools to
+  seamless: smooth, easy, frictionless
+  robust: strong, reliable, thorough
+  holistic: complete, full-picture, end-to-end
+  cutting-edge: modern, current, advanced
+  groundbreaking: new, first-of-its-kind, original
+  innovative: creative, novel, new approach
+  disruptive: different, challenging, unconventional
+  transformative: significant, meaningful, high-impact
+  unprecedented: rare, unusual, first-time
+  foster: build, grow, encourage
+  facilitate: help, support, enable
+  optimize: improve, tune, refine
+  streamline: simplify, speed up, reduce friction
+  harness: use, capture, put to work
+  spearhead: lead, drive, start
+  supercharge: boost, accelerate, amplify
+  turbocharge: speed up, accelerate, intensify
+  skyrocket: surge, jump, grow rapidly

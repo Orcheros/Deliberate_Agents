@@ -1,0 +1,7 @@
+name: engagement-track
+description: Pull engagement metrics for published posts, update Notion, build warm-lead table
+agent: engagement-tracker
+schedule:
+  frequency: daily
+  time: "18:00"
+  timezone: "America/New_York"

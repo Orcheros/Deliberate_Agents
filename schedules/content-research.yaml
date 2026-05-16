@@ -1,0 +1,8 @@
+name: content-research
+description: Run content researcher agent to generate new ideas from trends, performance data, and customer signals
+agent: content-researcher
+schedule:
+  frequency: weekly
+  day: monday
+  time: "08:00"
+  timezone: "America/New_York"

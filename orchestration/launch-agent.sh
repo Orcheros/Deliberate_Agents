@@ -69,6 +69,8 @@ case "$ROLE" in
   technical-writer|devops-engineer|security-analyst|\
   sales-development-rep|account-executive-assistant|\
   customer-success|onboarding-specialist|seo-specialist|\
+  content-researcher|linkedin-copywriter|content-publisher|\
+  engagement-tracker|content-reporter|\
   orchestrator|qa-lead|integration-tester|ux-ui-reviewer)
     WORK_DIR="$REPO_DIR"
     ;;
@@ -183,6 +185,24 @@ case "$ROLE" in
     CONTEXT+="Execute the development task assigned in your assignment file. Follow the development workflow steps in order.\n"
     CONTEXT+="Start by reading your assignment file.\n"
     ;;
+  content-researcher|linkedin-copywriter|content-publisher|\
+  engagement-tracker|content-reporter)
+    CONTEXT+="- Initiative: ${INITIATIVE}\n"
+    if [[ -n "$WORKTREE" ]]; then
+      CONTEXT+="- Assignment file: ${DELIBERATE_DIR}/assignments/${WORKTREE}.md\n"
+    elif [[ -n "$INITIATIVE" ]]; then
+      CONTEXT+="- Initiative state file: ${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml\n"
+    fi
+    CONTEXT+="- Assignments directory: ${DELIBERATE_DIR}/assignments/\n"
+    CONTEXT+="- Notion integration: ${FRAMEWORK_DIR}/integrations/notion/\n"
+    CONTEXT+="- LinkedIn provider: ${FRAMEWORK_DIR}/integrations/linkedin/\n"
+    CONTEXT+="- Voice corpus: ${FRAMEWORK_DIR}/content/corpus/\n"
+    CONTEXT+="- Slop blacklist: ${FRAMEWORK_DIR}/content/slop-blacklist.yaml\n"
+    CONTEXT+="- Schedules state: ${DELIBERATE_DIR}/schedules/\n"
+    CONTEXT+="\n## Your Task\n\n"
+    CONTEXT+="Execute the task described in your assignment file. Follow your workflow skills in order.\n"
+    CONTEXT+="Start by reading your assignment file.\n"
+    ;;
   integrations-engineer|content-writer|compliance-analyst|\
   technical-writer|devops-engineer|security-analyst|\
   sales-development-rep|account-executive-assistant|\
@@ -237,6 +257,11 @@ case "$ROLE" in
   reviewer)                   MAX_TURNS=60  ;;
   integrations-engineer)      MAX_TURNS=80  ;;
   content-writer)             MAX_TURNS=60  ;;
+  content-researcher)         MAX_TURNS=60  ;;
+  linkedin-copywriter)        MAX_TURNS=80  ;;
+  content-publisher)          MAX_TURNS=30  ;;
+  engagement-tracker)         MAX_TURNS=40  ;;
+  content-reporter)           MAX_TURNS=40  ;;
   compliance-analyst)         MAX_TURNS=60  ;;
   technical-writer)           MAX_TURNS=60  ;;
   devops-engineer)            MAX_TURNS=80  ;;

@@ -10,6 +10,9 @@ skills:
   - content-draft
   - content-review
   - email-sequence
+  - linkedin-copywriter
+  - content-repurpose
+  - slop-scrub
 effort: high
 ---
 

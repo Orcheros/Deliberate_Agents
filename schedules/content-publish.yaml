@@ -1,0 +1,10 @@
+name: content-publish
+description: Publish posts scheduled for today via LinkedIn provider
+agent: content-publisher
+schedule:
+  frequency: daily
+  time: "10:00"
+  timezone: "America/New_York"
+trigger_condition:
+  type: notion_scheduled_today
+  description: "Only fires if Notion has posts with Status = Scheduled and Publish Date = today"
