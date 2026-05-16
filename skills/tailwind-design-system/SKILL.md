@@ -386,12 +386,36 @@ Build or extend the design system using Tailwind CSS v4's CSS-first configuratio
 ## Component Architecture
 
 ```
-Layer 1: @theme tokens (henry.css)        → Brand values
-Layer 2: Semantic CSS vars (light/dark)    → Role-based aliases
-Layer 3: Component CSS (components/*.css)  → .btn, .card, .form-control
-Layer 4: ERB partials (views/components/)  → Variant logic + layout utilities
-Layer 5: Stimulus (controllers/)           → Interactivity
+Layer 1: @theme tokens (henry.css)        → Brand values          [Sub-atomic]
+Layer 2: Semantic CSS vars (light/dark)    → Role-based aliases    [Sub-atomic]
+Layer 3: Component CSS (components/*.css)  → .btn, .card, etc.    [Atoms]
+Layer 4: ERB partials (views/components/)  → Variant logic         [Molecules/Organisms]
+Layer 5: Stimulus (controllers/)           → Interactivity         [Behavior layer]
 ```
+
+### Atomic Design Mapping
+
+| Atomic Level | Design System Layer | Examples |
+|---|---|---|
+| Sub-atomic | CSS tokens (themes/*.css) | `--color-brand-core`, `--bg-primary` |
+| Atom | Component CSS (components/*.css) | `.btn`, `.label`, `.form-control`, `.card` |
+| Molecule | ERB partials (views/components/) | `_form_group.html.erb` (label + input + hint) |
+| Organism | Shared partials (views/shared/) | `_navigation.html.erb`, `_card_list.html.erb` |
+| Template | Layouts (views/layouts/) | `application.html.erb` with content slots |
+| Page | Resource views | `users/show.html.erb` composing organisms |
+
+**Single-source-of-truth principle**: Each atom/molecule/organism is defined once. Consumers compose via `render` or CSS class application — never by duplicating markup.
+
+### Before Creating Anything
+
+Before defining a new CSS class or ERB partial:
+
+1. **Check existing atoms**: Does `app/assets/tailwind/components/` already have a class that covers this?
+2. **Check existing molecules**: Does `app/views/components/` already have a partial?
+3. **Check if a variant suffices**: Can an existing component be extended with a new variant instead of creating a parallel component?
+4. **Run `/atomic-inventory`** if you're unsure what exists
+
+Only create new components when the inventory confirms nothing covers the need.
 
 ## Accessibility Checklist
 

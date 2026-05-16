@@ -21,38 +21,45 @@ Create distinctive, production-grade frontend interfaces that avoid generic "AI 
    - **Purpose**: What problem does this interface solve? Who uses it?
    - **Tone**: Commit to a bold aesthetic direction — brutally minimal, refined luxury, warm organic, editorial, retro-futuristic, playful, industrial. Don't default to "clean and modern."
    - **Differentiation**: What's the one thing someone will remember about this interface?
+   - **Atomic decomposition**: Break the interface into atoms, molecules, and organisms. Which already exist in the component library? What needs to be created? (See `/atomic-decompose`)
 
-3. **Follow the project's design system** (see `/tailwind-design-system`):
+3. **Check existing components before building** (reuse-first gate):
+   - Scan `app/views/components/` and `app/assets/tailwind/components/` for existing atoms/molecules
+   - If no recent inventory exists, run `/atomic-inventory` to map what's available
+   - Identify which existing components can be reused or extended with new variants
+   - Only plan new components for genuinely novel UI elements
+
+4. **Follow the project's design system** (see `/tailwind-design-system`):
    - Use existing design tokens from `themes/henry.css`
    - Use semantic role vars from `themes/light.css` and `themes/dark.css`
    - Build on existing component CSS classes in `components/*.css`
    - Extend with new tokens only when the existing palette doesn't serve the design intent
 
-4. **Typography choices:**
+5. **Typography choices:**
    - Never default to system fonts, Inter, Roboto, or Arial
    - Choose distinctive fonts that match the aesthetic direction
    - Use Import Maps to load web fonts (no npm packages)
    - Pair a display font with a refined body font
    - Configure via CSS custom properties in the theme files
 
-5. **Color and visual depth:**
+6. **Color and visual depth:**
    - Dominant colors with sharp accents — don't spread color evenly
    - Use CSS variables for consistency, define new tokens when needed
    - Create atmosphere: gradient meshes, noise textures, layered transparencies, subtle shadows
    - Both light and dark mode must feel intentional, not just inverted
 
-6. **Motion and interaction:**
+7. **Motion and interaction:**
    - CSS-only animations for page transitions and micro-interactions
    - Stimulus controllers for interactive behavior (following project conventions)
    - Focus on high-impact moments: one well-orchestrated page load with staggered reveals creates more delight than scattered micro-interactions
    - Scroll-triggered effects and hover states that surprise
 
-7. **Spatial composition:**
+8. **Spatial composition:**
    - Break out of predictable layouts — asymmetry, overlap, diagonal flow, grid-breaking elements
    - Generous negative space OR controlled density — both work with commitment
    - Use Tailwind's responsive grid (`sm:`, `md:`, `lg:`) for breakpoint behavior
 
-8. **Implementation in Rails:**
+9. **Implementation in Rails:**
    - ERB partials in `app/views/components/` with symbol variant keys
    - CSS component classes in `app/assets/tailwind/components/`
    - Stimulus controllers in `app/javascript/controllers/`
