@@ -551,6 +551,7 @@ process_assignments() {
             ;;
           integrations-engineer|content-writer|compliance-analyst|\
           technical-writer|devops-engineer|security-analyst|\
+          product-strategist|market-researcher|\
           sales-development-rep|account-executive-assistant|\
           customer-success|onboarding-specialist|seo-specialist|\
           content-researcher|linkedin-copywriter|content-publisher|\

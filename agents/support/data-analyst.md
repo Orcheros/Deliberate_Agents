@@ -11,6 +11,10 @@ skills:
   - data-investigate
   - saas-metrics
   - product-analytics
+  - ab-test-analysis
+  - cohort-analysis
+  - sql-query-generation
+  - dummy-dataset
 effort: high
 ---
 

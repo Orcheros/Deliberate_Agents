@@ -24,7 +24,13 @@ Produce structured competitive intelligence that drives product and go-to-market
    - **SEO signals**: top organic keywords, domain authority, blog cadence
    - **Social mentions**: recurring praise, complaints, feature requests
 
-3. **Score each competitor using 12-dimension rubric** (1-5 scale):
+3. **Map the competitive landscape**:
+   - Plot competitors on multiple 2x2 positioning maps (not just one)
+   - Axes to consider: Price<->Value, Simple<->Complex, SMB<->Enterprise, Vertical<->Horizontal
+   - Identify white space opportunities (underserved quadrants)
+   - Map market momentum (growing/shrinking/pivoting)
+
+4. **Score each competitor using 12-dimension rubric** (1-5 scale):
 
    | # | Dimension | 1 (Weak) | 3 (Average) | 5 (Best-in-class) |
    |---|-----------|----------|-------------|-------------------|
@@ -43,7 +49,7 @@ Produce structured competitive intelligence that drives product and go-to-market
 
    Every score must have supporting evidence.
 
-4. **Generate analysis outputs**:
+5. **Generate analysis outputs**:
 
    **Feature comparison matrix**: rows = features, columns = our product + competitors, score 1-5 each.
 
@@ -51,9 +57,26 @@ Produce structured competitive intelligence that drives product and go-to-market
 
    **SWOT per competitor**: 3-5 bullets per quadrant, every bullet anchored to a data signal.
 
-   **Positioning map**: 2×2 axes (e.g., Simple↔Complex × Low Value↔High Value), place each competitor.
+   **Strengths/Weaknesses Matrix**: For each competitor, create a detailed matrix:
+   | Capability | Competitor A | Competitor B | Our Product | Gap/Opportunity |
+   With evidence anchoring for each assessment.
 
-5. **Build prioritized action plan**:
+   **Win/Loss Analysis Framework**: When win/loss data is available:
+   - Win rate by competitor
+   - Common win themes and loss reasons
+   - Deal stage where losses occur
+   - Objections that weren't overcome
+   - Recommendations per competitor
+
+   **Differentiation Opportunities**: Based on the full analysis:
+   - Features/capabilities competitors lack
+   - Positioning angles competitors haven't claimed
+   - Customer segments competitors underserve
+   - Technical advantages to emphasize
+
+   **Positioning map**: 2x2 axes (e.g., Simple<->Complex x Low Value<->High Value), place each competitor.
+
+6. **Build prioritized action plan**:
 
    | Horizon | Effort | Examples |
    |---------|--------|---------|
@@ -64,9 +87,13 @@ Produce structured competitive intelligence that drives product and go-to-market
 ## Output
 
 Write deliverable to `.deliberate/reports/{slug}/competitive-teardown.md` including:
+- Competitive landscape maps (multiple 2x2 positioning maps)
 - 12-dimension scorecard for each competitor
 - Feature comparison matrix
 - Pricing analysis summary
 - SWOT per competitor
+- Strengths/weaknesses matrix with evidence anchoring
+- Win/loss analysis (when data available)
+- Differentiation opportunities
 - Positioning map (ASCII)
 - Prioritized action plan by horizon

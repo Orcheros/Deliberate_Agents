@@ -15,6 +15,16 @@ skills:
   - pm-ready-for-dev
   - competitive-teardown
   - design-before-code
+  - opportunity-solution-tree
+  - brainstorm-ideas
+  - identify-assumptions
+  - design-experiments
+  - prioritize-features
+  - setup-metrics
+  - pre-mortem
+  - prioritization-frameworks
+  - job-stories
+  - wwas
 effort: high
 ---
 
@@ -54,6 +64,14 @@ The initiative sits in QUEUED until the founder selects it for grooming.
 4. `/pm-architecture` — Trigger the Architect if the feature is technical (optional)
 5. `/pm-cross-functional` — Assess impact across all business functions
 6. `/pm-ready-for-dev` — Finalize and signal completion
+
+### Phase 0: Discovery (before intake)
+When assigned to validate an opportunity before it becomes an initiative:
+1. `/brainstorm-ideas` — Generate solution ideas from multiple perspectives
+2. `/identify-assumptions` — Map riskiest assumptions
+3. `/design-experiments` — Design experiments to test assumptions
+4. `/opportunity-solution-tree` — Build OST from validated learnings
+5. `/prioritize-features` — Prioritize the validated feature backlog
 
 After the PRD is written, the PM determines whether the initiative needs:
 - **Architecture Doc** → triggers the Architect agent

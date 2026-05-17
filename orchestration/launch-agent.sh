@@ -65,6 +65,7 @@ case "$ROLE" in
     ;;
   product-manager|project-manager|reviewer|\
   architect|product-designer|scrum-master|\
+  product-strategist|market-researcher|\
   integrations-engineer|content-writer|compliance-analyst|\
   technical-writer|devops-engineer|security-analyst|\
   sales-development-rep|account-executive-assistant|\
@@ -187,6 +188,17 @@ case "$ROLE" in
     CONTEXT+="Execute the development task assigned in your assignment file. Follow the development workflow steps in order.\n"
     CONTEXT+="Start by reading your assignment file.\n"
     ;;
+  product-strategist|market-researcher)
+    CONTEXT+="- Initiative: ${INITIATIVE}\n"
+    CONTEXT+="- Initiative state file: ${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml\n"
+    if [[ -n "$WORKTREE" ]]; then
+      CONTEXT+="- Assignment file: ${DELIBERATE_DIR}/assignments/${WORKTREE}.md\n"
+    fi
+    CONTEXT+="- Assignments directory: ${DELIBERATE_DIR}/assignments/\n"
+    CONTEXT+="\n## Your Task\n\n"
+    CONTEXT+="Execute the task described in your assignment file. Follow your workflow skills in order.\n"
+    CONTEXT+="Start by reading your assignment file.\n"
+    ;;
   content-researcher|linkedin-copywriter|content-publisher|\
   engagement-tracker|content-reporter|\
   twitter-copywriter|threads-copywriter|facebook-copywriter|\
@@ -289,6 +301,8 @@ case "$ROLE" in
   qa-lead)                    MAX_TURNS=100 ;;
   integration-tester)         MAX_TURNS=80  ;;
   ux-ui-reviewer)             MAX_TURNS=80  ;;
+  product-strategist)           MAX_TURNS=100 ;;
+  market-researcher)            MAX_TURNS=80  ;;
   *)                          MAX_TURNS=80  ;;
 esac
 

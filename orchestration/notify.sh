@@ -54,7 +54,7 @@ parse_yaml() {
 }
 
 SLACK_WEBHOOK="$(parse_yaml 'slack_webhook_url')"
-SLACK_BOT_TOKEN="$(parse_yaml 'slack_bot_token')"
+SLACK_BOT_TOKEN="${SLACK_BOT_TOKEN:-$(parse_yaml 'slack_bot_token')}"
 SLACK_CHANNEL="$(parse_yaml 'slack_channel')"
 SLACK_ENABLED="$(parse_yaml 'slack_enabled')"
 PROJECT_NAME="$(parse_yaml 'name')"

@@ -13,6 +13,14 @@ skills:
   - experiment-design
   - referral-program
   - competitive-teardown
+  - competitive-battlecard
+  - growth-loops
+  - gtm-messaging
+  - gtm-motions
+  - marketing-ideas
+  - positioning-statement
+  - product-naming
+  - value-proposition-statement
 effort: high
 ---
 
