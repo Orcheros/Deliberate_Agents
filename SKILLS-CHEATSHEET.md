@@ -258,16 +258,49 @@
 
 ## Workflows (Multi-Agent Pipelines)
 
+### Discovery → Strategy → Research
+
 | Workflow | Trigger | Pipeline |
 |---|---|---|
 | **Product Discovery** | New opportunity identified | Strategist → Researcher → PM (ideation) → [Human Gate] → PM (prioritize) → Intake |
 | **Initiative Discovery** | Founder provides scoped idea | PM `/pm-intake` → One-pager in backlog |
+| **Customer Research** | Thin user evidence or new market entry | Researcher (interview prep) → [Human Gate: conduct interviews] → Researcher (synthesis → personas → segmentation → journey map) → PM (validate) |
+
+### Product Development
+
+| Workflow | Trigger | Pipeline |
+|---|---|---|
+| **Initiative Lifecycle** | Governs all build workflows | Promotion rules: backlog → needs-prd → needs-architecture → needs-design → needs-stories → needs-engineering → needs-qa → shipped |
 | **Initiative Build** | Initiative selected for grooming | PM → Architect → Designer → Scrum Master → Project Manager → Developers |
-| **Feedback Loop** | Initiative reaches shipped status | Data Analyst → Market Researcher → PM retro → Iterate/Expand/Next |
-| **Content Automation** | Weekly schedule | Researcher → Copywriters → Publisher → Tracker → Reporter |
+| **Development Execution** | Status reaches READY_FOR_DEV | PjM (decompose → assign → coordinate) → Developers (parallel worktrees) → Reviewer |
+| **Review Protocol** | All dev tasks complete | Reviewer risk assessment → Standard `/review` or [Human Gate] → `/ultrareview` |
+
+### Quality & Release
+
+| Workflow | Trigger | Pipeline |
+|---|---|---|
 | **Quality Assurance** | Dev complete | QA Lead → Integration Tester → UX Reviewer → QA Report |
 | **Release** | QA passed | Plan → Preflight → Deploy → Verify → Announce → Measure → Retro |
+
+### Growth & GTM
+
+| Workflow | Trigger | Pipeline |
+|---|---|---|
 | **Go-to-Market** | Launch milestone | Growth Strategist → Content → SEO → SDR → Launch |
+| **Growth Experiment Loop** | NSM plateaus or new growth lever | Strategist (NSM) → Growth (assess → loops → experiments) → [Human Gate] → Data Analyst (A/B → cohort) → Growth (iterate) |
+| **Sales Enablement** | New launch or win-rate drop | Researcher (ICP → teardown) → Growth (battlecards → value props → positioning → messaging) → SDR (research → outreach) |
+
+### Feedback & Iteration
+
+| Workflow | Trigger | Pipeline |
+|---|---|---|
+| **Feedback Loop** | Initiative reaches shipped status | Data Analyst → Market Researcher → PM retro → Iterate/Expand/Next |
+
+### Operations
+
+| Workflow | Trigger | Pipeline |
+|---|---|---|
+| **Content Automation** | Weekly schedule | Researcher → Copywriters → Publisher → Tracker → Reporter |
 | **Incident Response** | Production incident | Incident Commander → Security Analyst → DevOps → Retro |
 
 ---
