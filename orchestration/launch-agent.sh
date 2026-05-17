@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# launch-agent.sh — Spawn a Claude Code agent session in a Terminal.app tab
+# launch-agent.sh — Spawn a Claude Code agent session in a tmux pane
 #
-# Opens a new tab in the current Terminal window and runs Claude with
-# the specified agent role. Uses the Claude Max subscription (not API key).
+# Creates a new pane in the appropriate tmux window (grouped by pipeline stage)
+# and runs Claude with the specified agent role. Uses Claude Max subscription.
 # Tracks the process via PID files so the orchestrator can detect completion.
 #
 # Usage: launch-agent.sh --name <name> --role <role> --config <file> --framework-dir <dir> [options]
@@ -21,7 +21,7 @@ FRAMEWORK_DIR=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --session)       shift 2 ;;  # Legacy arg, ignored (was for tmux)
+    --session)       TMUX_SESSION="$2"; shift 2 ;;
     --window)        AGENT_NAME="$2"; shift 2 ;;
     --name)          AGENT_NAME="$2"; shift 2 ;;
     --role)          ROLE="$2"; shift 2 ;;
@@ -306,7 +306,37 @@ case "$ROLE" in
   *)                          MAX_TURNS=80  ;;
 esac
 
-# --- Launch in Terminal.app tab -----------------------------------------------
+# --- Role-to-Window Mapping ---------------------------------------------------
+
+role_to_window() {
+  local role="$1"
+  case "$role" in
+    orchestrator)
+      echo "orchestrator" ;;
+    product-manager|architect|product-designer|scrum-master|\
+    project-manager|reviewer|product-strategist|market-researcher)
+      echo "product" ;;
+    developer)
+      echo "dev" ;;
+    content-researcher|content-writer|linkedin-copywriter|\
+    twitter-copywriter|threads-copywriter|facebook-copywriter|\
+    reddit-writer|hackernews-writer|producthunt-writer|\
+    video-producer|content-publisher|engagement-tracker|content-reporter)
+      echo "content" ;;
+    qa-lead|integration-tester|ux-ui-reviewer|devops-engineer|\
+    security-analyst|compliance-analyst|technical-writer|\
+    integrations-engineer|sales-development-rep|\
+    account-executive-assistant|customer-success|\
+    onboarding-specialist|seo-specialist)
+      echo "ops" ;;
+    *)
+      echo "ops" ;;
+  esac
+}
+
+# --- Launch in tmux pane ------------------------------------------------------
+
+TMUX_SESSION="${TMUX_SESSION:-deliberate}"
 
 LOG_FILE="${DELIBERATE_DIR}/logs/${AGENT_NAME}-$(date +%Y%m%d-%H%M%S).log"
 PID_FILE="${PID_DIR}/${AGENT_NAME}.pid"
@@ -314,15 +344,12 @@ PID_FILE="${PID_DIR}/${AGENT_NAME}.pid"
 CONTEXT_FILE="$(mktemp)"
 echo -e "$CONTEXT" > "$CONTEXT_FILE"
 
-# Write a launcher script that the Terminal tab will execute.
-# This avoids quote-escaping hell in AppleScript.
+# Write a launcher script that the tmux pane will execute.
 LAUNCHER="$(mktemp)"
 TAB_TITLE="${ROLE}: ${INITIATIVE:-${WORKTREE:-agent}}"
 
 cat > "$LAUNCHER" <<SCRIPT
 #!/usr/bin/env bash
-printf '\e]1;${TAB_TITLE}\a'
-printf '\e]2;${TAB_TITLE}\a'
 cd '${WORK_DIR}'
 unset ANTHROPIC_API_KEY
 echo \$\$ > '${PID_FILE}'
@@ -334,7 +361,6 @@ echo ""
 
 # Stream progress via script(1) pty wrapper + stream-json.
 # script forces unbuffered output; jq filter shows human-readable progress.
-# Fallback heartbeat in case stream-json produces no parseable output.
 STREAM_RAW="\$(mktemp)"
 LAST_ACTIVITY=\$(date +%s)
 
@@ -379,35 +405,32 @@ done
 
 rm -f "\$STREAM_RAW" '${PID_FILE}'
 echo ""
-echo "=== Agent session complete. This tab can be closed. ==="
+echo "=== Agent session complete. Press any key to close pane. ==="
 read -r
 SCRIPT
 chmod +x "$LAUNCHER"
 
-# Open a new tab in the current terminal window.
-# Detect terminal app and use the right method.
-TERM_APP="${TERM_PROGRAM:-Terminal}"
+# Ensure tmux session exists (normally created by orchestrate.sh)
+if ! tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
+  tmux new-session -d -s "$TMUX_SESSION" -n "orchestrator"
+fi
 
-case "$TERM_APP" in
-  iTerm.app|iTerm2)
-    osascript -e "
-      tell application \"iTerm2\"
-        tell current window
-          create tab with default profile
-          tell current session of current tab
-            write text \"exec '${LAUNCHER}'\"
-          end tell
-        end tell
-      end tell
-    "
-    ;;
-  *)
-    # Terminal.app fallback
-    osascript -e "tell application \"Terminal\" to do script \"exec '${LAUNCHER}'\""
-    ;;
-esac
+# Spawn pane in the appropriate window based on role
+WINDOW="$(role_to_window "$ROLE")"
+
+if tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -qx "$WINDOW"; then
+  # Window exists — add a pane
+  tmux split-window -t "${TMUX_SESSION}:${WINDOW}" "exec '${LAUNCHER}'"
+  tmux select-layout -t "${TMUX_SESSION}:${WINDOW}" tiled
+else
+  # Window doesn't exist — create it
+  tmux new-window -t "$TMUX_SESSION" -n "$WINDOW" "exec '${LAUNCHER}'"
+fi
+
+# Set pane title for identification
+tmux select-pane -t "${TMUX_SESSION}:${WINDOW}" -T "$TAB_TITLE"
 
 # Clean up temp files after a delay (claude needs to start first)
 (sleep 15 && rm -f "$CONTEXT_FILE" "$LAUNCHER") &
 
-echo "Launched ${ROLE} agent in Terminal tab: ${TAB_TITLE}"
+echo "Launched ${ROLE} agent in tmux pane: ${TMUX_SESSION}:${WINDOW} [${TAB_TITLE}]"
