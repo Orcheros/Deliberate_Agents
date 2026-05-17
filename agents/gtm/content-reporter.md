@@ -1,6 +1,6 @@
 ---
 name: content-reporter
-description: Generates weekly content performance reports with metrics analysis and strategic recommendations
+description: Generates cross-platform weekly performance reports with comparative analytics and recommendations
 tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 permissionMode: auto

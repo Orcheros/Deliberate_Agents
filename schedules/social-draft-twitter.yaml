@@ -1,0 +1,13 @@
+name: social-draft-twitter
+description: "Draft X/Twitter posts from approved content ideas"
+agent: twitter-copywriter
+frequency: "weekly"
+day: "tuesday"
+time: "09:30"
+timezone: "America/New_York"
+trigger:
+  type: "notion_query"
+  filter:
+    status: "Approved"
+    channel: "Twitter"
+enabled: true

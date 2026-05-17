@@ -71,6 +71,8 @@ case "$ROLE" in
   customer-success|onboarding-specialist|seo-specialist|\
   content-researcher|linkedin-copywriter|content-publisher|\
   engagement-tracker|content-reporter|\
+  twitter-copywriter|threads-copywriter|facebook-copywriter|\
+  video-producer|reddit-writer|hackernews-writer|producthunt-writer|\
   orchestrator|qa-lead|integration-tester|ux-ui-reviewer)
     WORK_DIR="$REPO_DIR"
     ;;
@@ -186,7 +188,9 @@ case "$ROLE" in
     CONTEXT+="Start by reading your assignment file.\n"
     ;;
   content-researcher|linkedin-copywriter|content-publisher|\
-  engagement-tracker|content-reporter)
+  engagement-tracker|content-reporter|\
+  twitter-copywriter|threads-copywriter|facebook-copywriter|\
+  video-producer|reddit-writer|hackernews-writer|producthunt-writer)
     CONTEXT+="- Initiative: ${INITIATIVE}\n"
     if [[ -n "$WORKTREE" ]]; then
       CONTEXT+="- Assignment file: ${DELIBERATE_DIR}/assignments/${WORKTREE}.md\n"
@@ -196,9 +200,12 @@ case "$ROLE" in
     CONTEXT+="- Assignments directory: ${DELIBERATE_DIR}/assignments/\n"
     CONTEXT+="- Notion integration: ${FRAMEWORK_DIR}/integrations/notion/\n"
     CONTEXT+="- LinkedIn provider: ${FRAMEWORK_DIR}/integrations/linkedin/\n"
+    CONTEXT+="- Social providers: ${FRAMEWORK_DIR}/integrations/social/\n"
     CONTEXT+="- Voice corpus: ${FRAMEWORK_DIR}/content/corpus/\n"
     CONTEXT+="- Slop blacklist: ${FRAMEWORK_DIR}/content/slop-blacklist.yaml\n"
+    CONTEXT+="- Platform slop rules: ${FRAMEWORK_DIR}/content/slop-rules/\n"
     CONTEXT+="- Schedules state: ${DELIBERATE_DIR}/schedules/\n"
+    CONTEXT+="- Content config: config.henry.yaml (content section)\n"
     CONTEXT+="\n## Your Task\n\n"
     CONTEXT+="Execute the task described in your assignment file. Follow your workflow skills in order.\n"
     CONTEXT+="Start by reading your assignment file.\n"
@@ -262,6 +269,13 @@ case "$ROLE" in
   content-publisher)          MAX_TURNS=30  ;;
   engagement-tracker)         MAX_TURNS=40  ;;
   content-reporter)           MAX_TURNS=40  ;;
+  twitter-copywriter)          MAX_TURNS=80  ;;
+  threads-copywriter)          MAX_TURNS=80  ;;
+  facebook-copywriter)         MAX_TURNS=80  ;;
+  video-producer)              MAX_TURNS=100 ;;
+  reddit-writer)               MAX_TURNS=60  ;;
+  hackernews-writer)           MAX_TURNS=60  ;;
+  producthunt-writer)          MAX_TURNS=60  ;;
   compliance-analyst)         MAX_TURNS=60  ;;
   technical-writer)           MAX_TURNS=60  ;;
   devops-engineer)            MAX_TURNS=80  ;;

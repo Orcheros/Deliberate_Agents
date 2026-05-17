@@ -1,0 +1,40 @@
+# Video content slop rules
+# Extends: base.yaml
+
+platform: video
+extends: base
+
+additional_banned_words:
+  - "smash"  # (as in "smash that like button")
+  - "insane"
+  - "crazy"
+  - "literally"
+  - "basically"
+
+additional_banned_phrases:
+  - "smash that like button"
+  - "hit subscribe"
+  - "don't forget to like and subscribe"
+  - "what's up guys"
+  - "hey guys"
+  - "without further ado"
+  - "before we get started"
+  - "let me know in the comments"
+  - "links in the description"
+  - "as you can see"
+
+structural_rules:
+  - rule: "Hook in first 3 seconds (for Shorts/Reels/TikTok)"
+    check: "first_segment_duration"
+    max_seconds: 3
+  - rule: "No filler words in script"
+    check: "filler_words"
+  - rule: "CTA before final 10% of duration, not at the very end"
+    check: "cta_position"
+
+platform_notes:
+  - "First 3 seconds determine retention — lead with the payoff"
+  - "Pattern interrupt every 15-30 seconds for shorts"
+  - "Speak in active voice, present tense"
+  - "Show don't tell — visual cues > narration when possible"
+  - "End on value delivered, not a beg for engagement"

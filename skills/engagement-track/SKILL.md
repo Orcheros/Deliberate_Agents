@@ -1,6 +1,6 @@
 ---
 name: engagement-track
-description: Track post engagement metrics, update Notion, build warm-lead table, and flag high-performers
+description: Multi-platform engagement metrics collection, warm-lead detection, and performance flagging
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
@@ -8,113 +8,129 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 ## Objective
 
-Pull engagement data for all published posts, update Notion metrics, identify warm leads from repeat engagers, and flag high-performing posts for content strategy feedback.
+Track engagement metrics across all platforms where content is published. Build a unified view of performance, detect warm leads, and flag high-performing content for amplification.
 
 ## Process
 
-### Step 1: Gather Metrics
+### Step 1: Gather Metrics (All Platforms)
 
-1. Query Notion for all posts with Status = "Published" or "Tracking"
-2. For each post with a LinkedIn Post ID:
-   - Call `get_post_metrics(post_id)` via LinkedIn provider
-   - Capture: impressions, likes, comments, shares, engagement_rate
-3. Call `get_recent_engagement(since_hours=24)` for activity feed
+1. Query Notion for all posts with Status = "Published"
+2. For each post, check which platform Post ID fields are populated
+3. For each populated platform ID, call the matching provider:
+
+```bash
+./integrations/social/start.sh --platform {platform} --metrics {post_id}
+```
+
+Platform → Field mapping:
+| Platform | Notion Field | Provider |
+|---|---|---|
+| LinkedIn | LinkedIn Post ID | linkedin |
+| Twitter | Twitter Post ID | twitter |
+| Threads | Threads Post ID | threads |
+| Facebook | Facebook Post ID | facebook |
+| Instagram | Instagram Post ID | instagram |
+| YouTube | YouTube Video ID | youtube |
+| TikTok | TikTok Video ID | tiktok |
+| Reddit | Reddit Post ID | reddit |
+| HackerNews | HN Item ID | hackernews |
+| ProductHunt | PH Post ID | producthunt |
 
 ### Step 2: Update Notion
 
-For each published post, update the Metrics field:
+For each post, update the Metrics field with aggregated data:
 ```
-Impressions: 12,450 | Likes: 234 | Comments: 67 | Shares: 23 | ER: 2.6%
-Last updated: 2024-03-15
+LI: 5.2k imp, 127 likes, 23 comments | TW: 12k imp, 89 likes, 45 RT | FB: 2.1k reach
 ```
 
-For posts that are >7 days old and engagement has plateaued (less than 5% change since last check), update Status to "Tracking" (terminal state — still visible in reports but not actively monitored).
+Format: `{Platform abbrev}: {key metrics} | {next platform}...`
 
 ### Step 3: Build Warm-Lead Table
 
-Analyze engagement activity to identify warm leads:
+A warm lead = someone who engaged 2+ times across any platform.
 
-**Warm lead criteria**: 2+ meaningful engagements (comments, shares — likes alone don't qualify)
+Cross-platform aggregation:
+1. Collect all engagements from `get_recent_engagement()` across platforms
+2. Group by user identity (name/handle)
+3. Anyone with ≥2 engagements in 7 days = warm lead
 
-Update `content/warm-leads.yaml`:
+Output to `content/warm-leads.yaml`:
 ```yaml
-leads:
+warm_leads:
   - name: "Jane Smith"
-    user_id: "linkedin-id-123"
-    engagement_count: 4
-    last_engaged: "2024-03-15"
-    engaged_posts:
-      - post_id: "abc123"
-        type: "comment"
-        content: "This resonates..."
-      - post_id: "def456"
-        type: "share"
-    tags: []  # manually added by sales team
-
-  - name: "John Doe"
-    user_id: "linkedin-id-456"
-    engagement_count: 2
-    last_engaged: "2024-03-14"
-    engaged_posts:
-      - post_id: "abc123"
-        type: "comment"
-        content: "We had the same experience..."
-      - post_id: "ghi789"
-        type: "comment"
-        content: "How did you handle..."
-    tags: []
+    platforms: ["linkedin", "twitter"]
+    engagements: 4
+    last_engagement: "2025-05-15T14:30:00Z"
+    context: "Commented on API post, liked 3 others"
+    lead_score: 8
+  - name: "Bob Johnson"
+    platforms: ["hackernews"]
+    engagements: 2
+    last_engagement: "2025-05-14T09:15:00Z"
+    context: "Technical discussion on Show HN"
+    lead_score: 5
 ```
-
-Rules:
-- Only add new leads or update existing ones (never remove)
-- Sort by engagement_count descending
-- Cap content preview at 100 characters
-- Include user_id for CRM cross-reference
 
 ### Step 4: Flag High Performers
 
-Calculate average engagement rate across all tracked posts.
+Calculate average engagement rate per platform. Flag posts exceeding 2x average:
 
-**Hot post** = engagement rate >2x average OR comments >3x average.
-
-For hot posts:
-1. Update Notion page with a note: "🔥 High performer — double-down candidate"
-2. Log to `.deliberate/reports/content/hot-posts.yaml`:
-   ```yaml
-   - post_id: "abc123"
-     title: "Post title"
-     engagement_rate: 5.4
-     vs_average: "2.8x"
-     flagged_date: "2024-03-15"
-     pillar: "Thought Leadership"
-     format: "Text"
-     hook_type: "Contrarian"
-     double_down_suggested: true
-   ```
-3. This data feeds back into content-researcher's Performance Scan mode
-
-### Step 5: Summary Log
-
-Write daily tracking summary to `.deliberate/logs/engagement-track.log`:
+```yaml
+# .deliberate/reports/content/hot-posts.yaml
+hot_posts:
+  - title: "Post title"
+    platform: "linkedin"
+    engagement_rate: 12.4
+    average_rate: 5.2
+    multiplier: 2.4
+    action: "repurpose to twitter and threads"
 ```
-[timestamp] TRACKED posts=12 updated=8 plateaued=3 hot=1 new_leads=2
+
+Recommendations for hot posts:
+- Repurpose to other platforms (via content-repurpose)
+- Boost/promote if paid social enabled
+- Create follow-up content on same topic
+
+### Step 5: Detect Plateaus
+
+For posts >7 days old with no engagement growth in 3 days:
+- Transition Status: Published → Tracking
+- Stop active polling (move to weekly check)
+
+### Step 6: Cross-Platform Comparison
+
+Generate per-platform performance summary:
 ```
+Platform Performance (7-day):
+  LinkedIn:  12 posts, 5.2% avg engagement, 45k total impressions
+  Twitter:   28 tweets, 3.1% avg engagement, 89k total impressions
+  Threads:   8 posts, 7.8% avg engagement, 12k total impressions
+  Reddit:    3 posts, 42 upvotes avg, 2 warm leads
+```
+
+### Step 7: Summary Log
+
+Write to `.deliberate/logs/engagement-{date}.md`:
+- Posts tracked: N (per platform breakdown)
+- New warm leads: N
+- Hot posts flagged: N
+- Plateaus detected: N
 
 ## Constraints
 
-- Rate-limit LinkedIn API calls (max 1 request per second)
-- Never modify post content — this is read-only tracking
-- Never delete warm leads — only add or update
-- Plateau detection requires at least 2 data points (skip first-day posts)
-- Engagement rate calculation: (likes + comments + shares) / impressions × 100
+- Only track posts with valid Post IDs (skip empty fields)
+- Rate limit API calls (max 60/minute per provider)
+- Don't track posts older than 30 days (diminishing returns)
+- Warm lead detection is cross-platform (someone on LinkedIn + Twitter = 1 lead)
+- If a provider API fails, log and continue (don't block other platforms)
 
 ## Output
 
-- Updated Notion metrics for all active posts
-- Updated `content/warm-leads.yaml`
-- Updated `.deliberate/reports/content/hot-posts.yaml`
-- Daily log entry
+- Updated Notion Metrics fields
+- `content/warm-leads.yaml` — cross-platform warm leads
+- `.deliberate/reports/content/hot-posts.yaml` — high performers
+- `.deliberate/logs/engagement-{date}.md` — daily summary
 
 ## Transition
 
-Daily tracking feeds into → content-report (weekly) and content-researcher (performance scan mode).
+Hot posts → content-repurpose skill for amplification. Warm leads → sales pipeline.

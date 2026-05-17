@@ -1,0 +1,13 @@
+name: video-produce
+description: "Produce video content from approved ideas with Format=Video"
+agent: video-producer
+frequency: "weekly"
+day: "tuesday"
+time: "10:00"
+timezone: "America/New_York"
+trigger:
+  type: "notion_query"
+  filter:
+    status: "Approved"
+    format: "Video-Short|Video-Long"
+enabled: true

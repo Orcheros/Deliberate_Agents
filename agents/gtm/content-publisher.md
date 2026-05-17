@@ -7,6 +7,7 @@ permissionMode: auto
 maxTurns: 30
 skills:
   - content-publish
+  - video-publish
 effort: medium
 ---
 

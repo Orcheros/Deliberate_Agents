@@ -1,0 +1,37 @@
+# LinkedIn-specific slop rules
+# Extends: base.yaml
+
+platform: linkedin
+extends: base
+
+additional_banned_phrases:
+  - "agree?"
+  - "thoughts?"  # (as a lazy CTA at the end)
+  - "who else?"
+  - "am I the only one"
+  - "controversial opinion"
+  - "I'm thrilled to announce"
+  - "I'm humbled"
+  - "I'm honored"
+  - "exciting news"
+
+structural_rules:
+  - rule: "Maximum 2 emoji per post"
+    check: "count_emoji"
+    max: 2
+  - rule: "Maximum 3 hashtags"
+    check: "count_hashtags"
+    max: 3
+  - rule: "No hashtags in the body — only at the end"
+    check: "hashtag_position"
+  - rule: "Maximum 3000 characters"
+    check: "char_count"
+    max: 3000
+  - rule: "Hook must be under 150 characters (first line before line break)"
+    check: "first_line_length"
+    max: 150
+
+platform_notes:
+  - "LinkedIn rewards whitespace — use single-sentence paragraphs"
+  - "First line is everything — it shows in feed before 'see more'"
+  - "Professional tone but not corporate — conversational authority"

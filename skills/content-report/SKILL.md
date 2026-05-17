@@ -14,11 +14,14 @@ Produce a weekly content performance report covering the last 7 days. Includes k
 
 ### Step 1: Gather Data
 
-1. Query Notion for all posts published in the last 7 days
-2. Query Notion for all posts in "Tracking" status (historical comparison)
-3. Read `content/warm-leads.yaml` for lead generation metrics
-4. Read `.deliberate/reports/content/hot-posts.yaml` for flagged high-performers
-5. Read previous week's report (if exists) for week-over-week comparison
+1. Query Notion for all posts published in the last 7 days across ALL platforms
+2. For each post, collect metrics from every platform where it was published:
+   - LinkedIn, Twitter, Threads, Facebook, Instagram, YouTube, TikTok, Reddit, HackerNews, ProductHunt
+3. Query Notion for all posts in "Tracking" status (historical comparison)
+4. Read `content/warm-leads.yaml` for cross-platform lead generation metrics
+5. Read `.deliberate/reports/content/hot-posts.yaml` for flagged high-performers
+6. Read previous week's report (if exists) for week-over-week comparison
+7. Gather per-platform API metrics via: `./integrations/social/start.sh --platform {platform} --metrics {post_id}`
 
 ### Step 2: Calculate Metrics
 
@@ -66,7 +69,26 @@ Break down performance by:
 | Day | Posts | Avg ER |
 |---|---|---|
 
-### Step 5: Generate Recommendations
+### Step 5: Cross-Platform Comparison
+
+Compare performance across all active platforms:
+
+**By Platform:**
+| Platform | Posts | Avg ER | Total Impressions | Top Post | Warm Leads |
+|---|---|---|---|---|---|
+
+**Cross-Platform Insights:**
+- Which platform drives the highest engagement rate?
+- Which platform generates the most warm leads per post?
+- Are there content types that perform better on specific platforms?
+- Identify content that succeeded on one platform but not others (repurpose opportunity)
+
+**Platform Health:**
+- Audience growth rate per platform (week-over-week)
+- Best performing day/time per platform
+- Platform-specific engagement trends (growing, stable, declining)
+
+### Step 6: Generate Recommendations
 
 Based on the data, produce 3-5 actionable recommendations:
 
@@ -78,7 +100,7 @@ Based on the data, produce 3-5 actionable recommendations:
 
 Each recommendation must cite specific data points.
 
-### Step 6: Write Report
+### Step 7: Write Report
 
 Output to `.deliberate/reports/content/weekly-{YYYY-MM-DD}.md`:
 
@@ -86,17 +108,41 @@ Output to `.deliberate/reports/content/weekly-{YYYY-MM-DD}.md`:
 # Content Performance Report — Week of {date}
 
 ## Summary
-- Posts published: N
+- Posts published: N (across M platforms)
 - Total impressions: N
 - Average engagement rate: X%
 - Warm leads generated: N
+- Best performing platform: {platform} (X% ER)
 - Week-over-week: [better/worse/flat]
 
+## Breakdown by Platform
+| Platform | Posts | Impressions | Avg ER | Warm Leads | Trend |
+|---|---|---|---|---|---|
+| LinkedIn | N | N | X% | N | [up/down/flat] |
+| Twitter | N | N | X% | N | [up/down/flat] |
+| Threads | N | N | X% | N | [up/down/flat] |
+| Facebook | N | N | X% | N | [up/down/flat] |
+| YouTube | N | N | X% | N | [up/down/flat] |
+| TikTok | N | N | X% | N | [up/down/flat] |
+| Instagram | N | N | X% | N | [up/down/flat] |
+| Reddit | N | N | X% | N | [up/down/flat] |
+
+## Cross-Platform Comparison
+- Best ER: {platform} at X%
+- Most impressions: {platform} with N
+- Most warm leads: {platform} with N
+- Rising platform: {platform} (+X% WoW)
+- Declining platform: {platform} (-X% WoW)
+
+## Platform-Specific Recommendations
+- {platform}: [specific recommendation based on data]
+- {platform}: [specific recommendation based on data]
+
 ## Top Performers
-[table]
+[table — include platform column]
 
 ## Worst Performers
-[table]
+[table — include platform column]
 
 ## Breakdown by Pillar
 [table]
@@ -112,14 +158,16 @@ Output to `.deliberate/reports/content/weekly-{YYYY-MM-DD}.md`:
 2. ...
 
 ## Warm Lead Highlights
-- N new warm leads this week
+- N new warm leads this week (across N platforms)
 - Notable: [any particularly engaged prospects]
+- Cross-platform leads: [leads appearing on multiple platforms]
 
 ## Next Week Focus
 - [specific content priorities based on data]
+- [platform-specific priorities]
 ```
 
-### Step 7: Post Slack Summary
+### Step 8: Post Slack Summary
 
 Post condensed version to Slack:
 ```

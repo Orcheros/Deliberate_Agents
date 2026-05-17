@@ -1,0 +1,11 @@
+name: community-hn
+description: "Weekly HackerNews monitoring and thoughtful engagement"
+agent: hackernews-writer
+frequency: "weekly"
+day: "wednesday"
+time: "14:00"
+timezone: "America/New_York"
+trigger:
+  type: "recurring"
+  description: "Always runs — monitors HN for relevant discussions"
+enabled: true

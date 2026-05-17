@@ -13,6 +13,10 @@ skills:
   - linkedin-copywriter
   - content-repurpose
   - slop-scrub
+  - twitter-copywriter
+  - threads-copywriter
+  - facebook-copywriter
+  - video-scriptwriter
 effort: high
 ---
 

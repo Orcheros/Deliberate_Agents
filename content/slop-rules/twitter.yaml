@@ -1,0 +1,33 @@
+# X/Twitter-specific slop rules
+# Extends: base.yaml
+
+platform: twitter
+extends: base
+
+additional_banned_phrases:
+  - "a thread 🧵" # (don't announce threads, just thread)
+  - "RT if you agree"
+  - "like and retweet"
+  - "follow me for more"
+  - "ratio this"
+
+structural_rules:
+  - rule: "Standard post maximum 280 characters"
+    check: "char_count"
+    max: 280
+  - rule: "Thread posts: each part ≤280 chars"
+    check: "thread_part_length"
+    max: 280
+  - rule: "No more than 3 hashtags per tweet"
+    check: "count_hashtags"
+    max: 3
+  - rule: "Emoji OK but max 4 per tweet"
+    check: "count_emoji"
+    max: 4
+
+platform_notes:
+  - "Punchy, direct, no fluff — every word earns its place"
+  - "Threads for depth — each tweet must stand alone AND flow"
+  - "Hot takes work if backed by substance"
+  - "Quote tweets for commentary, not just amplification"
+  - "Algorithm favors replies and engagement, not broadcast"

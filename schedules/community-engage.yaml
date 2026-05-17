@@ -1,0 +1,11 @@
+name: community-engage
+description: "Weekly Reddit engagement and value posting"
+agent: reddit-writer
+frequency: "weekly"
+day: "wednesday"
+time: "14:00"
+timezone: "America/New_York"
+trigger:
+  type: "recurring"
+  description: "Always runs — monitors subreddits and posts value content"
+enabled: true

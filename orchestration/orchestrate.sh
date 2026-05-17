@@ -554,7 +554,9 @@ process_assignments() {
           sales-development-rep|account-executive-assistant|\
           customer-success|onboarding-specialist|seo-specialist|\
           content-researcher|linkedin-copywriter|content-publisher|\
-          engagement-tracker|content-reporter)
+          engagement-tracker|content-reporter|\
+          twitter-copywriter|threads-copywriter|facebook-copywriter|\
+          video-producer|reddit-writer|hackernews-writer|producthunt-writer)
             launch_specialist_agent "$agent_type" "$worktree"
             ;;
           *)

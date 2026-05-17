@@ -1,0 +1,34 @@
+# ProductHunt-specific slop rules
+# Extends: base.yaml
+
+platform: producthunt
+extends: base
+
+additional_banned_phrases:
+  - "revolutionizing the"
+  - "world's first"
+  - "best in class"
+  - "one-stop shop"
+  - "all-in-one solution"
+  - "we're different because"
+
+structural_rules:
+  - rule: "Tagline max 60 characters"
+    check: "tagline_length"
+    max: 60
+  - rule: "Description max 260 characters"
+    check: "description_length"
+    max: 260
+  - rule: "First comment must be personal (maker's story)"
+    check: "first_comment_personal"
+  - rule: "Emoji sparingly — max 2 in tagline, 3 in description"
+    check: "count_emoji"
+    max: 3
+
+platform_notes:
+  - "Authentic maker voice — tell YOUR story, not a pitch"
+  - "Tagline: what it does in one breath"
+  - "First comment: why you built it (personal motivation)"
+  - "Reply to every comment on launch day"
+  - "Show the journey, not just the destination"
+  - "Be specific about what's different — not 'better', but how"

@@ -1,0 +1,13 @@
+name: social-draft-facebook
+description: "Draft Facebook posts from approved content ideas"
+agent: facebook-copywriter
+frequency: "weekly"
+day: "tuesday"
+time: "10:00"
+timezone: "America/New_York"
+trigger:
+  type: "notion_query"
+  filter:
+    status: "Approved"
+    channel: "Facebook"
+enabled: true

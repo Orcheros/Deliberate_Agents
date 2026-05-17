@@ -1,0 +1,29 @@
+# Facebook-specific slop rules
+# Extends: base.yaml
+
+platform: facebook
+extends: base
+
+additional_banned_phrases:
+  - "share if you agree"
+  - "tag someone who"
+  - "like this post if"
+  - "comment YES below"
+
+structural_rules:
+  - rule: "Keep under 500 chars for feed visibility (full post is 63,206 max)"
+    check: "char_count"
+    max: 500
+    severity: "warning"
+  - rule: "Max 5 hashtags"
+    check: "count_hashtags"
+    max: 5
+  - rule: "Link previews — put link as last element, not inline"
+    check: "link_position"
+
+platform_notes:
+  - "Link previews generate cards — make the link the focus or omit it"
+  - "Groups > Pages for organic reach"
+  - "Conversational and relatable beats professional"
+  - "Questions and polls drive comments"
+  - "Shorter posts get more engagement than long-form"

@@ -1,0 +1,109 @@
+# Universal slop rules — loaded by all platforms
+# Extends: none (this is the root)
+
+banned_words:
+  - delve
+  - navigate
+  - landscape
+  - leverage
+  - synergy
+  - unlock
+  - game-changer
+  - revolutionize
+  - paradigm
+  - elevate
+  - empower
+  - seamless
+  - robust
+  - holistic
+  - cutting-edge
+  - groundbreaking
+  - innovative
+  - disruptive
+  - transformative
+  - unprecedented
+  - foster
+  - facilitate
+  - optimize
+  - streamline
+  - harness
+  - spearhead
+  - supercharge
+  - turbocharge
+  - skyrocket
+
+banned_phrases:
+  - "at the end of the day"
+  - "it goes without saying"
+  - "in today's world"
+  - "let that sink in"
+  - "read that again"
+  - "I'll say it louder for the people in the back"
+  - "this is the way"
+  - "hot take"
+  - "unpopular opinion" # (when the opinion is actually popular)
+  - "game-changing"
+  - "move the needle"
+  - "low-hanging fruit"
+  - "circle back"
+  - "deep dive"
+  - "thought leader"
+  - "value proposition"
+  - "synergize"
+  - "touch base"
+  - "best-in-class"
+  - "next-level"
+  - "double down"
+  - "lean in"
+
+structural_rules:
+  - rule: "No more than 1 exclamation mark per post"
+    check: "count_char('!')"
+    max: 1
+  - rule: "No ALL CAPS words (except acronyms ≤5 chars)"
+    check: "all_caps_non_acronym"
+  - rule: "No starting with 'I' three paragraphs in a row"
+    check: "consecutive_i_start"
+    max: 2
+
+regex_patterns:
+  - pattern: "(?i)\\b(just|simply|obviously|basically|literally)\\b"
+    reason: "Minimizing words that undermine specificity"
+    severity: "warning"
+  - pattern: "(?i)\\b(everyone|nobody|always|never)\\b"
+    reason: "Absolute generalizations are rarely accurate"
+    severity: "warning"
+  - pattern: "(?i)(🚀|💯|🔥){2,}"
+    reason: "Emoji clusters signal low-effort content"
+    severity: "error"
+
+replacement_guidance:
+  delve: examine, explore, dig into, look at
+  navigate: work through, handle, deal with, figure out
+  landscape: market, space, field, industry
+  leverage: use, apply, build on
+  synergy: collaboration, combined effect, working together
+  unlock: enable, open up, make possible
+  game-changer: significant shift, major improvement, turning point
+  revolutionize: change, reshape, rethink
+  paradigm: model, approach, framework
+  elevate: improve, raise, strengthen
+  empower: enable, equip, give tools to
+  seamless: smooth, easy, frictionless
+  robust: strong, reliable, thorough
+  holistic: complete, full-picture, end-to-end
+  cutting-edge: modern, current, advanced
+  groundbreaking: new, first-of-its-kind, original
+  innovative: creative, novel, new approach
+  disruptive: different, challenging, unconventional
+  transformative: significant, meaningful, high-impact
+  unprecedented: rare, unusual, first-time
+  foster: build, grow, encourage
+  facilitate: help, support, enable
+  optimize: improve, tune, refine
+  streamline: simplify, speed up, reduce friction
+  harness: use, capture, put to work
+  spearhead: lead, drive, start
+  supercharge: boost, accelerate, amplify
+  turbocharge: speed up, accelerate, intensify
+  skyrocket: surge, jump, grow rapidly

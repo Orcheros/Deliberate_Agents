@@ -58,6 +58,10 @@ class NotionClient:
             page_properties["Hook Type"] = {"select": {"name": properties["hook_type"]}}
         if "publish_date" in properties:
             page_properties["Publish Date"] = {"date": {"start": properties["publish_date"]}}
+        if "video_style" in properties:
+            page_properties["Video Style"] = {"select": {"name": properties["video_style"]}}
+        if "video_duration" in properties:
+            page_properties["Video Duration"] = {"select": {"name": properties["video_duration"]}}
 
         return self.client.pages.create(
             parent={"database_id": self.database_id},
@@ -100,6 +104,61 @@ class NotionClient:
             database_id=self.database_id,
             filter={"property": "Status", "select": {"equals": "Published"}},
             page_size=limit
+        )
+        return response.get("results", [])
+
+    def update_platform_post_id(self, page_id: str, platform: str, post_id: str) -> dict:
+        """Update a platform-specific post ID field."""
+        field_map = {
+            "linkedin": "LinkedIn Post ID",
+            "twitter": "Twitter Post ID",
+            "threads": "Threads Post ID",
+            "facebook": "Facebook Post ID",
+            "instagram": "Instagram Post ID",
+            "youtube": "YouTube Video ID",
+            "tiktok": "TikTok Video ID",
+            "reddit": "Reddit Post ID",
+            "hackernews": "HN Item ID",
+            "producthunt": "PH Post ID",
+        }
+        field_name = field_map.get(platform)
+        if not field_name:
+            raise ValueError(f"Unknown platform: {platform}")
+        return self.client.pages.update(
+            page_id=page_id,
+            properties={field_name: {"rich_text": [{"text": {"content": post_id}}]}}
+        )
+
+    def update_video_status(self, page_id: str, render_status: str, job_id: str = None, video_style: str = None) -> dict:
+        """Update video production fields."""
+        properties = {"Render Status": {"select": {"name": render_status}}}
+        if job_id:
+            properties["Render Job ID"] = {"rich_text": [{"text": {"content": job_id}}]}
+        if video_style:
+            properties["Video Style"] = {"select": {"name": video_style}}
+        return self.client.pages.update(page_id=page_id, properties=properties)
+
+    def query_by_channel(self, channel: str, status: str = "Approved") -> list[dict]:
+        """Query content DB for pages with given channel and status."""
+        response = self.client.databases.query(
+            database_id=self.database_id,
+            filter={
+                "and": [
+                    {"property": "Status", "select": {"equals": status}},
+                    {"property": "Channel", "multi_select": {"contains": channel}},
+                ]
+            }
+        )
+        return response.get("results", [])
+
+    def query_published_posts(self, platform: str = None) -> list[dict]:
+        """Query all published posts, optionally filtered by platform."""
+        filters = [{"property": "Status", "select": {"equals": "Published"}}]
+        if platform:
+            filters.append({"property": "Channel", "multi_select": {"contains": platform}})
+        response = self.client.databases.query(
+            database_id=self.database_id,
+            filter={"and": filters}
         )
         return response.get("results", [])
 

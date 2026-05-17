@@ -35,21 +35,24 @@ One of:
 
 Based on the source material, determine which outputs are viable:
 
-| Variant | Viable When |
-|---|---|
-| LinkedIn text post | Always — extract the strongest single point |
-| LinkedIn carousel | 3+ sequential points or a framework |
-| Twitter/X thread | Multiple atomic insights that build |
-| Newsletter section | Adds context or commentary layer |
-| Blog post | Only if source isn't already a blog |
-| Short-form video script | Strong story arc or demo-able concept |
-| Poll | Genuinely debatable point in the content |
+| Variant | Viable When | Skill Invoked |
+|---|---|---|
+| LinkedIn text post | Always — extract the strongest single point | `/linkedin-copywriter` |
+| LinkedIn carousel | 3+ sequential points or a framework | `/linkedin-copywriter` |
+| Twitter/X thread | Multiple atomic insights that build | `/twitter-copywriter` |
+| Threads post | Conversational take, casual insight | `/threads-copywriter` |
+| Facebook post | Broad-audience friendly content | `/facebook-copywriter` |
+| Short-form video script | Strong story arc or demo-able concept | `/video-scriptwriter` |
+| Reddit post | Technical depth, community value | `/reddit-writer` |
+| Newsletter section | Adds context or commentary layer | Direct write |
+| Blog post | Only if source isn't already a blog | Direct write |
+| Poll | Genuinely debatable point in the content | Direct write |
 
 Skip variants that would feel forced. Quality > quantity.
 
 ### Step 3: Generate Variants
 
-For each viable variant:
+For each viable variant, invoke the appropriate platform skill:
 
 **LinkedIn posts** — Invoke `/linkedin-copywriter`:
 - Pass the extracted thesis + supporting points
@@ -57,11 +60,34 @@ For each viable variant:
 - Specify structure type
 - One post per strong standalone point (may generate 2-3 posts from rich source)
 
-**Other channels** — Write directly following channel conventions:
-- Twitter: 280 chars per tweet, thread if needed, no hashtag spam
+**Twitter/X threads** — Invoke `/twitter-copywriter`:
+- 280 chars per tweet, thread if needed, no hashtag spam
+- Atomic insights that stand alone but build together
+- Platform-native voice and formatting
+
+**Threads posts** — Invoke `/threads-copywriter`:
+- Casual, conversational tone
+- Shorter format, personality-forward
+- Platform-appropriate engagement hooks
+
+**Facebook posts** — Invoke `/facebook-copywriter`:
+- Broader audience framing
+- Story-driven, shareable format
+- Optimized for comments and shares
+
+**Video scripts** — Invoke `/video-scriptwriter`:
+- Hook in first 3 seconds, conversational, under 60 seconds
+- Strong story arc or demo-able concept
+- Platform-specific (YouTube Shorts vs TikTok vs Reels)
+
+**Reddit posts** — Invoke `/reddit-writer`:
+- Technical depth, genuine community value
+- Subreddit-appropriate tone and formatting
+- No self-promotion feel — value-first
+
+**Direct write channels** (no dedicated skill):
 - Newsletter: Conversational, adds your POV on top of the content
 - Blog: SEO-optimized, structured with headers, 800-1500 words
-- Video script: Hook in first 3 seconds, conversational, under 60 seconds
 
 ### Step 4: Slop Scrub
 

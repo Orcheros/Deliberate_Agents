@@ -1,6 +1,6 @@
 ---
 name: engagement-tracker
-description: Tracks post engagement metrics, builds warm-lead tables, and flags high-performing content
+description: Tracks post engagement metrics across all platforms, builds warm-lead tables, and flags high-performing content
 tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 permissionMode: auto

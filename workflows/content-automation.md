@@ -1,74 +1,108 @@
+---
+name: content-automation
+description: Multi-platform content production, distribution, and engagement pipeline
+trigger: schedule-driven (weekly cadence with daily operations)
+agents:
+  - content-researcher
+  - linkedin-copywriter
+  - twitter-copywriter
+  - threads-copywriter
+  - facebook-copywriter
+  - video-producer
+  - reddit-writer
+  - hackernews-writer
+  - producthunt-writer
+  - content-publisher
+  - engagement-tracker
+  - content-reporter
+---
+
 # Content Automation
 
 ## Purpose
 
-Automate the full content lifecycle: research → draft → approve → publish → track → report. Runs on a recurring schedule with human approval gates at critical points. Designed for LinkedIn-first content strategy with extensibility to other channels.
+End-to-end content production pipeline spanning 10 platforms across 3 categories:
+- **Social Text**: LinkedIn, X/Twitter, Threads, Facebook
+- **Video**: YouTube (Shorts + Long), TikTok, Instagram Reels
+- **Community**: Reddit, HackerNews, ProductHunt
+
+Research → Draft → Approve → Publish → Track → Report, with human gates at critical decision points.
 
 ## Trigger
 
-- Automated via recurring schedules (see `schedules/` directory)
-- Manual invocation of individual skills at any time
-- Human marks content as Approved in Notion (triggers draft/publish pipeline)
+Schedule-driven via `schedules/*.yaml`. Each schedule fires its designated agent at the configured time. The orchestrator (`orchestration/check-schedules.sh`) evaluates triggers and launches agents.
 
 ## Weekly Cadence
 
 ```
 Monday 08:00 — Content Researcher
-  /content-researcher (trend + performance + customer modes)
-  → New Idea pages in Notion
-  ↓
-  ┌─────────────────────────────────────────────┐
-  │ HUMAN GATE                                   │
-  │ Review ideas in Notion, mark best → Approved │
-  └─────────────────────────────────────────────┘
-  ↓
-Tuesday 09:00 — LinkedIn Copywriter
-  /linkedin-copywriter (for each Approved idea)
-  → Draft posts in Notion (Status: Review)
-  ↓
-  ┌─────────────────────────────────────────────┐
-  │ HUMAN GATE                                   │
-  │ Review drafts, edit if needed                │
-  │ Mark → Approved, set Publish Date            │
-  └─────────────────────────────────────────────┘
-  ↓
-Daily 10:00 — Content Publisher
-  /content-publish (Status = Scheduled + today's date)
-  → Live on LinkedIn, Notion updated (Status: Published)
-  ↓
-Daily 18:00 — Engagement Tracker
-  /engagement-track
-  → Metrics updated in Notion, warm-lead table built
-  ↓
-Friday 16:00 — Content Reporter
-  /content-report
-  → Weekly report + double-down recommendations
-  → Feeds back into next Monday's research
+  → Generate ideas from Notion sources, tag with Channel recommendations
+  ↓ [HUMAN GATE: Approve/reject ideas in Notion]
+
+Tuesday 09:00 — Platform Copywriters (parallel)
+  → linkedin-copywriter:  Approved ideas, Channel=LinkedIn
+  → twitter-copywriter:   Approved ideas, Channel=Twitter (09:30)
+  → threads-copywriter:   Approved ideas, Channel=Threads (09:30)
+  → facebook-copywriter:  Approved ideas, Channel=Facebook (10:00)
+  → video-producer:       Approved ideas, Format=Video (10:00)
+  ↓ [HUMAN GATE: Review/approve drafts in Notion]
+
+Daily 10:00 — Multi-Platform Publisher
+  → Publish all Scheduled posts for today
+  → Route by Channel field to appropriate provider
+  → Stagger: LinkedIn first, Twitter/Threads +30min, Facebook +1hr
+
+Daily 18:00 — Engagement Tracker (all platforms)
+  → Pull metrics from all active platforms
+  → Update Notion metrics fields
+  → Detect warm leads across platforms
+  → Flag high performers
+
+Wednesday 14:00 — Community Engagement
+  → reddit-writer:      Value posts + comment engagement
+  → hackernews-writer:  Monitor + engage on relevant threads
+
+Friday 16:00 — Content Reporter (cross-platform)
+  → Aggregate metrics from all platforms
+  → Compare cross-platform performance
+  → Identify top patterns and recommendations
+
+Ad-hoc — Launch Events
+  → producthunt-writer: On product release (triggered manually)
+  → hackernews-writer:  Show HN on significant releases
+  → reddit-writer:      Relevant subreddit announcements
 ```
 
 ## Agent Sequence
 
-| Time | Agent | Skill | Input | Output |
+| Order | Agent | Model | Frequency | Platforms |
 |---|---|---|---|---|
-| Mon 08:00 | content-researcher | /content-researcher | Trends, metrics, customer signals | Notion pages (Status: Idea) |
-| Tue 09:00 | linkedin-copywriter | /linkedin-copywriter | Approved ideas from Notion | Draft posts (Status: Review) |
-| Daily 10:00 | content-publisher | /content-publish | Scheduled posts for today | Published LinkedIn posts |
-| Daily 18:00 | engagement-tracker | /engagement-track | Published post IDs | Updated metrics, warm leads |
-| Fri 16:00 | content-reporter | /content-report | 7-day metrics from Notion | Weekly report + Slack summary |
+| 1 | content-researcher | sonnet | Weekly Mon | All |
+| 2 | linkedin-copywriter | opus | Weekly Tue | LinkedIn |
+| 3 | twitter-copywriter | opus | Weekly Tue | X/Twitter |
+| 4 | threads-copywriter | opus | Weekly Tue | Threads |
+| 5 | facebook-copywriter | opus | Weekly Tue | Facebook |
+| 6 | video-producer | opus | Weekly Tue | YouTube, TikTok, Instagram |
+| 7 | content-publisher | sonnet | Daily | All (routed by Channel) |
+| 8 | engagement-tracker | sonnet | Daily | All active platforms |
+| 9 | reddit-writer | sonnet | Weekly Wed | Reddit |
+| 10 | hackernews-writer | sonnet | Weekly Wed | HackerNews |
+| 11 | producthunt-writer | sonnet | Ad-hoc | ProductHunt |
+| 12 | content-reporter | sonnet | Weekly Fri | All (aggregation) |
 
 ## Detailed Steps
 
 ### Step 1: Content Research (Monday)
 
-**Agent:** content-researcher | **Model:** Sonnet | **Skills:** `/content-researcher`, `/slop-scrub`
+**Agent:** content-researcher | **Model:** Sonnet | **Skills:** `/content-researcher`
 
-1. Trend scan — industry posts, competitor content, trending topics
-2. Performance scan — analyze past post metrics, identify winning patterns
-3. Customer scan — mine support/sales/interviews for authentic angles
-4. Create Notion pages with Status = Idea (minimum 5 per session)
-5. Slop-scrub all titles and descriptions
+1. Gather signals from configured sources (industry news, competitors, trends)
+2. Generate 5-10 content ideas per week
+3. Tag each idea with recommended Channel(s) and Format
+4. Create Notion pages with Status=Idea, Channel recommendations
+5. Notify via Slack that ideas are ready for review
 
-**Output:** 5-10 structured ideas in Notion, ready for human review
+**Output:** Notion pages with ideas, each tagged with Channel + Format
 
 ### Step 2: Human Review (Monday–Tuesday)
 
@@ -77,85 +111,115 @@ Friday 16:00 — Content Reporter
 1. Review each Idea page
 2. Reject weak ideas (delete or archive)
 3. Mark strong ideas → Status: Approved
-4. Optionally add notes: preferred hook, angle emphasis, timing
+4. Optionally adjust Channel/Format assignments
+5. Add notes: preferred hook, angle emphasis, timing
 
-### Step 3: Content Drafting (Tuesday)
+### Step 3: Platform-Specific Drafting (Tuesday)
 
-**Agent:** linkedin-copywriter | **Model:** Opus | **Skills:** `/linkedin-copywriter`, `/content-repurpose`, `/slop-scrub`
+**Agents:** Platform copywriters (parallel) | **Model:** Opus
 
-1. Read voice corpus to build voice model
-2. For each Approved idea:
-   - Select hook archetype based on idea angle
-   - Select body structure based on content type
-   - Draft post in author's voice
-   - Run slop scrub
-3. Update Notion: Status → Review, post body in page
+Each copywriter picks up Approved ideas tagged with its platform:
+- `linkedin-copywriter`: Channel=LinkedIn → draft LinkedIn posts
+- `twitter-copywriter`: Channel=Twitter → draft tweets/threads
+- `threads-copywriter`: Channel=Threads → draft Threads posts
+- `facebook-copywriter`: Channel=Facebook → draft Facebook posts
+- `video-producer`: Format=Video → write scripts, submit renders
 
-**Output:** Draft posts in Notion awaiting final human approval
+Each agent:
+1. Loads voice corpus
+2. Selects hooks and structures per platform rules
+3. Drafts content in platform-native format
+4. Runs platform-specific slop scrub
+5. Writes draft to Notion page body
+6. Updates Status: Approved → Drafting → Review
 
 ### Step 4: Human Approval (Tuesday–Whenever)
 
 **Actor:** Human (in Notion)
 
-1. Review each draft
-2. Edit if needed (tone, accuracy, length)
-3. Mark → Status: Approved
-4. Set Publish Date (schedule for specific day)
-5. System transitions to Status: Scheduled
+1. Review drafts for each platform
+2. Edit if desired (tone, details, timing)
+3. Approve: Status → Scheduled, set Publish Date
+4. Reject: Status → Approved (back to drafting pool)
 
-### Step 5: Publishing (Daily)
+### Step 5: Multi-Platform Publishing (Daily)
 
 **Agent:** content-publisher | **Model:** Sonnet | **Skills:** `/content-publish`
 
-1. Query Notion: Status = Scheduled AND Publish Date = today
-2. Verify approval chain (must have passed through Approved)
-3. Final slop check
-4. Publish via LinkedIn provider
-5. Update Notion: Status → Published, write Post ID
-6. Notify Slack
+1. Query Notion for Status=Scheduled, Publish Date=today
+2. For each post, read Channel field
+3. Route to appropriate provider via `integrations/social/`
+4. Publish with platform-specific formatting
+5. Write back platform Post ID to Notion
+6. Update Status: Scheduled → Published
+7. Stagger publishing (LinkedIn first, others follow)
 
-**Output:** Live LinkedIn posts, state tracked in Notion
+**Platform Rate Limits:**
+- LinkedIn: 2/day
+- Twitter: 10/day
+- Threads: 5/day
+- Facebook: 2/day
+- YouTube: 6/day
+- TikTok: 25/day
+- Instagram: 25/day
 
 ### Step 6: Engagement Tracking (Daily)
 
 **Agent:** engagement-tracker | **Model:** Sonnet | **Skills:** `/engagement-track`
 
-1. Pull metrics for all Published posts
-2. Update Notion Metrics fields
-3. Build warm-lead table (2+ engagements = warm lead)
-4. Flag hot posts (>2x average engagement)
-5. Detect plateaus (no growth → transition to Tracking)
+1. Query Notion for all Published posts (any platform)
+2. For each post, check which platform IDs are populated
+3. Call matching provider's `get_post_metrics()`
+4. Update Notion Metrics field
+5. Build cross-platform warm-lead table
+6. Flag high performers (>2x average engagement)
+7. Detect content plateaus
 
-**Output:** Updated metrics, warm-leads.yaml, hot-posts.yaml
+**Output:** Updated metrics, warm-leads.yaml, hot-posts alerts
 
-### Step 7: Weekly Report (Friday)
+### Step 7: Community Engagement (Wednesday)
+
+**Agents:** reddit-writer, hackernews-writer | **Model:** Sonnet
+
+1. Scan target communities for relevant discussions
+2. Evaluate engagement opportunities (relevance × value-add)
+3. Craft platform-appropriate responses
+4. Post contributions
+5. Track engagements in Notion
+6. Identify warm leads from interactions
+
+### Step 8: Weekly Report (Friday)
 
 **Agent:** content-reporter | **Model:** Sonnet | **Skills:** `/content-report`
 
-1. Pull 7-day metrics from Notion
-2. Calculate KPIs and week-over-week deltas
-3. Analyze by pillar, format, hook type, day-of-week
-4. Generate 3-5 actionable recommendations
-5. Write full report to `.deliberate/reports/content/weekly-{date}.md`
-6. Post condensed summary to Slack
+1. Gather 7-day metrics from all platforms
+2. Calculate cross-platform KPIs
+3. Compare platform performance
+4. Identify patterns by pillar, format, hook type, platform, day-of-week
+5. Generate recommendations
+6. Write full report + Slack summary
 
-**Output:** Strategic recommendations that feed back into next week's research
+**Output:** `.deliberate/reports/content/weekly-{date}.md`, Slack summary
 
 ## Decision Gates
 
-| Gate | Who Decides | Condition |
-|---|---|---|
-| Idea → Approved | Human | Idea has clear angle, fits pillar strategy |
-| Draft → Approved | Human | Post quality, accuracy, voice match |
-| Scheduled → Published | Automated | Approval verified, slop-free, within rate limit |
-| Published → Tracking | Automated | Engagement plateaued (>7 days, <5% change) |
+| Gate | Owner | Decision | Next State |
+|---|---|---|---|
+| Idea Review | Human | Approve/Reject | Approved / Archived |
+| Draft Review | Human | Approve/Edit/Reject | Scheduled / Approved |
+| Video Review | Human | Approve rendered video | Ready for publish |
+| Launch Trigger | Human | Initiate PH/HN launch | Launch sequence |
 
 ## State Machine (Notion Status)
 
 ```
-Idea → Drafting → Review → Approved → Scheduled → Published → Tracking
-                    ↑                                    │
-                    └── bounced (slop violations) ───────┘
+Idea → [Human: approve] → Approved → [Agent: draft] → Drafting → Review
+Review → [Human: approve] → Scheduled → [Agent: publish] → Published → Tracking
+Review → [Human: reject] → Approved (re-draft)
+
+Video-specific:
+Approved → [Agent: script] → Drafting → Review → Scheduled
+Scheduled → [Agent: render] → Rendering → Complete → [Human: approve] → Published
 ```
 
 ## Infrastructure
@@ -163,10 +227,15 @@ Idea → Drafting → Review → Approved → Scheduled → Published → Tracki
 - **Schedules:** `schedules/*.yaml` — recurring task definitions
 - **State:** `.deliberate/schedules/*.last` — prevents double-execution
 - **Notion:** `integrations/notion/` — database client
-- **LinkedIn:** `integrations/linkedin/` — provider abstraction
-- **Assets:** `content/corpus/`, `content/slop-blacklist.yaml`
+- **Social:** `integrations/social/` — unified provider layer (10 platforms)
+- **Video:** `integrations/video/` — render provider layer (HeyGen, Runway, Manual)
+- **Assets:** `content/corpus/`, `content/slop-rules/`
 - **Reports:** `.deliberate/reports/content/`
+- **Config:** `config.henry.yaml` — platform-specific settings
 
 ## Exit Condition
 
-This workflow is continuous — it doesn't "exit." It runs weekly in perpetuity. To pause, set `schedules_enabled: false` in config or remove schedule YAML files.
+This workflow is continuous — it doesn't "exit." It runs weekly in perpetuity. To pause:
+- Set `schedules_enabled: false` in config
+- Remove/disable specific schedule YAML files
+- Set individual platform `enabled: false` in config

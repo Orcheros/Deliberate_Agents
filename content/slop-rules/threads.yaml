@@ -1,0 +1,28 @@
+# Threads-specific slop rules
+# Extends: base.yaml
+
+platform: threads
+extends: base
+
+additional_banned_phrases:
+  - "link in bio"
+  - "follow for more"
+  - "drop a comment"
+
+structural_rules:
+  - rule: "Maximum 500 characters"
+    check: "char_count"
+    max: 500
+  - rule: "Zero hashtags (Threads doesn't surface them)"
+    check: "count_hashtags"
+    max: 0
+  - rule: "Emoji OK but max 3"
+    check: "count_emoji"
+    max: 3
+
+platform_notes:
+  - "Casual, conversational, almost like texting a smart friend"
+  - "No hashtags — they don't work on Threads"
+  - "Short and punchy wins — this isn't LinkedIn"
+  - "Personal opinions and hot takes perform well"
+  - "Engagement comes from relatability, not authority"

@@ -1,3 +1,5 @@
+# NOTE: Canonical location is now integrations/social/linkedin.py
+# This file is retained for backward compatibility during migration.
 """LinkedIn provider abstraction for Deliberate_Agents content automation.
 
 Provider-agnostic interface for LinkedIn API operations.

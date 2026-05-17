@@ -1,0 +1,34 @@
+# Reddit-specific slop rules
+# Extends: base.yaml
+
+platform: reddit
+extends: base
+
+additional_banned_phrases:
+  - "check out my"
+  - "I just launched"
+  - "would love your feedback"  # (seen as self-promo bait)
+  - "feel free to"
+  - "happy to answer"
+  - "AMA"  # (unless actually doing an AMA)
+  - "TL;DR" # allowed but must actually be a TL;DR, not bait
+
+structural_rules:
+  - rule: "Title must be specific and descriptive (no clickbait)"
+    check: "title_specificity"
+  - rule: "Include TL;DR for posts over 200 words"
+    check: "tldr_presence"
+    min_words_for_requirement: 200
+  - rule: "No direct links to own product without context"
+    check: "self_promo_detection"
+  - rule: "Zero emoji in technical subreddits"
+    check: "count_emoji"
+    max: 0
+
+platform_notes:
+  - "Add value first, mention yourself second (if at all)"
+  - "Each subreddit has its own culture — respect it"
+  - "Evidence-based claims with citations perform best"
+  - "Formatting matters: headers, bullet points, code blocks"
+  - "Self-promotion ratio: 9 value posts to 1 self-promo (at most)"
+  - "Authenticity and transparency trump polish"

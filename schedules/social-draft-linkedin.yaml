@@ -1,4 +1,4 @@
-name: content-draft
+name: social-draft-linkedin
 description: Run linkedin-copywriter agent to draft posts from approved ideas
 agent: linkedin-copywriter
 schedule:

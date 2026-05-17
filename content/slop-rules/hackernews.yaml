@@ -1,0 +1,56 @@
+# HackerNews-specific slop rules — STRICTEST platform
+# Extends: base.yaml
+
+platform: hackernews
+extends: base
+
+additional_banned_words:
+  - "excited"
+  - "amazing"
+  - "incredible"
+  - "awesome"
+  - "passionate"
+  - "disrupt"
+  - "scale"  # (as a verb in marketing sense)
+  - "growth-hack"
+  - "viral"
+  - "engagement"
+
+additional_banned_phrases:
+  - "we're excited to"
+  - "proud to announce"
+  - "check it out"
+  - "would love feedback"
+  - "what do you think"
+  - "launching today"
+  - "we just shipped"
+  - "I built this"
+  - "side project"  # (overused)
+  - "Show HN" # (only valid if actually a Show HN submission)
+  - "any feedback appreciated"
+
+structural_rules:
+  - rule: "Zero emoji"
+    check: "count_emoji"
+    max: 0
+  - rule: "Zero hashtags"
+    check: "count_hashtags"
+    max: 0
+  - rule: "No exclamation marks"
+    check: "count_char"
+    char: "!"
+    max: 0
+  - rule: "Title must be factual, no superlatives"
+    check: "superlative_detection"
+  - rule: "Technical substance required — no fluff paragraphs"
+    check: "substance_ratio"
+    min_pct: 80
+
+platform_notes:
+  - "ZERO marketing language — this is the hardest constraint"
+  - "Write for senior engineers and technical founders"
+  - "Factual, understated, let the work speak"
+  - "Show HN titles: 'Show HN: [what it does] — [one technical detail]'"
+  - "Comments: add technical depth, cite sources, disagree respectfully"
+  - "Intellectual honesty > persuasion"
+  - "Acknowledge limitations and trade-offs proactively"
