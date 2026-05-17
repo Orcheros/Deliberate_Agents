@@ -2,17 +2,38 @@
 
 ## Identity
 - Repo: **Deliberate Agents** (`github.com/Orcheros/Deliberate_Agents`)
-- Multi-agent orchestration system for the **Henry** product (`OkHenry.ai`)
-- Target repo for all agent work: `~/Development/Deuterophos` (OkHenry) and its worktrees
+- Multi-agent orchestration framework — manages autonomous agent teams against any target project
+- Framework home: `$DELIBERATE_AGENTS_HOME` (default `~/Development/Deliberate_Agents`)
+
+## Project Discovery
+
+Target projects are discovered via `config.*.yaml` files in the framework root. These can be:
+- Regular files created by `scripts/init.sh`
+- Symlinks to `.deliberate.yaml` files in target repos (preferred — keeps config with the project)
+
+The `.deliberate.yaml` convention: target repos carry their own config at the repo root. `init.sh --repo-config` creates this file and symlinks it into the framework as `config.{slug}.yaml`.
 
 ## Branching Discipline
 
-**Staging is protected in the target repo (Deuterophos).** Direct code changes to `staging` are forbidden.
+Each target project defines its own branching rules. General principles enforced by all agents:
 
-- **Hotfixes:** Must be done on a `hotfix/*` branch off staging. Never commit code fixes directly to staging.
-- **Product documentation/spec** (backlog one-pagers, STATUS.yaml, ROADMAP.md updates): Allowed directly on staging — these are short, low-risk, and don't affect runtime behavior.
-- **Feature work:** Always on worktrees (`~/Development/Deuterophos-worktrees/{slug}/`).
+- **Protected branches** (typically `main`, `staging`, `dev`): Never commit code directly. Use feature branches or `hotfix/*` branches.
+- **Documentation/spec changes** (backlog one-pagers, STATUS.yaml, ROADMAP.md): Allowed directly on the dev branch — low-risk, no runtime impact.
+- **Feature work:** Always on worktrees when configured (`{worktrees_root}/{slug}/`).
 
-If the current branch is `staging` and the task involves changing any `.rb`, `.erb`, `.js`, `.css`, or test file, **stop and create a `hotfix/<description>` branch first.** No exceptions.
+If the current branch is protected and the task involves changing code files, **stop and create a branch first.** No exceptions. This applies to both this repo and any target repo. Agents spawned by this system must follow it.
 
-This rule applies to both this repo and the target Deuterophos repo. Agents spawned by this system must follow it.
+## Key Scripts
+
+| Script | Purpose |
+|---|---|
+| `scripts/init.sh` | Initialize DA for a new target project |
+| `scripts/session-start.sh` | SessionStart hook — discovers projects, starts services, shows briefing |
+| `orchestration/orchestrate.sh` | Main orchestrator loop |
+| `orchestration/launch-agent.sh` | Spawn an agent in a tmux pane |
+| `orchestration/stop-agents.sh` | Graceful shutdown of all agents |
+| `orchestration/briefing.sh` | Generate project status briefing |
+
+## Invoking from Any Repo
+
+Users can invoke `/orchestrate` from any Claude Code session. This user-level slash command resolves `$DELIBERATE_AGENTS_HOME`, finds or scaffolds a project config, and offers orchestration actions.

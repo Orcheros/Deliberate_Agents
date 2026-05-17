@@ -99,9 +99,9 @@ for pair in $PROJECTS; do
   start_slack_for_config "${FRAMEWORK_DIR}/config.${slug}.yaml" "$name"
 done
 
-# --- Agent Tabs ---------------------------------------------------------------
-# Agents launch as Terminal.app tabs in the same window as Claude Code.
-# No separate window or tmux attachment needed — tabs appear automatically.
+# --- Agent Panes --------------------------------------------------------------
+# Agents launch as tmux panes (see launch-agent.sh).
+# Panes are organized by role into named tmux windows.
 
 # --- Briefings ----------------------------------------------------------------
 

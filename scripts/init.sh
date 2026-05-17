@@ -16,6 +16,7 @@
 #   --initiatives <path>      Path to initiatives within repo (default: .documentation/initiatives)
 #   --test-cmd <command>      Test command (default: bin/rails test)
 #   --system-test-cmd <cmd>   System test command (default: bin/rails test:system)
+#   --repo-config             Write config to repo root as .deliberate.yaml (instead of .deliberate/config.yaml)
 
 set -euo pipefail
 
@@ -32,6 +33,7 @@ DEV_BRANCH="dev"
 INITIATIVES_PATH=".documentation/initiatives"
 TEST_COMMAND="bin/rails test"
 SYSTEM_TEST_COMMAND="bin/rails test:system"
+REPO_CONFIG="false"
 
 # --- Argument Parsing ---------------------------------------------------------
 
@@ -45,6 +47,7 @@ while [[ $# -gt 0 ]]; do
     --initiatives)      INITIATIVES_PATH="$2"; shift 2 ;;
     --test-cmd)         TEST_COMMAND="$2"; shift 2 ;;
     --system-test-cmd)  SYSTEM_TEST_COMMAND="$2"; shift 2 ;;
+    --repo-config)      REPO_CONFIG="true"; shift ;;
     -h|--help)
       sed -n '2,/^$/p' "$0" | sed 's/^# \?//'
       exit 0
@@ -64,6 +67,14 @@ done
 
 DELIBERATE_DIR="${WORKTREES_DIR}/.deliberate"
 PROJECT_SLUG="$(echo "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-')"
+
+# --- Determine Config Location ------------------------------------------------
+
+if [[ "$REPO_CONFIG" == "true" ]]; then
+  CONFIG_FILE="${REPO_DIR}/.deliberate.yaml"
+else
+  CONFIG_FILE="${DELIBERATE_DIR}/config.yaml"
+fi
 
 # Check if already initialized
 if [[ -d "$DELIBERATE_DIR" ]]; then
@@ -86,8 +97,6 @@ echo ""
 mkdir -p "$DELIBERATE_DIR"/{queue,assignments,status,decisions,logs,qa,pids,feedback}
 
 # --- Generate Config ----------------------------------------------------------
-
-CONFIG_FILE="${DELIBERATE_DIR}/config.yaml"
 
 cat > "$CONFIG_FILE" <<EOF
 # Deliberate_Agents — Project Configuration
@@ -126,6 +135,19 @@ stack:
 EOF
 
 echo "Created config: $CONFIG_FILE"
+
+# --- Register with Framework --------------------------------------------------
+
+FRAMEWORK_CONFIG="${FRAMEWORK_DIR}/config.${PROJECT_SLUG}.yaml"
+if [[ ! -e "$FRAMEWORK_CONFIG" ]]; then
+  ln -sf "$CONFIG_FILE" "$FRAMEWORK_CONFIG"
+  echo "Registered: config.${PROJECT_SLUG}.yaml -> $CONFIG_FILE"
+elif [[ -L "$FRAMEWORK_CONFIG" ]]; then
+  ln -sf "$CONFIG_FILE" "$FRAMEWORK_CONFIG"
+  echo "Updated: config.${PROJECT_SLUG}.yaml -> $CONFIG_FILE"
+else
+  echo "NOTE: ${FRAMEWORK_CONFIG} exists as regular file — not overwriting"
+fi
 
 # --- Create .gitignore --------------------------------------------------------
 
