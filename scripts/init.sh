@@ -117,6 +117,7 @@ agents:
   max_concurrent_developers: 3
   poll_interval_seconds: 30
   autonomy: "full"
+  permission_mode: "auto"    # "auto" = safe (may hang on unexpected prompts), "unrestricted" = skip all checks
 
 orchestration:
   tmux_session: "deliberate-${PROJECT_SLUG}"

@@ -48,6 +48,22 @@ The developer agent definition includes a **Tech Stack Awareness** section. Upda
 | `skills` | Available workflow skills | `[dev-understand, dev-implement]` |
 | `effort` | Reasoning effort level | `high`, `medium`, `low` |
 
+### Project-level permission mode
+
+Control how agents handle permission prompts during unattended sessions. Set in your project config under `agents:`:
+
+| Value | CLI flag passed | Behavior |
+|-------|----------------|----------|
+| `auto` (default) | `--permission-mode auto` | Agents auto-approve tools declared in their frontmatter. May hang if an undeclared tool is invoked. |
+| `unrestricted` | `--dangerously-skip-permissions` | All permission checks bypassed. Agents never hang but have no guardrails. |
+
+```yaml
+agents:
+  permission_mode: "auto"
+```
+
+Start with `auto`. Switch to `unrestricted` once you've validated your agent definitions and want zero-friction pipeline execution.
+
 ## Skill Files
 
 Skills live in `skills/{name}/SKILL.md`. Each skill is a self-contained workflow step with YAML frontmatter and markdown instructions.

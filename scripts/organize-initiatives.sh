@@ -269,9 +269,17 @@ echo ""
 echo "Analyzing initiatives..."
 echo ""
 
+PERM_MODE=$(grep -E '^\s*permission_mode:' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'" || echo "unrestricted")
+PERM_MODE="${PERM_MODE:-unrestricted}"
+if [[ "$PERM_MODE" == "unrestricted" ]]; then
+  PERM_FLAG="--dangerously-skip-permissions"
+else
+  PERM_FLAG="--permission-mode auto"
+fi
+
 cd "$REPO_DIR" && claude --print \
   --max-turns 60 \
-  --dangerously-skip-permissions \
+  $PERM_FLAG \
   --output-format text \
   --append-system-prompt "$(cat "$SYSTEM_FILE")" \
   -p "$(cat "$PROMPT_FILE")" \

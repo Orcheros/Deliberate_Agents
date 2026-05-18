@@ -49,6 +49,8 @@ REPO_DIR="$(parse_yaml 'repo')"
 WORKTREES_DIR="$(parse_yaml 'worktrees')"
 VERBOSE="$(parse_yaml 'verbose')"
 VERBOSE="${VERBOSE:-false}"
+PERMISSION_MODE="$(parse_yaml 'permission_mode')"
+PERMISSION_MODE="${PERMISSION_MODE:-auto}"
 DELIBERATE_DIR="${WORKTREES_DIR}/.deliberate"
 PID_DIR="${DELIBERATE_DIR}/pids"
 mkdir -p "$PID_DIR"
@@ -344,6 +346,13 @@ PID_FILE="${PID_DIR}/${AGENT_NAME}.pid"
 CONTEXT_FILE="$(mktemp)"
 echo -e "$CONTEXT" > "$CONTEXT_FILE"
 
+# Build permission flag from config
+if [[ "$PERMISSION_MODE" == "unrestricted" ]]; then
+  PERM_FLAG="--dangerously-skip-permissions"
+else
+  PERM_FLAG="--permission-mode auto"
+fi
+
 # Write a launcher script that the tmux pane will execute.
 LAUNCHER="$(mktemp)"
 TAB_TITLE="${ROLE}: ${INITIATIVE:-${WORKTREE:-agent}}"
@@ -366,7 +375,7 @@ LAST_ACTIVITY=\$(date +%s)
 
 script -q /dev/null claude \\
   --agent ${ROLE} \\
-  --dangerously-skip-permissions \\
+  ${PERM_FLAG} \\
   --max-turns ${MAX_TURNS} \\
   --append-system-prompt "\$(cat '${CONTEXT_FILE}')" \\
   --output-format stream-json \\

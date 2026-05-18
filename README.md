@@ -323,6 +323,7 @@ Deliberate Agents ships with [Ruby on Rails](https://rubyonrails.org/) conventio
 1. **Agent definitions** in `.claude/agents/*.md` — tell agents about your framework's patterns
 2. **Skills** in `.claude/skills/*/SKILL.md` — adjust workflow steps for your tooling
 3. **Config** — set your test commands and branch names
+4. **Permission mode** — agents default to `auto` (safe, scoped permissions). Set `permission_mode: "unrestricted"` in your config for zero-friction unattended execution. See [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md) for details.
 
 See [docs/CUSTOMIZATION.md](docs/CUSTOMIZATION.md) for details.
 
