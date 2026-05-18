@@ -27,8 +27,10 @@ Read the config file. Extract the project name and key settings. Then follow sub
 ### Step 3A: Show Project Briefing
 
 1. Run `$DA_HOME/orchestration/briefing.sh <config_path>` to get current project status
-2. Present a summary to the user:
+2. Read the config file and extract `permission_mode` (under `agents:`). Default is `auto` if absent.
+3. Present a summary to the user:
    - Project name, repo path, tmux session name
+   - **Permission mode**: show `auto` (safe — agents may hang on undeclared tools) or `unrestricted` (no guardrails — agents never hang). If `unrestricted`, flag it visibly so the user is aware.
    - Current agent status (if any running)
    - Initiative queue status and items needing attention
 
@@ -80,6 +82,7 @@ Based on the user's Tier 1 selection, use `AskUserQuestion` again to present the
 - **Check status** — run briefing: `$DA_HOME/orchestration/briefing.sh <config_path>`
 - **Launch a single agent** — pick a role and launch in tmux: `$DA_HOME/orchestration/launch-agent.sh --config <config_path> --role <role>`
 - **Stop all agents** — graceful shutdown: `$DA_HOME/orchestration/stop-agents.sh <config_path>`
+- **Switch permission mode** — toggle between `auto` (safe, scoped) and `unrestricted` (skip all checks). Shows current mode and writes the new value to the project config.
 - **Re-onboard the project** — refresh `.documentation/` briefing: `$DA_HOME/scripts/onboard.sh <config_path>`
 - **Deploy skills/agents to worktrees** — sync latest to target repo: `$DA_HOME/scripts/init.sh` (redeploy to worktrees)
 - **Generate initiative report** — run `/initiative-status`
@@ -107,6 +110,12 @@ Determine the dispatch target and route accordingly:
    - `/initiative-status`, `briefing.sh`, status checks, reports
 
 3. **Operations commands** → run the corresponding shell command from Step 3C directly via Bash.
+
+4. **Switch permission mode** → Use `AskUserQuestion` to present the two modes with their current state indicated:
+   - **auto** (safe) — agents auto-approve tools declared in their frontmatter; may hang if an undeclared tool is invoked
+   - **unrestricted** — all permission checks bypassed; agents never hang but have no guardrails
+
+   After the user selects, update the config file using the Edit tool: change the `permission_mode:` value under the `agents:` section. If the key doesn't exist yet, add it after the `autonomy:` line. Confirm the change to the user and note it takes effect on the next agent launch (already-running agents are unaffected).
 
 After dispatching or executing, **record in the dispatch journal**:
 
@@ -214,6 +223,7 @@ Parse the user's free-text input and route to the appropriate action:
 | **Check status** | Read PID files (`kill -0 <pid>`), agent status files in `.deliberate/status/`, and/or run `$DA_HOME/orchestration/briefing.sh <config_path>`. Update any stale journal entries. Present summary. Return to 5A |
 | **Daily summary** | Read today's dispatch journal. Refresh all entry statuses against live agent state. Produce summary: completed/running/failed counts, outcomes, artifacts. Return to 5A |
 | **Show menu** | Go to Step 3B → flow through selection → dispatch → return to 5A |
+| **Switch permission mode** | Show current mode, ask for new selection (Step 3E item 4 pattern), update config, confirm. Return to 5A |
 | **Operations command** | Execute directly via Bash. Optionally log in journal. Return to 5A |
 | **Exit** | Refresh all journal entry statuses. Print closing summary (dispatches today, completed, still running). End session |
 
