@@ -1,6 +1,6 @@
 # Deliberate Agents — Skills Cheat Sheet
 
-165 skills across 42 agents. Invoke any skill with `/skill-name` in a Claude Code session.
+166 skills across 43 agents. Invoke any skill with `/skill-name` in a Claude Code session.
 
 ---
 
@@ -12,6 +12,7 @@
 | `/identify-assumptions` | Map & prioritize riskiest assumptions (Impact x Evidence matrix) | Product Manager |
 | `/design-experiments` | Pretotype experiments — Fake Door, Concierge, Wizard of Oz, etc. | Product Manager |
 | `/opportunity-solution-tree` | Teresa Torres OST — outcome → opportunities → solutions → experiments | Product Manager |
+| `/project-learn` | Extract business context from codebase — discovers/scaffolds `.documentation/`, produces product brief | Project Discoverer |
 | `/customer-interview-guide` | Interview scripts with JTBD probing questions & logistics | Market Researcher |
 | `/interview-synthesis` | Transcripts → structured insights, JTBD patterns, opportunity statements | Market Researcher |
 | `/prioritize-features` | Score & rank feature requests by theme, impact, effort, risk, alignment | Product Manager |
@@ -262,6 +263,7 @@
 
 | Workflow | Trigger | Pipeline |
 |---|---|---|
+| **Project Onboarding** | New project adopted or strategic refresh | onboard.sh → Project Discoverer (`/project-learn`) → Strategist (vision, market, beachhead) → Researcher (personas, ICP, teardown) → [Human Gate] → Strategist (positioning, BMC) |
 | **Product Discovery** | New opportunity identified | Strategist → Researcher → PM (ideation) → [Human Gate] → PM (prioritize) → Intake |
 | **Initiative Discovery** | Founder provides scoped idea | PM `/pm-intake` → One-pager in backlog |
 | **Customer Research** | Thin user evidence or new market entry | Researcher (interview prep) → [Human Gate: conduct interviews] → Researcher (synthesis → personas → segmentation → journey map) → PM (validate) |
@@ -305,4 +307,4 @@
 
 ---
 
-*Generated from 165 SKILL.md files across the Deliberate_Agents framework.*
+*Generated from 166 SKILL.md files across the Deliberate_Agents framework.*
