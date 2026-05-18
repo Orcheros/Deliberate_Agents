@@ -1,6 +1,6 @@
 # Deliberate Agents — Skills Cheat Sheet
 
-166 skills across 43 agents. Invoke any skill with `/skill-name` in a Claude Code session.
+167 skills across 43 agents. Invoke any skill with `/skill-name` in a Claude Code session.
 
 ---
 
@@ -96,6 +96,7 @@
 | `/prioritization-frameworks` | Reference guide: RICE, ICE, MoSCoW, Kano, WSJF, + 4 more | Product Manager |
 | `/job-stories` | When [situation], I want [motivation], so I can [outcome] | Product Manager |
 | `/wwas` | Why-What-Acceptance-Signals backlog format | Product Manager |
+| `/initiative-status` | Scan STATUS.yaml files, cross-reference ROADMAP.md, generate TRACKER.md + activity timeline + stats | Product Manager |
 
 ## Execution & Project Management
 
@@ -272,6 +273,7 @@
 
 | Workflow | Trigger | Pipeline |
 |---|---|---|
+| **Initiative Pipeline** | Initiative needs to advance (next or full mode) | Read STATUS.yaml → invoke stage workflow → promote → log history → repeat (pauses at human gates) |
 | **Initiative Lifecycle** | Governs all build workflows | Promotion rules: backlog → needs-prd → needs-architecture → needs-design → needs-stories → needs-engineering → needs-qa → shipped |
 | **Initiative Build** | Initiative selected for grooming | PM → Architect → Designer → Scrum Master → Project Manager → Developers |
 | **Development Execution** | Status reaches READY_FOR_DEV | PjM (decompose → assign → coordinate) → Developers (parallel worktrees) → Reviewer |
@@ -307,4 +309,4 @@
 
 ---
 
-*Generated from 166 SKILL.md files across the Deliberate_Agents framework.*
+*Generated from 167 SKILL.md files across the Deliberate_Agents framework.*
