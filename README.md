@@ -99,7 +99,7 @@ Deliberate Agents comes with 30 specialist agents organized into 7 teams, backed
 
 | Agent | What They Do |
 |-------|-------------|
-| **Orchestrator** | Persistent coordinator — manages the initiative queue, daily work log, team routing, and Slack communication |
+| **Orchestrator** | Two modes: the `orchestrate.sh` bash script runs autonomously as a polling loop, while `/orchestrate` gives you an interactive command center for dispatching work and tracking progress |
 
 Each agent knows its role and stays in its lane. The Developer never touches the PRD. The Product Manager never writes code. This prevents conflicts and keeps work organized.
 
@@ -260,6 +260,23 @@ cursor ~/Development/my-app-worktrees/<worktree-name>
 
 Look through the changes, run the tests, try it out. When you're happy, merge it into your `dev` branch. The orchestrator will mark the initiative as complete.
 
+### The Command Center (`/orchestrate`)
+
+The orchestrator bash script (Step 3) runs autonomously — it watches the queue and launches agents on its own. But sometimes you want to drive. The `/orchestrate` command gives you an interactive command center inside any Claude Code session.
+
+**How to use it:** Open Claude Code in a project that's been initialized with Deliberate Agents, then type `/orchestrate`.
+
+The command center:
+- **Starts with a briefing** — running agents, initiative queue, items needing your attention
+- **Offers a guided menu** — pick from Product, Engineering, Growth, or Operations workflows
+- **Accepts free-text dispatch** — skip the menu and say what you want: "intake this bug about login failing on Safari" or "start dev on story 3a"
+- **Tracks every dispatch** in a daily journal at `.deliberate/logs/dispatch-journal-YYYYMMDD.md`
+- **Stays alive** — it's a persistent session that waits for your next instruction after each dispatch
+
+Ask "what's running?" for a status check, or "what did we do today?" for a summary of everything dispatched.
+
+See [docs/DAILY-USE.md](docs/DAILY-USE.md) for everyday workflows and tips.
+
 ---
 
 ## Using Deliberate Agents with Multiple Projects
@@ -331,6 +348,9 @@ Deliberate_Agents/
 ├── scripts/            Setup tools — initialize projects, check
 │                       dependencies, clean up when done
 │
+├── commands/           Slash commands for Claude Code — the /orchestrate
+│                       command center lives here
+│
 ├── templates/          Starter files that get copied into your project
 │                       during initialization
 │
@@ -345,8 +365,9 @@ Deliberate_Agents/
 │
 └── docs/               Detailed documentation
     ├── ARCHITECTURE.md     How the system is designed
-    ├── GETTING-STARTED.md  Extended setup walkthrough
-    └── CUSTOMIZATION.md    Making it work with your stack
+    ├── CUSTOMIZATION.md    Making it work with your stack
+    ├── DAILY-USE.md        Everyday workflows and tips
+    └── GETTING-STARTED.md  Extended setup walkthrough
 ```
 
 Each directory has its own README explaining what's inside and how to use it.
@@ -363,6 +384,8 @@ A few terms that come up often:
 | **PRD** | Product Requirements Document. The detailed plan that the Product Manager writes from your one-pager. |
 | **Worktree** | A separate copy of your project's code where an agent can work without affecting your main branches. Worktrees live in a dedicated folder next to your repo (e.g., `my-app-worktrees/`) — one worktree per initiative. Think of them like sandboxes linked to your repo. |
 | **Orchestrator** | The bash script that coordinates everything. It watches for completed work and launches the next agent in line. It doesn't use AI — it's just a simple script, so it costs nothing to run. |
+| **Command Center** | The `/orchestrate` slash command running as a persistent session. It dispatches work to agents, records every dispatch in a journal, and stays alive for follow-up commands. |
+| **Dispatch Journal** | A daily markdown log at `.deliberate/logs/dispatch-journal-YYYYMMDD.md` that records every task dispatched, its status, and outcome. |
 | **Skill** | A step-by-step instruction set that an agent follows for a specific task. Skills are loaded only when needed, keeping agents focused. |
 | **State** | The collection of files in `.deliberate/` that track what's happening — which initiatives are active, which tasks are assigned, which agents are running. |
 | **Decision** | Something that needs your input before agents can continue. Agents will pause and wait rather than guess. |
