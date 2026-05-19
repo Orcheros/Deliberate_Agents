@@ -225,17 +225,62 @@ if [[ -f "$CLAUDE_SETTINGS" ]]; then
     fi
     echo "  Enabled agent teams in $CLAUDE_SETTINGS"
   fi
+  # Add DA script permissions if missing
+  if ! grep -q 'Deliberate_Agents/orchestration' "$CLAUDE_SETTINGS" 2>/dev/null; then
+    # Use python3 to safely merge permissions into the JSON
+    python3 -c "
+import json, sys
+with open('$CLAUDE_SETTINGS') as f:
+    s = json.load(f)
+perms = s.setdefault('permissions', {})
+allow = perms.setdefault('allow', [])
+new_rules = [
+    'Bash(bash */Deliberate_Agents/orchestration/*)',
+    'Bash(bash */Deliberate_Agents/scripts/*)',
+    'Bash(bash -x */Deliberate_Agents/orchestration/*)',
+    'Bash(bash -x */Deliberate_Agents/scripts/*)',
+    'Bash(chmod +x */Deliberate_Agents/*)',
+    'Bash(*/Deliberate_Agents/orchestration/*)',
+    'Bash(*/Deliberate_Agents/scripts/*)',
+    'Bash(tmux *)',
+    'Bash(pgrep *)',
+    'Bash(kill -0 *)',
+    'Bash(caffeinate *)',
+]
+for rule in new_rules:
+    if rule not in allow:
+        allow.append(rule)
+with open('$CLAUDE_SETTINGS', 'w') as f:
+    json.dump(s, f, indent=2)
+    f.write('\n')
+" 2>/dev/null && echo "  Added DA orchestration permissions to $CLAUDE_SETTINGS"
+  fi
 else
-  # No settings file — create one with agent team defaults
+  # No settings file — create one with agent team defaults and permissions
   cat > "$CLAUDE_SETTINGS" <<'SETTINGSEOF'
 {
   "teammateMode": "tmux",
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(bash */Deliberate_Agents/orchestration/*)",
+      "Bash(bash */Deliberate_Agents/scripts/*)",
+      "Bash(bash -x */Deliberate_Agents/orchestration/*)",
+      "Bash(bash -x */Deliberate_Agents/scripts/*)",
+      "Bash(chmod +x */Deliberate_Agents/*)",
+      "Bash(*/Deliberate_Agents/orchestration/*)",
+      "Bash(*/Deliberate_Agents/scripts/*)",
+      "Bash(tmux *)",
+      "Bash(pgrep *)",
+      "Bash(kill -0 *)",
+      "Bash(caffeinate *)"
+    ]
   }
 }
 SETTINGSEOF
-  echo "  Created $CLAUDE_SETTINGS with agent team defaults"
+  echo "  Created $CLAUDE_SETTINGS with agent team defaults and permissions"
 fi
 
 # --- Verify Dependencies -----------------------------------------------------
