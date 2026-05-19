@@ -134,7 +134,7 @@ After dispatching or executing, **record in the dispatch journal**:
 ```markdown
 ### [HH:MM] {task_title}
 - **Status:** dispatched
-- **Dispatched to:** {role} → tmux window `{agent_name}`
+- **Dispatched to:** {role} → tmux `{window}`
 - **Initiative:** {slug or "n/a"}
 - **Workflow/Skill:** {name}
 - **Outcome:** _(pending)_
@@ -204,7 +204,7 @@ The journal is append-only markdown, one file per day at `{deliberate_dir}/logs/
 ```markdown
 ### [HH:MM] {task_title}
 - **Status:** dispatched | running | complete | failed
-- **Dispatched to:** {role} → tmux window `{agent_name}`
+- **Dispatched to:** {role} → tmux `{window}`
 - **Initiative:** {slug or "n/a"}
 - **Workflow/Skill:** {name}
 - **Outcome:** _(pending)_

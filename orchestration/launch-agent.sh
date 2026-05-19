@@ -308,11 +308,36 @@ case "$ROLE" in
   *)                          MAX_TURNS=80  ;;
 esac
 
-# --- Window Naming ------------------------------------------------------------
-# Each agent gets its own tmux window named after the agent.
-# Previous behavior grouped roles into shared windows (product, dev, content,
-# ops) and stacked panes via split-window — this made agents invisible when
-# many were running concurrently.
+# --- Role-to-Window Mapping ---------------------------------------------------
+# Agents are grouped by role category. Each agent gets its own full-screen
+# window — when multiple agents share a category, windows are suffixed
+# (product, product-2, product-3, etc.) so nothing stacks into panes.
+
+role_to_window() {
+  local role="$1"
+  case "$role" in
+    orchestrator)
+      echo "orchestrator" ;;
+    product-manager|architect|product-designer|scrum-master|\
+    project-manager|reviewer|product-strategist|market-researcher)
+      echo "product" ;;
+    developer)
+      echo "dev" ;;
+    content-researcher|content-writer|linkedin-copywriter|\
+    twitter-copywriter|threads-copywriter|facebook-copywriter|\
+    reddit-writer|hackernews-writer|producthunt-writer|\
+    video-producer|content-publisher|engagement-tracker|content-reporter)
+      echo "content" ;;
+    qa-lead|integration-tester|ux-ui-reviewer|devops-engineer|\
+    security-analyst|compliance-analyst|technical-writer|\
+    integrations-engineer|sales-development-rep|\
+    account-executive-assistant|customer-success|\
+    onboarding-specialist|seo-specialist)
+      echo "ops" ;;
+    *)
+      echo "ops" ;;
+  esac
+}
 
 # --- Launch in tmux window ----------------------------------------------------
 
@@ -402,15 +427,17 @@ if ! tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
   tmux new-session -d -s "$TMUX_SESSION" -n "orchestrator"
 fi
 
-# Spawn a dedicated window for this agent
-WINDOW="$AGENT_NAME"
-
-if tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -qx "$WINDOW"; then
-  # Window with this name already exists (agent relaunched?) — replace it
-  tmux respawn-window -t "${TMUX_SESSION}:${WINDOW}" -k "exec '${LAUNCHER}'"
-else
-  tmux new-window -t "$TMUX_SESSION" -n "$WINDOW" "exec '${LAUNCHER}'"
-fi
+# Find an available window name in this role's category.
+# First agent gets the base name (e.g., "product"), subsequent agents get
+# suffixed names (product-2, product-3, ...) so each runs full-screen.
+BASE_WINDOW="$(role_to_window "$ROLE")"
+WINDOW="$BASE_WINDOW"
+SUFFIX=2
+while tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -qx "$WINDOW"; do
+  WINDOW="${BASE_WINDOW}-${SUFFIX}"
+  SUFFIX=$((SUFFIX + 1))
+done
+tmux new-window -t "$TMUX_SESSION" -n "$WINDOW" "exec '${LAUNCHER}'"
 
 # Set pane title for identification
 tmux select-pane -t "${TMUX_SESSION}:${WINDOW}" -T "$TAB_TITLE"
