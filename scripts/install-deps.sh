@@ -48,6 +48,7 @@ echo "Required:"
 check_command "tmux"    "Terminal multiplexer for agent sessions" "brew install tmux"
 check_command "claude"  "Claude Code CLI for headless agent execution" "See https://docs.anthropic.com/en/docs/claude-code"
 check_command "git"     "Version control" "brew install git"
+check_command "it2"     "iTerm2 CLI for split-pane agent teams" "pip3 install it2"
 
 echo ""
 echo "Optional:"
@@ -80,9 +81,12 @@ if (( errors > 0 )); then
       fi
       command -v tmux  &>/dev/null || brew install tmux
       command -v git   &>/dev/null || brew install git
+      command -v it2   &>/dev/null || pip3 install it2
       echo ""
       echo "Note: Claude Code CLI must be installed separately."
       echo "See: https://docs.anthropic.com/en/docs/claude-code"
+      echo ""
+      echo "For iTerm2 split panes: enable Python API in iTerm2 → Settings → General → Magic"
     fi
   fi
   exit 1

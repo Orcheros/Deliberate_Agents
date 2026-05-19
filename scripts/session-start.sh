@@ -99,9 +99,20 @@ for pair in $PROJECTS; do
   start_slack_for_config "${FRAMEWORK_DIR}/config.${slug}.yaml" "$name"
 done
 
-# --- Agent Panes --------------------------------------------------------------
-# Agents launch as tmux panes (see launch-agent.sh).
-# Panes are organized by role into named tmux windows.
+# --- Agent Teams Settings Verification ----------------------------------------
+# Verify agent teams and split-pane mode are configured in Claude Code settings.
+CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+if [[ -f "$CLAUDE_SETTINGS" ]]; then
+  if ! grep -q '"teammateMode"' "$CLAUDE_SETTINGS" 2>/dev/null; then
+    STATUS_LINES+=("agent teams: teammateMode not set — run init.sh to configure split panes")
+  fi
+  if ! grep -q 'CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS' "$CLAUDE_SETTINGS" 2>/dev/null; then
+    STATUS_LINES+=("agent teams: not enabled — run init.sh to enable")
+  fi
+  if ! command -v it2 &>/dev/null; then
+    STATUS_LINES+=("it2: not found — install with 'pip3 install it2' for iTerm2 split panes")
+  fi
+fi
 
 # --- Briefings ----------------------------------------------------------------
 

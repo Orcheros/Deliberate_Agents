@@ -117,6 +117,8 @@ Before starting, make sure you have these tools installed on your Mac. Open **Te
 | **tmux** | Lets agents run in separate windows behind the scenes | `tmux -V` (need 3.0+) | `brew install tmux` |
 | **Claude Code** | The AI that powers the agents | `claude --version` | [Install guide](https://docs.anthropic.com/en/docs/claude-code) |
 | **git** | Version control for your code | `git --version` | `brew install git` |
+| **it2** | iTerm2 CLI for split-pane agent teams | `it2 --version` | `pip3 install it2` |
+| **iTerm2** | Terminal with native split-pane support for agent teams | Open iTerm2 | [Download iTerm2](https://iterm2.com/) — enable Python API in Settings → General → Magic |
 | **Node.js** | Only needed if you want cross-LLM code review | `node --version` | `brew install node` |
 
 ### Step 1: Download Deliberate Agents

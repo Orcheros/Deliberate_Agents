@@ -200,6 +200,44 @@ echo "Setting up initiative lifecycle directories..."
 mkdir -p "${INITIATIVES_DIR}"/{backlog,specified,in-progress,shipped,retired}
 echo "  Created: backlog/ specified/ in-progress/ shipped/ retired/"
 
+# --- Ensure Claude Code Settings for Agent Teams -----------------------------
+
+CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+mkdir -p "$HOME/.claude"
+
+if [[ -f "$CLAUDE_SETTINGS" ]]; then
+  # Add teammateMode if missing
+  if ! grep -q '"teammateMode"' "$CLAUDE_SETTINGS" 2>/dev/null; then
+    # Insert teammateMode after the opening brace
+    sed -i '' 's/^{$/{\n  "teammateMode": "tmux",/' "$CLAUDE_SETTINGS"
+    echo "  Added teammateMode: tmux to $CLAUDE_SETTINGS"
+  fi
+  # Add CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS if missing
+  if ! grep -q 'CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS' "$CLAUDE_SETTINGS" 2>/dev/null; then
+    if grep -q '"env"' "$CLAUDE_SETTINGS" 2>/dev/null; then
+      # env block exists — add the key inside it
+      sed -i '' '/"env"[[:space:]]*:[[:space:]]*{/a\
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+' "$CLAUDE_SETTINGS"
+    else
+      # No env block — add one after the opening brace
+      sed -i '' 's/^{$/{\n  "env": { "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1" },/' "$CLAUDE_SETTINGS"
+    fi
+    echo "  Enabled agent teams in $CLAUDE_SETTINGS"
+  fi
+else
+  # No settings file — create one with agent team defaults
+  cat > "$CLAUDE_SETTINGS" <<'SETTINGSEOF'
+{
+  "teammateMode": "tmux",
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
+SETTINGSEOF
+  echo "  Created $CLAUDE_SETTINGS with agent team defaults"
+fi
+
 # --- Verify Dependencies -----------------------------------------------------
 
 echo ""
