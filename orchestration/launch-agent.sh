@@ -308,35 +308,13 @@ case "$ROLE" in
   *)                          MAX_TURNS=80  ;;
 esac
 
-# --- Role-to-Window Mapping ---------------------------------------------------
+# --- Window Naming ------------------------------------------------------------
+# Each agent gets its own tmux window named after the agent.
+# Previous behavior grouped roles into shared windows (product, dev, content,
+# ops) and stacked panes via split-window — this made agents invisible when
+# many were running concurrently.
 
-role_to_window() {
-  local role="$1"
-  case "$role" in
-    orchestrator)
-      echo "orchestrator" ;;
-    product-manager|architect|product-designer|scrum-master|\
-    project-manager|reviewer|product-strategist|market-researcher)
-      echo "product" ;;
-    developer)
-      echo "dev" ;;
-    content-researcher|content-writer|linkedin-copywriter|\
-    twitter-copywriter|threads-copywriter|facebook-copywriter|\
-    reddit-writer|hackernews-writer|producthunt-writer|\
-    video-producer|content-publisher|engagement-tracker|content-reporter)
-      echo "content" ;;
-    qa-lead|integration-tester|ux-ui-reviewer|devops-engineer|\
-    security-analyst|compliance-analyst|technical-writer|\
-    integrations-engineer|sales-development-rep|\
-    account-executive-assistant|customer-success|\
-    onboarding-specialist|seo-specialist)
-      echo "ops" ;;
-    *)
-      echo "ops" ;;
-  esac
-}
-
-# --- Launch in tmux pane ------------------------------------------------------
+# --- Launch in tmux window ----------------------------------------------------
 
 TMUX_SESSION="${TMUX_SESSION:-deliberate}"
 
@@ -424,15 +402,13 @@ if ! tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
   tmux new-session -d -s "$TMUX_SESSION" -n "orchestrator"
 fi
 
-# Spawn pane in the appropriate window based on role
-WINDOW="$(role_to_window "$ROLE")"
+# Spawn a dedicated window for this agent
+WINDOW="$AGENT_NAME"
 
 if tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -qx "$WINDOW"; then
-  # Window exists — add a pane
-  tmux split-window -t "${TMUX_SESSION}:${WINDOW}" "exec '${LAUNCHER}'"
-  tmux select-layout -t "${TMUX_SESSION}:${WINDOW}" tiled
+  # Window with this name already exists (agent relaunched?) — replace it
+  tmux respawn-window -t "${TMUX_SESSION}:${WINDOW}" -k "exec '${LAUNCHER}'"
 else
-  # Window doesn't exist — create it
   tmux new-window -t "$TMUX_SESSION" -n "$WINDOW" "exec '${LAUNCHER}'"
 fi
 
@@ -442,4 +418,4 @@ tmux select-pane -t "${TMUX_SESSION}:${WINDOW}" -T "$TAB_TITLE"
 # Clean up temp files after a delay (claude needs to start first)
 (sleep 15 && rm -f "$CONTEXT_FILE" "$LAUNCHER") &
 
-echo "Launched ${ROLE} agent in tmux pane: ${TMUX_SESSION}:${WINDOW} [${TAB_TITLE}]"
+echo "Launched ${ROLE} agent in tmux window: ${TMUX_SESSION}:${WINDOW} [${TAB_TITLE}]"
