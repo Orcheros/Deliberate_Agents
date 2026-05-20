@@ -371,10 +371,31 @@ echo "║  Working in: ${WORK_DIR}"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo ""
 
-# Stream progress via script(1) pty wrapper + stream-json.
-# script forces unbuffered output; jq filter shows human-readable progress.
-STREAM_RAW="\$(mktemp)"
-LAST_ACTIVITY=\$(date +%s)
+# --- Activity watchdog ---------------------------------------------------------
+# Tracks last output timestamp via file. Sends macOS notification if idle too long.
+ACTIVITY_TS="\$(mktemp)"
+date +%s > "\$ACTIVITY_TS"
+
+(
+  while kill -0 \$\$ 2>/dev/null; do
+    sleep 60
+    last=\$(cat "\$ACTIVITY_TS" 2>/dev/null || date +%s)
+    now=\$(date +%s)
+    idle=\$(( now - last ))
+    if (( idle >= 180 )); then
+      mins=\$(( idle / 60 ))
+      printf "\\n  ⏳ Agent idle for %dm — may be stalled\\n" "\$mins"
+      osascript -e "display notification \"${ROLE} agent idle for \${mins}m — may need attention\" with title \"Deliberate Agents\" sound name \"Ping\"" 2>/dev/null
+    fi
+  done
+) &
+WATCHDOG_PID=\$!
+
+# --- Stream progress ----------------------------------------------------------
+# BUG FIXES applied:
+#   1. stderr captured (2>&1) instead of discarded — --verbose output now visible
+#   2. script(1) pty wrapper retained for unbuffered streaming
+#   3. All tool types handled — catch-all shows tool name + context
 
 script -q /dev/null claude \\
   --agent ${ROLE} \\
@@ -383,40 +404,54 @@ script -q /dev/null claude \\
   --append-system-prompt "\$(cat '${CONTEXT_FILE}')" \\
   --output-format stream-json \\
   --verbose \\
-  -p 'Begin your assigned task. Read your assignment/state file first.' 2>/dev/null | \\
+  -p 'Begin your assigned task. Read your assignment/state file first.' 2>&1 | \\
 while IFS= read -r line; do
-  # Skip lines that aren't valid JSON
-  type=\$(echo "\$line" | jq -r '.type // empty' 2>/dev/null) || continue
-  [[ -z "\$type" ]] && continue
+  # Skip lines that aren't valid JSON (verbose/stderr output — print directly)
+  type=\$(echo "\$line" | jq -r '.type // empty' 2>/dev/null) || { echo "\$line"; continue; }
+  if [[ -z "\$type" ]]; then
+    [[ -n "\$line" ]] && echo "\$line"
+    continue
+  fi
+  date +%s > "\$ACTIVITY_TS"
   case "\$type" in
     assistant)
       msg=\$(echo "\$line" | jq -r '.message.content[]? | select(.type=="text") | .text // empty' 2>/dev/null)
-      [[ -n "\$msg" ]] && printf "\n%s\n" "\$msg"
+      [[ -n "\$msg" ]] && printf "\\n%s\\n" "\$msg"
       ;;
     result)
       cost=\$(echo "\$line" | jq -r '.total_cost_usd // "?"' 2>/dev/null)
       turns=\$(echo "\$line" | jq -r '.num_turns // "?"' 2>/dev/null)
       reason=\$(echo "\$line" | jq -r '.terminal_reason // .subtype // "done"' 2>/dev/null)
-      printf "\n━━━ SESSION COMPLETE ━━━\n"
-      printf "Turns: %s | Cost: \$%s | Reason: %s\n" "\$turns" "\$cost" "\$reason"
+      printf "\\n━━━ SESSION COMPLETE ━━━\\n"
+      printf "Turns: %s | Cost: \$%s | Reason: %s\\n" "\$turns" "\$cost" "\$reason"
+      osascript -e "display notification \"${ROLE} complete (\${turns} turns, \\\$\${cost})\" with title \"Deliberate Agents\" sound name \"Glass\"" 2>/dev/null
       ;;
     tool_use)
       tool=\$(echo "\$line" | jq -r '.tool_name // empty' 2>/dev/null)
       case "\$tool" in
-        Read)   printf "  Reading: %s\n" "\$(echo "\$line" | jq -r '.tool_input.file_path // empty' 2>/dev/null)" ;;
-        Write)  printf "  Writing: %s\n" "\$(echo "\$line" | jq -r '.tool_input.file_path // empty' 2>/dev/null)" ;;
-        Edit)   printf "  Editing: %s\n" "\$(echo "\$line" | jq -r '.tool_input.file_path // empty' 2>/dev/null)" ;;
-        Bash)   printf "  Running: %s\n" "\$(echo "\$line" | jq -r '.tool_input.command // empty' 2>/dev/null | head -c 100)" ;;
-        Grep)   printf "  Searching: %s\n" "\$(echo "\$line" | jq -r '.tool_input.pattern // empty' 2>/dev/null)" ;;
-        Glob)   printf "  Finding: %s\n" "\$(echo "\$line" | jq -r '.tool_input.pattern // empty' 2>/dev/null)" ;;
-        *)      printf "  %s\n" "\$tool" ;;
+        Read)       printf "  Reading: %s\\n" "\$(echo "\$line" | jq -r '.tool_input.file_path // empty' 2>/dev/null)" ;;
+        Write)      printf "  Writing: %s\\n" "\$(echo "\$line" | jq -r '.tool_input.file_path // empty' 2>/dev/null)" ;;
+        Edit)       printf "  Editing: %s\\n" "\$(echo "\$line" | jq -r '.tool_input.file_path // empty' 2>/dev/null)" ;;
+        Bash)       printf "  Running: %s\\n" "\$(echo "\$line" | jq -r '.tool_input.command // empty' 2>/dev/null | head -c 120)" ;;
+        Grep)       printf "  Searching: %s\\n" "\$(echo "\$line" | jq -r '.tool_input.pattern // empty' 2>/dev/null)" ;;
+        Glob)       printf "  Finding: %s\\n" "\$(echo "\$line" | jq -r '.tool_input.pattern // empty' 2>/dev/null)" ;;
+        Agent)      printf "  Spawning agent: %s\\n" "\$(echo "\$line" | jq -r '.tool_input.description // empty' 2>/dev/null | head -c 100)" ;;
+        TaskCreate) printf "  Creating task: %s\\n" "\$(echo "\$line" | jq -r '.tool_input.description // empty' 2>/dev/null | head -c 100)" ;;
+        TaskUpdate) printf "  Updating task\\n" ;;
+        WebSearch)  printf "  Web search: %s\\n" "\$(echo "\$line" | jq -r '.tool_input.query // empty' 2>/dev/null)" ;;
+        WebFetch)   printf "  Fetching: %s\\n" "\$(echo "\$line" | jq -r '.tool_input.url // empty' 2>/dev/null | head -c 100)" ;;
+        mcp__*)     printf "  MCP tool: %s\\n" "\$tool" ;;
+        *)          printf "  [%s]: running...\\n" "\$tool" ;;
       esac
       ;;
   esac
 done
 
-rm -f "\$STREAM_RAW" '${PID_FILE}'
+# --- Cleanup ------------------------------------------------------------------
+kill \$WATCHDOG_PID 2>/dev/null
+rm -f "\$ACTIVITY_TS" '${PID_FILE}'
 echo ""
+osascript -e "display notification \"${ROLE} agent session ended\" with title \"Deliberate Agents\"" 2>/dev/null
 echo "=== Agent session complete. Press any key to close pane. ==="
 read -r
 SCRIPT
