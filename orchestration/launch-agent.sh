@@ -452,8 +452,7 @@ kill \$WATCHDOG_PID 2>/dev/null
 rm -f "\$ACTIVITY_TS" '${PID_FILE}'
 echo ""
 osascript -e "display notification \"${ROLE} agent session ended\" with title \"Deliberate Agents\"" 2>/dev/null
-echo "=== Agent session complete. Press any key to close pane. ==="
-read -r
+echo "=== Agent session complete. Shell remains interactive. ==="
 SCRIPT
 chmod +x "$LAUNCHER"
 
@@ -472,7 +471,9 @@ while tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | gre
   WINDOW="${BASE_WINDOW}-${SUFFIX}"
   SUFFIX=$((SUFFIX + 1))
 done
-tmux new-window -t "$TMUX_SESSION" -n "$WINDOW" "exec '${LAUNCHER}'"
+tmux new-window -t "$TMUX_SESSION" -n "$WINDOW"
+sleep 0.3
+tmux send-keys -t "${TMUX_SESSION}:${WINDOW}" "'${LAUNCHER}'" Enter
 
 # Set pane title for identification
 tmux select-pane -t "${TMUX_SESSION}:${WINDOW}" -T "$TAB_TITLE"
