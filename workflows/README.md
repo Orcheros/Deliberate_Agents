@@ -24,11 +24,16 @@ Workflows do NOT duplicate skill content or agent identity. Those live in `skill
                                     Initiative Lifecycle (ruleset — governs all directory promotions)
                                     ════════════════════════════════════════════════════════════════
 
-  backlog/          needs-prd/        needs-architecture/   needs-design-study/   needs-stories/       needs-engineering/    needs-qa/        shipped/
-     │                  │                    │                      │                   │                      │                  │               │
-     ▼                  ▼                    ▼                      ▼                   ▼                      ▼                  ▼               ▼
-Initiative      Initiative Build ─────────────────────────────────────────→ Dev Execution ──→ Review ──→ QA ──→ Release ──→ Go-to-Market
-Discovery       (PM → Arch → Designer → Scrum Master)                      (PjM → Devs)       Protocol
+  raw idea       backlog/          needs-prd/        needs-architecture/   needs-design-study/   needs-stories/       needs-engineering/    needs-qa/        shipped/
+     │              │                  │                    │                      │                   │                      │                  │               │
+     ▼              ▼                  ▼                    ▼                      ▼                   ▼                      ▼                  ▼               ▼
+ Integrator → Initiative      Initiative Build ─────────────────────────────────────────→ Dev Execution ──→ Review ──→ QA ──→ Release ──→ Go-to-Market
+ (validate,   Discovery       (PM → Arch → Designer → Scrum Master)                      (PjM → Devs)       Protocol              │
+  prioritize,                                                                                                                      ▼
+  sequence)                                                                                                                   Integrator
+                                                                                                                              (verify: docs,
+                                                                                                                               marketing,
+                                                                                                                               support → DONE)
 ```
 
-Human approval gates sit between each major transition. The orchestrator enforces sequencing. The Initiative Lifecycle ruleset defines the binary promotion checks that move initiative folders between directories — all other workflows produce artifacts that trigger those promotions.
+The **Integrator** bookends the pipeline: it validates and prioritizes ideas at intake, and verifies completeness (docs, marketing, support) after shipping. Human approval gates sit between each major transition. The Orchestrator enforces within-pipeline sequencing. The Initiative Lifecycle ruleset defines the binary promotion checks that move initiative folders between directories — all other workflows produce artifacts that trigger those promotions.

@@ -33,6 +33,7 @@ If the current branch is protected and the task involves changing code files, **
 | `orchestration/launch-agent.sh` | Spawn an agent in a tmux pane |
 | `orchestration/stop-agents.sh` | Graceful shutdown of all agents |
 | `orchestration/briefing.sh` | Generate project status briefing |
+| `agents/integrator.md` | Integrator agent — strategic executor between Visionary and Orchestrator |
 
 ## Invoking from Any Repo
 

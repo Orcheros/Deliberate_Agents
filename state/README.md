@@ -11,6 +11,10 @@ When you initialize a project with `init.sh`, this directory is created:
 ```
 .deliberate/
 ├── config.yaml              Your project settings
+├── priority-stack.yaml      Ranked pipeline (Integrator owns, Orchestrator reads)
+│
+├── intake/                  Raw idea capture from the founder
+│   └── my-idea.md           Integrator evaluates against board state
 │
 ├── queue/                   The initiative queue
 │   └── my-feature.yaml      One file per initiative — tracks its progress
@@ -23,6 +27,9 @@ When you initialize a project with `init.sh`, this directory is created:
 │
 ├── decisions/               Things that need your input
 │   └── 2026-04-30-my-feature.md    Agents pause and wait for your answer
+│
+├── reports/                 Integrator audit reports and board state snapshots
+│   └── integrator-audit.md  Pipeline health, stalls, shipped-but-incomplete
 │
 └── logs/                    Session logs
     └── developer-2026-04-30.log    Full record of what each agent did

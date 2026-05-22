@@ -38,11 +38,21 @@ This creates:
 ./orchestration/orchestrate.sh /path/to/my-project-worktrees/.deliberate/config.yaml
 ```
 
-The orchestrator runs in a loop, polling for state changes every 30 seconds (configurable).
+The orchestrator runs in a loop, polling for state changes every 30 seconds (configurable). It reads the Integrator's priority stack (`.deliberate/priority-stack.yaml`) to determine execution order.
+
+The **Integrator agent** can be launched alongside the orchestrator to manage intake, prioritization, and lifecycle accountability:
+
+```bash
+./orchestration/launch-agent.sh \
+  --role integrator \
+  --config /path/to/my-project-worktrees/.deliberate/config.yaml \
+  --framework-dir ~/Development/Deliberate_Agents \
+  --name integrator
+```
 
 ### 3. Queue an initiative
 
-Create a one-pager describing what you want to build, then queue it:
+If the Integrator is running, drop your raw idea and it will validate, prioritize, and queue it. Otherwise, create a one-pager describing what you want to build and queue it manually:
 
 ```bash
 cat > /path/to/my-project-worktrees/.deliberate/queue/my-feature.yaml <<EOF

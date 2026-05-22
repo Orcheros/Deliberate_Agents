@@ -10,8 +10,8 @@ If you haven't set up a project yet, start with the [Getting Started](GETTING-ST
 
 1. Open Claude Code in your project directory
 2. Type `/orchestrate`
-3. Read the briefing — it shows running agents, the initiative queue, and items needing your attention
-4. Decide what to work on
+3. Read the briefing — it shows running agents, the initiative queue, the Integrator's priority stack, and items needing your attention
+4. Decide what to work on — or drop a new idea and let the Integrator evaluate it against what's in flight
 
 The command center stays alive after the briefing. It's waiting for your next instruction.
 
@@ -97,6 +97,7 @@ Example entry:
 
 | Say this | What happens |
 |----------|-------------|
+| "I have an idea about X" | Routes to the Integrator for validation against in-flight work |
 | "intake this bug about X" | Dispatches a PM agent to process the intake |
 | "start dev on story 2e" | Dispatches a developer agent for that story |
 | "run QA on the payments branch" | Dispatches QA agents to test the branch |

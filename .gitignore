@@ -6,6 +6,7 @@
 
 # Runtime state (created per-project by init.sh)
 .deliberate/
+.documentation/
 
 # Editor
 .vscode/

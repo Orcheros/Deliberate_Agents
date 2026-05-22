@@ -137,6 +137,7 @@ Determine the dispatch target and route accordingly:
    **Role mapping** — match the user's request to a role:
    | User wants... | Dispatch as role |
    |---------------|-----------------|
+   | Evaluate/validate a new idea, prioritize pipeline | `integrator` |
    | PRD, product definition, feature spec | `product-manager` |
    | Architecture doc, technical design | `architect` |
    | Design brief, UX/UI | `product-designer` |

@@ -10,18 +10,26 @@ The orchestrator is intentionally simple. It's a bash script, not an AI agent, b
 - **Predictable.** It follows rules mechanically — no creativity, no surprises.
 - **Observable.** You can read the script and know exactly what it will do.
 
+## The Two Layers
+
+The coordination system has two layers:
+
+- **Integrator** (AI agent) — Decides *what* to work on and *in what order*. Validates new ideas against everything in flight, maintains the priority stack, and tracks initiatives to completion (shipped + marketed + supported). Runs as a persistent agent in its own tmux window.
+- **Orchestrator** (bash script) — Decides *how* to execute. Reads the Integrator's priority stack, polls state files, and launches the right agent at the right time. Zero AI cost.
+
 ## The Scripts
 
 ### `orchestrate.sh` — The Main Loop
 
-This is the heart of the system. When you run it, it starts a loop that:
+This is the heart of the execution layer. When you run it, it starts a loop that:
 
-1. Checks the initiative queue for new work
-2. Detects when one stage finishes (e.g., "the PRD is done")
-3. Launches the next agent in the pipeline (e.g., "start the Project Manager")
-4. Monitors agent health (detects crashes)
-5. Checks for pending human decisions
-6. Repeats every 30 seconds
+1. Reads the Integrator's priority stack (`.deliberate/priority-stack.yaml`)
+2. Checks the initiative queue for new work
+3. Detects when one stage finishes (e.g., "the PRD is done")
+4. Launches the next agent in the pipeline (e.g., "start the Project Manager")
+5. Monitors agent health (detects crashes)
+6. Checks for pending human decisions
+7. Repeats every 30 seconds
 
 **Usage:**
 
@@ -34,6 +42,7 @@ This runs in the foreground. Use a separate terminal for other work, or run it i
 **What it watches for:**
 
 ```
+Priority stack updated?       → Re-order the work queue
 New initiative queued?        → Launch the Product Manager
 PRD finished?                 → Launch the Project Manager
 Tasks created?                → Launch Developer agents

@@ -9,24 +9,27 @@ You describe what you want built in plain language. Deliberate Agents assembles 
 Think of Deliberate Agents like hiring a small company to build your feature:
 
 ```
- You write a         A Product Manager        A Project Manager        Specialist agents       You review
- one-pager  ──────►  turns it into a    ──────►  breaks it into   ──────►  do the work      ──────►  the finished
- describing          detailed plan              tasks and assigns          (code, content,          product in
- what you want       (called a PRD)             them to the right          docs, security...)       Cursor
-                                                team members
+ You have an         The Integrator           A Product Manager        A Project Manager        Specialist agents       You review
+ idea         ──────►  validates it,     ──────►  turns it into a    ──────►  breaks it into   ──────►  do the work      ──────►  the finished
+                       prioritizes it,           detailed plan              tasks and assigns          (code, content,          product in
+                       and sequences it          (called a PRD)             them to the right          docs, security...)       Cursor
+                       against what's                                       team members
+                       already in flight
 ```
 
-1. **You** write a short description of what you want (a "one-pager")
-2. **The Product Manager** expands your idea into a full plan with requirements, success metrics, and scope (called a PRD)
-3. **Optionally, the Architect and Designer step in** — for technical features, the Architect creates an architecture document covering system design, data models, and API contracts. For UI-heavy initiatives, the Product Designer reviews the PRD (and arch doc) and produces a design study. That design study gets sent to [Claude Design](https://claude.ai) for visual design execution, and the resulting design artifacts come back to the Designer to be folded into the PRD and arch doc before anything moves forward.
-4. **The Project Manager** breaks the plan into specific tasks and assigns each one to the right specialist
-5. **Specialist agents** execute their tasks — writing code, configuring tools, creating content, reviewing security, and more
-6. **A Reviewer** validates that everything meets the original requirements
-7. **You** review the completed work in [Cursor](https://cursor.sh/) and merge it when you're satisfied
+1. **You** describe what you want — a raw idea, a bug, a "what if we..."
+2. **The Integrator** evaluates your idea against everything already in flight, decides whether to accept, defer, or reject it, and slots it into the priority stack
+3. **The Product Manager** expands the accepted idea into a full plan with requirements, success metrics, and scope (called a PRD)
+4. **Optionally, the Architect and Designer step in** — for technical features, the Architect creates an architecture document covering system design, data models, and API contracts. For UI-heavy initiatives, the Product Designer reviews the PRD (and arch doc) and produces a design study. That design study gets sent to [Claude Design](https://claude.ai) for visual design execution, and the resulting design artifacts come back to the Designer to be folded into the PRD and arch doc before anything moves forward.
+5. **The Project Manager** breaks the plan into specific tasks and assigns each one to the right specialist
+6. **Specialist agents** execute their tasks — writing code, configuring tools, creating content, reviewing security, and more
+7. **A Reviewer** validates that everything meets the original requirements
+8. **You** review the completed work in [Cursor](https://cursor.sh/) and merge it when you're satisfied
+9. **The Integrator tracks it to completion** — code in production isn't done. The Integrator ensures docs, marketing, and support enablement ship alongside the feature
 
 Not every initiative needs the Architect or Designer — a backend API change might go straight from PRD to tasks, while a new dashboard feature would go through the full design cycle. The Product Manager's PRD determines which steps are needed.
 
-The whole process is coordinated by a simple script called the **orchestrator** that watches for completed work and launches the next step automatically. No databases, no servers — just files on your computer.
+The whole process is coordinated by two layers: the **Integrator** decides *what* to work on and *in what order*, while the **Orchestrator** handles the mechanics — watching for completed work and launching the next step automatically. No databases, no servers — just files on your computer.
 
 For the full detail on each workflow — including decision gates, optional branches, and handoff conditions — see the [workflows/](workflows/) directory.
 
@@ -34,7 +37,7 @@ For the full detail on each workflow — including decision gates, optional bran
 
 ## The Team
 
-Deliberate Agents comes with 30 specialist agents organized into 7 teams, backed by 99 skills:
+Deliberate Agents comes with 31 specialist agents organized into 7 teams plus a strategic layer, backed by 99 skills:
 
 ### Product Team (definition phase)
 
@@ -95,13 +98,14 @@ Deliberate Agents comes with 30 specialist agents organized into 7 teams, backed
 | **Onboarding Specialist** | Designs onboarding flows, activation metrics, and trial-to-paid conversion |
 | **SEO Specialist** | Optimizes for search — traditional SEO, featured snippets, AI overviews, and LLM citations |
 
-### Orchestrator
+### Integrator & Orchestrator (strategic + coordination layer)
 
 | Agent | What They Do |
 |-------|-------------|
-| **Orchestrator** | Two modes: the `orchestrate.sh` bash script runs autonomously as a polling loop, while `/orchestrate` gives you an interactive command center for dispatching work and tracking progress |
+| **Integrator** | Strategic executor — sits between you (the Visionary) and the Orchestrator. Validates new ideas against everything in flight, prioritizes the pipeline, sequences execution, and holds every initiative accountable through its full lifecycle: validated → built → shipped → marketed → supported |
+| **Orchestrator** | Tactical router — two modes: the `orchestrate.sh` bash script runs autonomously as a polling loop, while `/orchestrate` gives you an interactive command center for dispatching work and tracking progress. Reads the Integrator's priority stack and executes accordingly |
 
-Each agent knows its role and stays in its lane. The Developer never touches the PRD. The Product Manager never writes code. This prevents conflicts and keeps work organized.
+Each agent knows its role and stays in its lane. The Developer never touches the PRD. The Product Manager never writes code. The Integrator decides *what* to build; the Orchestrator handles *how* to build it. This prevents conflicts and keeps work organized.
 
 ---
 
@@ -386,7 +390,8 @@ A few terms that come up often:
 | **Initiative** | A feature or project you want built. It starts as your one-pager and moves through the pipeline until it's done. |
 | **PRD** | Product Requirements Document. The detailed plan that the Product Manager writes from your one-pager. |
 | **Worktree** | A separate copy of your project's code where an agent can work without affecting your main branches. Worktrees live in a dedicated folder next to your repo (e.g., `my-app-worktrees/`) — one worktree per initiative. Think of them like sandboxes linked to your repo. |
-| **Orchestrator** | The bash script that coordinates everything. It watches for completed work and launches the next agent in line. It doesn't use AI — it's just a simple script, so it costs nothing to run. |
+| **Integrator** | The strategic executor — an AI agent that evaluates new ideas against everything in flight, prioritizes the pipeline, and tracks initiatives through their full lifecycle (built → shipped → marketed → supported). Owns `.deliberate/priority-stack.yaml`. |
+| **Orchestrator** | The bash script that coordinates everything. It reads the Integrator's priority stack, watches for completed work, and launches the next agent in line. It doesn't use AI — it's just a simple script, so it costs nothing to run. |
 | **Command Center** | The `/orchestrate` slash command running as a persistent session. It dispatches work to agents, records every dispatch in a journal, and stays alive for follow-up commands. |
 | **Dispatch Journal** | A daily markdown log at `.deliberate/logs/dispatch-journal-YYYYMMDD.md` that records every task dispatched, its status, and outcome. |
 | **Skill** | A step-by-step instruction set that an agent follows for a specific task. Skills are loaded only when needed, keeping agents focused. |

@@ -8,8 +8,8 @@ Detailed reference documentation for Deliberate Agents. Start with the main [REA
 
 How the system is built. Covers:
 
-- How the orchestrator, agents, skills, and state files fit together
-- The full agent roster (30 agents, 99 skills) with model assignments
+- How the Integrator, Orchestrator, agents, skills, and state files fit together
+- The full agent roster (31 agents, 99 skills) with model assignments
 - Workflow inventory — 8 end-to-end sequences with decision gates
 - Model assignment strategy (Opus vs Sonnet rationale)
 - How agents communicate through the filesystem

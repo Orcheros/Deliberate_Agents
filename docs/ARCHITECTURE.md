@@ -6,15 +6,23 @@ Deliberate_Agents is a multi-agent coordination framework that runs multiple Cla
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                           Human                                    │
-│                (Reviews in Cursor, makes decisions)                │
+│                        Human (Visionary)                           │
+│                (Ideas, decisions, review in Cursor)                │
 └─────────────────────────────┬────────────────────────────────────┘
-                              │ decisions/, review
+                              │ raw ideas, overrides
+                              ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                      Integrator (AI agent)                         │
+│     Validates ideas against in-flight work, prioritizes pipeline,  │
+│     sequences execution, tracks to shipped-and-supported           │
+│            Owns: intake/, priority-stack.yaml, reports/            │
+└─────────────────────────────┬────────────────────────────────────┘
+                              │ priority-stack.yaml
                               ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │                      Orchestrator (bash)                           │
-│          Polls state, launches agents, routes by agent_type        │
-│                     Runs in tmux window                            │
+│      Reads priority stack, polls state, launches agents,           │
+│      routes by agent_type. Runs in tmux window                     │
 └───┬───────┬───────┬────────┬──────────┬──────────┬───────────────┘
     │       │       │        │          │          │
     ▼       ▼       ▼        ▼          ▼          ▼
@@ -36,21 +44,36 @@ Deliberate_Agents is a multi-agent coordination framework that runs multiple Cla
 
 ## Component Roles
 
+### Integrator (AI Agent)
+
+The Integrator is the strategic executor — an AI agent that sits between the founder (Visionary) and the Orchestrator (tactical router). It:
+
+1. **Receives** raw ideas from the founder and captures them in `.deliberate/intake/`
+2. **Assesses** every new idea against the full board state — initiatives at every lifecycle stage (backlog, specified, in-progress, shipped, retired)
+3. **Validates** ideas for ICP alignment, strategic fit, conflicts with in-flight work, and timing
+4. **Prioritizes** the pipeline in `.deliberate/priority-stack.yaml` — the contract the Orchestrator reads
+5. **Sequences** execution based on dependencies, resource constraints, and strategic leverage
+6. **Tracks** initiatives through their full lifecycle — code in production isn't done until it's documented, marketed, and supported
+7. **Audits** for stalled work, the "80% club" (almost done, drifting), and shipped-but-unsupported initiatives
+
+The Integrator runs as a persistent agent alongside the Orchestrator. It never does agent work (no PRDs, code, designs) — it evaluates, prioritizes, and holds accountable. Model: Opus.
+
 ### Orchestrator (Shell Script)
 
 The orchestrator is intentionally NOT an AI agent. It is a deterministic bash script that:
 
-1. **Polls** `.deliberate/queue/` and `.deliberate/assignments/` every N seconds
-2. **Detects** state transitions (new initiatives, completed tasks, blocked work)
-3. **Launches** the appropriate AI agent via `claude --agent <role>` in a new tmux window
-4. **Monitors** agent health via tmux window existence and heartbeat staleness
-5. **Routes** completed work to the next pipeline stage
+1. **Reads** the Integrator's priority stack to determine execution order
+2. **Polls** `.deliberate/queue/` and `.deliberate/assignments/` every N seconds
+3. **Detects** state transitions (new initiatives, completed tasks, blocked work)
+4. **Launches** the appropriate AI agent via `claude --agent <role>` in a new tmux window
+5. **Monitors** agent health via tmux window existence and heartbeat staleness
+6. **Routes** completed work to the next pipeline stage
 
 This design keeps the coordination layer cheap (zero API cost), deterministic (no LLM variance), and observable (pure state machine).
 
 ### AI Agents
 
-Each AI agent runs as an independent Claude Code session using native agent definitions. 30 agents are organized into 7 teams:
+Each AI agent runs as an independent Claude Code session using native agent definitions. 31 agents are organized into 7 teams plus a strategic layer:
 
 **Product Team** (`agents/product/`):
 
@@ -99,9 +122,10 @@ Each AI agent runs as an independent Claude Code session using native agent defi
 - **Onboarding Specialist**: Per-ICP onboarding flows, activation metrics, trial-to-paid optimization.
 - **SEO Specialist**: Search optimization — traditional SEO, AEO (featured snippets), AIO (AI Overviews), GEO (LLM citation).
 
-**Orchestrator** (`agents/orchestrator.md`):
+**Strategic Layer** (`agents/integrator.md`, `agents/orchestrator.md`):
 
-- **Orchestrator**: Persistent coordinator — manages initiative queue, daily work log, team routing, Slack communication.
+- **Integrator**: Strategic executor — validates ideas against in-flight work, prioritizes the pipeline, sequences execution, tracks initiatives to shipped-and-supported. Owns intake, priority stack, and lifecycle accountability. Model: opus.
+- **Orchestrator**: Persistent coordinator — reads the Integrator's priority stack, manages initiative queue, daily work log, team routing, Slack communication.
 
 ### Skills (Workflow Steps)
 
@@ -159,10 +183,13 @@ MCP (Model Context Protocol) servers enable cross-LLM capabilities. The `codex-r
 
 The `.deliberate/` directory is the single source of truth for all inter-agent coordination:
 
+- `intake/` — Raw idea capture from the founder (Integrator writes, founder reviews)
+- `priority-stack.yaml` — Ranked pipeline owned by the Integrator, read by the Orchestrator
 - `queue/` — Initiative lifecycle (QUEUED → ... → COMPLETE)
 - `assignments/` — Developer task assignments (assigned → in_progress → complete)
 - `status/` — Agent heartbeats, activity reports, and compiled report (`report.md`)
 - `decisions/` — Items requiring human input (with `.notified` markers for Slack tracking)
+- `reports/` — Integrator audit reports and board state snapshots
 - `logs/` — Session output logs
 
 See `state/README.md` for the full protocol specification.
@@ -209,6 +236,7 @@ Agents use Opus or Sonnet based on the cost of mistakes:
 | Growth Strategist | Strategy requires market synthesis and judgment |
 | Security Analyst | Missing vulnerabilities is high-cost |
 | Compliance Analyst | Missing compliance gaps has legal consequences |
+| Integrator | Pipeline prioritization, conflict detection, lifecycle accountability |
 | Orchestrator | Central coordination, judgment about routing and escalation |
 
 **Sonnet** — where work is structured, procedural, or human-reviewed before impact:
