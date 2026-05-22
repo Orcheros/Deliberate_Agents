@@ -2,6 +2,23 @@
 name: dev-test
 description: Verify implementation with tests and fix failures
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+intent: "Verify implementation correctness through automated tests"
+execution-mode: 4
+responsible: developer
+accountable: project-manager
+risk-level: low
+inputs:
+  information: ["acceptance criteria", "test strategy from assignment"]
+  artifacts: ["implemented code", "model-after test file"]
+  access: ["test runner", "worktree"]
+  conditions: ["implementation complete via dev-implement"]
+  people: []
+outputs:
+  updated-information: ["test results"]
+  produced-artifacts: ["test files"]
+  system-state-change: ["tests passing in worktree"]
+  commitments-made: ["all acceptance criteria verified by tests"]
+  ready-output: ["tested code ready for dev-complete"]
 ---
 
 # Step 3: Test

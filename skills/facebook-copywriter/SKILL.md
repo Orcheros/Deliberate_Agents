@@ -2,6 +2,7 @@
 name: facebook-copywriter
 description: Write Facebook posts optimized for Pages and Groups with link-preview awareness
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # Facebook Copywriter

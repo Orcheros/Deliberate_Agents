@@ -2,6 +2,7 @@
 name: release-announce
 description: Draft internal and external announcements for the release
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # Step 3: Announcements

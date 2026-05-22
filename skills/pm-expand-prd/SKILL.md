@@ -2,6 +2,23 @@
 name: pm-expand-prd
 description: Write a complete PRD at production depth — all sections from overview through test scenarios
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+intent: "Produce an exhaustive PRD that autonomous agents can execute against without clarification"
+execution-mode: 4
+responsible: product-manager
+accountable: integrator
+risk-level: medium
+inputs:
+  information: ["one-pager", "codebase context", "AAAERRR positioning"]
+  artifacts: ["one-pager document"]
+  access: ["codebase read access", "initiative directory"]
+  conditions: ["one-pager approved", "initiative selected for grooming"]
+  people: ["architect for technical feasibility questions"]
+outputs:
+  updated-information: ["detailed requirements", "acceptance criteria"]
+  produced-artifacts: ["PRD document"]
+  system-state-change: ["prd_path set in queue YAML"]
+  commitments-made: ["requirements locked for this iteration"]
+  ready-output: ["PRD ready for architecture review"]
 ---
 
 # Step 2: Write the PRD

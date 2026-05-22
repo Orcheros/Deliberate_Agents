@@ -2,6 +2,7 @@
 name: content-draft
 description: Write copy for all assigned communications
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # Step 2: Draft Copy

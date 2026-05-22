@@ -2,6 +2,7 @@
 name: growth-loops
 description: Design sustainable growth loops and flywheels — viral, content, paid, sales, and product loops with cycle metrics and amplification analysis
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "flywheel:engagement"
 ---
 
 # Growth Loops

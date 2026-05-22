@@ -2,6 +2,7 @@
 name: engagement-track
 description: Multi-platform engagement metrics collection, warm-lead detection, and performance flagging
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
+aaaerrr-zone: "flywheel:engagement"
 ---
 
 # Engagement Track

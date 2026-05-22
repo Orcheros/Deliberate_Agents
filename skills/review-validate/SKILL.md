@@ -2,6 +2,23 @@
 name: review-validate
 description: Verify that completed developer work meets the PRD acceptance criteria
 allowed-tools: Bash, Read, Glob, Grep
+intent: "Verify all developer work meets PRD acceptance criteria before human review"
+execution-mode: 4
+responsible: reviewer
+accountable: integrator
+risk-level: medium
+inputs:
+  information: ["PRD acceptance criteria"]
+  artifacts: ["developer commits", "test results"]
+  access: ["initiative branch", "codebase read access"]
+  conditions: ["all developer tasks complete"]
+  people: []
+outputs:
+  updated-information: ["validation results per criterion"]
+  produced-artifacts: ["validation checklist in state file"]
+  system-state-change: ["validation status recorded in queue YAML"]
+  commitments-made: ["all criteria verified or issues flagged"]
+  ready-output: ["validated work ready for review-summarize"]
 ---
 
 # Step 1: Validate Completed Work

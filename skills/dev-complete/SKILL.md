@@ -2,6 +2,23 @@
 name: dev-complete
 description: Produce clean atomic commits and signal task completion
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+intent: "Produce clean atomic commits and signal task completion to the orchestrator"
+execution-mode: 4
+responsible: developer
+accountable: project-manager
+risk-level: low
+inputs:
+  information: ["acceptance criteria for final verification"]
+  artifacts: ["implemented and tested code"]
+  access: ["git", "worktree"]
+  conditions: ["all tests passing via dev-test"]
+  people: []
+outputs:
+  updated-information: ["completion notes"]
+  produced-artifacts: ["atomic git commits"]
+  system-state-change: ["assignment status set to complete", "agent status set to idle"]
+  commitments-made: ["work verified against acceptance criteria"]
+  ready-output: ["completed task ready for orchestrator pickup"]
 ---
 
 # Step 4: Complete

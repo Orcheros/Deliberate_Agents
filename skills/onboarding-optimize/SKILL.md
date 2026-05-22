@@ -2,6 +2,7 @@
 name: onboarding-optimize
 description: Optimize post-signup onboarding for faster time-to-value — activation definition, flow design, checklist patterns, empty states, and stalled user recovery
 allowed-tools: Read, Write, Glob, Grep
+aaaerrr-zone: "funnel:activation"
 ---
 
 # Onboarding Optimization

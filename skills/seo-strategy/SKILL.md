@@ -2,6 +2,7 @@
 name: seo-strategy
 description: Develop prioritized search optimization strategy based on audit findings
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # SEO Strategy

@@ -2,6 +2,23 @@
 name: pm-architecture
 description: Write an implementation-ready architecture document with code examples, build sequence, and file manifest
 allowed-tools: Read, Glob, Grep, Bash, Write
+intent: "Produce an implementation-ready architecture document with real code examples and build sequence"
+execution-mode: 4
+responsible: product-manager
+accountable: architect
+risk-level: medium
+inputs:
+  information: ["PRD", "codebase patterns", "existing infrastructure"]
+  artifacts: ["PRD document", "one-pager"]
+  access: ["codebase read access"]
+  conditions: ["PRD complete"]
+  people: ["architect for design decisions"]
+outputs:
+  updated-information: ["architecture decisions", "build sequence"]
+  produced-artifacts: ["architecture document", "file manifest"]
+  system-state-change: ["architecture_path set in queue YAML"]
+  commitments-made: ["technical approach locked"]
+  ready-output: ["architecture doc ready for design phase"]
 ---
 
 # Step 3: Architecture Document

@@ -2,6 +2,7 @@
 name: launch-strategy
 description: Plan product launches and feature announcements — phased rollout, channel strategy, launch day execution, and post-launch momentum
 allowed-tools: Read, Write, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # Launch Strategy

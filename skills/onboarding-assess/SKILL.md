@@ -2,6 +2,7 @@
 name: onboarding-assess
 description: Evaluate current onboarding effectiveness and identify gaps by ICP segment
 allowed-tools: Read, Glob, Grep
+aaaerrr-zone: "funnel:activation"
 ---
 
 # Onboarding Assessment

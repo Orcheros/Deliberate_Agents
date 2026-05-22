@@ -47,6 +47,9 @@ REPORT_INTERVAL="$(parse_yaml 'report_interval_cycles')"
 REPORT_INTERVAL="${REPORT_INTERVAL:-10}"
 
 DELIBERATE_DIR="${WORKTREES_DIR}/.deliberate"
+
+# Source gate validation library
+source "${SCRIPT_DIR}/gates.sh"
 LOG_DIR="${DELIBERATE_DIR}/logs"
 QUEUE_DIR="${DELIBERATE_DIR}/queue"
 ASSIGNMENTS_DIR="${DELIBERATE_DIR}/assignments"
@@ -372,9 +375,11 @@ check_agent_completion() {
     log_error "Agent $agent_name crashed for ${title} (ran < 2 minutes)"
     write_yaml_field "$initiative_file" "status" "BLOCKED"
     write_yaml_field "$initiative_file" "blocker" "Agent ${agent_name} crashed — check logs"
+    record_health_metric "agent_crash" "$agent_name"
     notify "alert" "Agent crashed for ${title} — needs investigation" --initiative "$initiative_slug"
   else
     log_info "Agent $agent_name finished for ${title}"
+    record_flow_metric "$initiative_slug" "$status" "$next_status"
     write_yaml_field "$initiative_file" "status" "$next_status"
     notify "transition" "$notify_msg" --initiative "$initiative_slug"
   fi
@@ -423,6 +428,9 @@ process_queue() {
 
       QUEUED)
         $serial_blocked && continue
+        if ! run_gate validate_ready_for_prd "$slug" "low"; then
+          continue
+        fi
         log_info "Starting product pipeline for: ${title}"
         notify "transition" "Starting product definition for ${title}" --initiative "$slug"
         launch_agent "product-manager" "$slug" "PM_IN_PROGRESS"
@@ -431,6 +439,9 @@ process_queue() {
 
       PRD_COMPLETE|PM_COMPLETE)
         $serial_blocked && continue
+        if ! run_gate validate_ready_for_arch "$slug" "medium"; then
+          continue
+        fi
         log_info "Advancing ${title} to architecture"
         launch_agent "architect" "$slug" "ARCH_IN_PROGRESS"
         return
@@ -441,12 +452,18 @@ process_queue() {
           log_debug "Designer cap reached ($running_designers/$max_parallel_designers) — ${title} waiting"
           continue
         fi
+        if ! run_gate validate_ready_for_design "$slug" "medium"; then
+          continue
+        fi
         log_info "Advancing ${title} to design"
         launch_agent "product-designer" "$slug" "DESIGN_IN_PROGRESS"
         ((running_designers++)) || true
         ;;
 
       DESIGN_COMPLETE|DESIGNER_COMPLETE)
+        if ! run_gate validate_ready_for_stories "$slug" "medium"; then
+          continue
+        fi
         log_info "Advancing ${title} to scrum breakdown"
         launch_agent "scrum-master" "$slug" "SCRUM_IN_PROGRESS"
         return
@@ -457,12 +474,15 @@ process_queue() {
         ;;
 
       SPECIFIED)
+        if ! run_gate validate_ready_for_dev "$slug" "medium"; then
+          continue
+        fi
         log_info "${title} is specified — promoting to READY_FOR_DEV"
         write_yaml_field "$initiative_file" "status" "READY_FOR_DEV"
         write_yaml_field "$initiative_file" "phase" "engineering"
         write_yaml_field "$initiative_file" "specified_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        record_flow_metric "$slug" "SPECIFIED" "READY_FOR_DEV"
         notify "transition" "${title} promoted to engineering — ready for dev assignment" --initiative "$slug"
-        # Fall through to READY_FOR_DEV
         $serial_blocked && continue
         log_info "${title} ready for dev — launching project manager to create assignments"
         launch_agent "project-manager" "$slug" "PJM_IN_PROGRESS"
@@ -473,6 +493,9 @@ process_queue() {
 
       READY_FOR_DEV)
         $serial_blocked && continue
+        if ! run_gate validate_ready_for_dev "$slug" "medium"; then
+          continue
+        fi
         log_info "${title} ready for dev — launching project manager to create assignments"
         launch_agent "project-manager" "$slug" "PJM_IN_PROGRESS"
         return
@@ -493,6 +516,9 @@ process_queue() {
         ;;
 
       DEV_COMPLETE)
+        if ! run_gate validate_ready_for_review "$slug" "high"; then
+          continue
+        fi
         log_info "Dev complete for ${title}"
         notify "transition" "Development complete for ${title} — starting code review" --initiative "$slug"
         launch_agent "reviewer" "$slug" "REVIEW_IN_PROGRESS"
@@ -599,6 +625,7 @@ check_agent_health() {
       log_warn "Marking $state_file as blocked (agent crashed)"
       write_md_field "$state_file" "Status" "blocked"
       write_md_field "$state_file" "Blocker" "Agent session crashed unexpectedly"
+      record_health_metric "agent_crash" "$window_name"
       notify "alert" "Agent $window_name crashed — session marked as blocked"
     fi
   fi

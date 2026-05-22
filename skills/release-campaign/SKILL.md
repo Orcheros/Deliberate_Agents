@@ -2,6 +2,7 @@
 name: release-campaign
 description: Plan launch marketing approach for significant releases
 allowed-tools: Read, Write, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # Step 1: Campaign Planning

@@ -2,6 +2,7 @@
 name: gtm-motions
 description: Evaluate GTM motions — PLG, SLG, CLG, Channel/Partner, Hybrid — with fit criteria, resource requirements, timeline to revenue, and phased launch plans
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:acquisition"
 ---
 
 # GTM Motions & Launch Strategy

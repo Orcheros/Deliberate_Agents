@@ -2,6 +2,23 @@
 name: dev-understand
 description: Understand the assigned task before writing code
 allowed-tools: Read, Glob, Grep, Bash
+intent: "Build complete mental model of the task before writing any code"
+execution-mode: 4
+responsible: developer
+accountable: project-manager
+risk-level: low
+inputs:
+  information: ["assignment file", "PRD context"]
+  artifacts: ["assignment markdown", "pattern reference file"]
+  access: ["codebase read access", "worktree"]
+  conditions: ["assignment created", "dependencies complete"]
+  people: ["architect for questions"]
+outputs:
+  updated-information: ["implementation approach"]
+  produced-artifacts: []
+  system-state-change: ["assignment status set to in_progress"]
+  commitments-made: []
+  ready-output: ["developer ready to implement"]
 ---
 
 # Step 1: Understand the Task

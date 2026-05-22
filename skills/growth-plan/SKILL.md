@@ -2,6 +2,7 @@
 name: growth-plan
 description: Create actionable campaign plans, experiment designs, and execution briefs
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "flywheel:engagement"
 ---
 
 # Step 3: Execution Planning

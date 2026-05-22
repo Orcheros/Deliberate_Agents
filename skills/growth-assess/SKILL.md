@@ -2,6 +2,7 @@
 name: growth-assess
 description: Analyze current market position, competitive landscape, and growth opportunities
 allowed-tools: Read, Glob, Grep
+aaaerrr-zone: "flywheel:engagement"
 ---
 
 # Step 1: Growth Assessment

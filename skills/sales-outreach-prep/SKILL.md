@@ -2,6 +2,7 @@
 name: sales-outreach-prep
 description: Prepare personalized outreach sequences for qualified prospects
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:acquisition"
 ---
 
 # Outreach Preparation

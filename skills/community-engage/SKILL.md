@@ -2,6 +2,7 @@
 name: community-engage
 description: Monitor and engage across community platforms (Reddit, HN, ProductHunt) with valuable contributions
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
+aaaerrr-zone: "flywheel:engagement"
 ---
 
 # Community Engage

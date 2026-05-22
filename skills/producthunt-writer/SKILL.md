@@ -2,6 +2,7 @@
 name: producthunt-writer
 description: Write ProductHunt launch copy, maker comments, and community engagement
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # ProductHunt Writer

@@ -2,6 +2,7 @@
 name: release-notes
 description: Write user-facing release notes explaining what's new and why it matters
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # Step 2: Release Notes

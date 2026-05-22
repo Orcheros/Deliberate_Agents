@@ -2,6 +2,7 @@
 name: growth-strategy
 description: Develop positioning, messaging frameworks, and strategic growth plans
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "flywheel:engagement"
 ---
 
 # Step 2: Strategy Development

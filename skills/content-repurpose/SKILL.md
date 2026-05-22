@@ -2,6 +2,7 @@
 name: content-repurpose
 description: Transform master content into multiple channel-specific variants using hub-and-spoke orchestration
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # Content Repurpose

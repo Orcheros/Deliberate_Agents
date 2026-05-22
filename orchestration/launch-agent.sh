@@ -18,17 +18,19 @@ INITIATIVE=""
 WORKTREE=""
 CONFIG_FILE=""
 FRAMEWORK_DIR=""
+EXECUTION_MODE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --session)       TMUX_SESSION="$2"; shift 2 ;;
-    --window)        AGENT_NAME="$2"; shift 2 ;;
-    --name)          AGENT_NAME="$2"; shift 2 ;;
-    --role)          ROLE="$2"; shift 2 ;;
-    --initiative)    INITIATIVE="$2"; shift 2 ;;
-    --worktree)      WORKTREE="$2"; shift 2 ;;
-    --config)        CONFIG_FILE="$2"; shift 2 ;;
-    --framework-dir) FRAMEWORK_DIR="$2"; shift 2 ;;
+    --session)        TMUX_SESSION="$2"; shift 2 ;;
+    --window)         AGENT_NAME="$2"; shift 2 ;;
+    --name)           AGENT_NAME="$2"; shift 2 ;;
+    --role)           ROLE="$2"; shift 2 ;;
+    --initiative)     INITIATIVE="$2"; shift 2 ;;
+    --worktree)       WORKTREE="$2"; shift 2 ;;
+    --config)         CONFIG_FILE="$2"; shift 2 ;;
+    --framework-dir)  FRAMEWORK_DIR="$2"; shift 2 ;;
+    --execution-mode) EXECUTION_MODE="$2"; shift 2 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
 done
@@ -76,7 +78,7 @@ case "$ROLE" in
   engagement-tracker|content-reporter|\
   twitter-copywriter|threads-copywriter|facebook-copywriter|\
   video-producer|reddit-writer|hackernews-writer|producthunt-writer|\
-  orchestrator|qa-lead|integration-tester|ux-ui-reviewer)
+  integrator|orchestrator|qa-lead|integration-tester|ux-ui-reviewer)
     WORK_DIR="$REPO_DIR"
     ;;
   *)
@@ -239,14 +241,27 @@ case "$ROLE" in
     CONTEXT+="Execute the task described in your assignment file. Follow your workflow skills in order.\n"
     CONTEXT+="Start by reading your assignment file.\n"
     ;;
+  integrator)
+    CONTEXT+="- Queue directory: ${DELIBERATE_DIR}/queue/\n"
+    CONTEXT+="- Intake directory: ${DELIBERATE_DIR}/intake/\n"
+    CONTEXT+="- Priority stack: ${DELIBERATE_DIR}/priority-stack.yaml\n"
+    CONTEXT+="- Assignments directory: ${DELIBERATE_DIR}/assignments/\n"
+    CONTEXT+="- Decisions directory: ${DELIBERATE_DIR}/decisions/\n"
+    CONTEXT+="- Status directory: ${DELIBERATE_DIR}/status/\n"
+    CONTEXT+="- Reports directory: ${DELIBERATE_DIR}/reports/\n"
+    CONTEXT+="\n## Your Task\n\n"
+    CONTEXT+="You are the integrator. Run the situational assessment protocol, then manage intake, prioritization, and lifecycle accountability.\n"
+    CONTEXT+="Start by reading all initiative queue files, the priority stack, and scanning initiative lifecycle directories to build the full board state.\n"
+    ;;
   orchestrator)
     CONTEXT+="- Queue directory: ${DELIBERATE_DIR}/queue/\n"
     CONTEXT+="- Assignments directory: ${DELIBERATE_DIR}/assignments/\n"
     CONTEXT+="- Decisions directory: ${DELIBERATE_DIR}/decisions/\n"
     CONTEXT+="- Status directory: ${DELIBERATE_DIR}/status/\n"
+    CONTEXT+="- Priority stack: ${DELIBERATE_DIR}/priority-stack.yaml\n"
     CONTEXT+="\n## Your Task\n\n"
-    CONTEXT+="You are the orchestrator. Poll for initiative state changes, launch teams, manage handoffs, and route all human communication through Slack.\n"
-    CONTEXT+="Start by reading all initiative queue files and current status.\n"
+    CONTEXT+="You are the orchestrator. Read the priority stack, then poll for initiative state changes, launch teams, manage handoffs, and route all human communication through Slack.\n"
+    CONTEXT+="Start by reading the priority stack and all initiative queue files.\n"
     ;;
   qa-lead)
     CONTEXT+="- Initiative: ${INITIATIVE}\n"
@@ -299,6 +314,7 @@ case "$ROLE" in
   customer-success)           MAX_TURNS=60  ;;
   onboarding-specialist)      MAX_TURNS=60  ;;
   seo-specialist)             MAX_TURNS=80  ;;
+  integrator)                 MAX_TURNS=200 ;;
   orchestrator)               MAX_TURNS=200 ;;
   qa-lead)                    MAX_TURNS=100 ;;
   integration-tester)         MAX_TURNS=80  ;;
@@ -306,6 +322,80 @@ case "$ROLE" in
   product-strategist)           MAX_TURNS=100 ;;
   market-researcher)            MAX_TURNS=80  ;;
   *)                          MAX_TURNS=80  ;;
+esac
+
+# --- Execution Mode Handling --------------------------------------------------
+# Modes from DeliberateWork methodology:
+#   1=Human, 2=Guided Human, 3=AI-Assisted, 4=Gated Autonomous (default),
+#   5=Autonomous, 6=External
+
+EXECUTION_MODE="${EXECUTION_MODE:-4}"
+
+case "$EXECUTION_MODE" in
+  1)
+    # Human mode — don't launch agent, write instructions for human
+    DECISIONS_DIR="${DELIBERATE_DIR}/decisions"
+    mkdir -p "$DECISIONS_DIR"
+    cat > "${DECISIONS_DIR}/human-task-${AGENT_NAME}.md" <<EOF
+# Human Task Required
+
+**Role**: ${ROLE}
+**Initiative**: ${INITIATIVE:-n/a}
+**Worktree**: ${WORKTREE:-n/a}
+**Created**: $(date -u '+%Y-%m-%dT%H:%M:%SZ')
+**Execution Mode**: 1 (Human)
+
+## Instructions
+
+This task requires human execution. An AI agent cannot perform this work.
+
+## Resolution
+
+_(Complete the task manually, then add your notes here and delete this file)_
+EOF
+    echo "Execution mode 1 (Human): wrote instructions to ${DECISIONS_DIR}/human-task-${AGENT_NAME}.md"
+    exit 0
+    ;;
+  2)
+    # Guided Human — reduce max turns significantly, agent assists
+    MAX_TURNS=$(( MAX_TURNS / 4 ))
+    (( MAX_TURNS < 10 )) && MAX_TURNS=10
+    ;;
+  3)
+    # AI-Assisted — short leash
+    MAX_TURNS=25
+    ;;
+  4)
+    # Gated Autonomous — default, no adjustment needed
+    ;;
+  5)
+    # Autonomous — extended turns
+    MAX_TURNS=$(( MAX_TURNS * 2 ))
+    ;;
+  6)
+    # External — don't launch agent, log that this needs external action
+    DECISIONS_DIR="${DELIBERATE_DIR}/decisions"
+    mkdir -p "$DECISIONS_DIR"
+    cat > "${DECISIONS_DIR}/external-task-${AGENT_NAME}.md" <<EOF
+# External Action Required
+
+**Role**: ${ROLE}
+**Initiative**: ${INITIATIVE:-n/a}
+**Worktree**: ${WORKTREE:-n/a}
+**Created**: $(date -u '+%Y-%m-%dT%H:%M:%SZ')
+**Execution Mode**: 6 (External)
+
+## Instructions
+
+This task requires action in an external system (third-party tool, vendor, etc.).
+
+## Resolution
+
+_(Complete the external action, then add your notes here and delete this file)_
+EOF
+    echo "Execution mode 6 (External): wrote instructions to ${DECISIONS_DIR}/external-task-${AGENT_NAME}.md"
+    exit 0
+    ;;
 esac
 
 # --- Role-to-Window Mapping ---------------------------------------------------
@@ -316,6 +406,8 @@ esac
 role_to_window() {
   local role="$1"
   case "$role" in
+    integrator)
+      echo "integrator" ;;
     orchestrator)
       echo "orchestrator" ;;
     product-manager|architect|product-designer|scrum-master|\
@@ -369,6 +461,25 @@ echo "╔═══════════════════════�
 echo "║  ${ROLE}: ${INITIATIVE:-${WORKTREE:-agent}}"
 echo "║  Working in: ${WORK_DIR}"
 echo "╚══════════════════════════════════════════════════════════════╝"
+echo ""
+
+# --- Display instruction set for user review ----------------------------------
+echo "┌─────────────────────────────────────────────────────────────┐"
+echo "│  AGENT INSTRUCTIONS                                        │"
+echo "└─────────────────────────────────────────────────────────────┘"
+echo ""
+cat '${CONTEXT_FILE}'
+echo ""
+echo "┌─────────────────────────────────────────────────────────────┐"
+echo "│  AGENT COMMAND                                              │"
+echo "└─────────────────────────────────────────────────────────────┘"
+echo ""
+echo "  claude --agent ${ROLE} ${PERM_FLAG} --max-turns ${MAX_TURNS}"
+echo "  Prompt: Begin your assigned task. Read your assignment/state file first."
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+printf "  Press ENTER to launch agent, or Ctrl-C to abort > "
+read -r
 echo ""
 
 # --- Activity watchdog ---------------------------------------------------------
@@ -449,7 +560,7 @@ done
 
 # --- Cleanup ------------------------------------------------------------------
 kill \$WATCHDOG_PID 2>/dev/null
-rm -f "\$ACTIVITY_TS" '${PID_FILE}'
+rm -f "\$ACTIVITY_TS" '${PID_FILE}' '${CONTEXT_FILE}'
 echo ""
 osascript -e "display notification \"${ROLE} agent session ended\" with title \"Deliberate Agents\"" 2>/dev/null
 echo "=== Agent session complete. Shell remains interactive. ==="
@@ -478,7 +589,8 @@ tmux send-keys -t "${TMUX_SESSION}:${WINDOW}" "'${LAUNCHER}'" Enter
 # Set pane title for identification
 tmux select-pane -t "${TMUX_SESSION}:${WINDOW}" -T "$TAB_TITLE"
 
-# Clean up temp files after a delay (claude needs to start first)
-(sleep 15 && rm -f "$CONTEXT_FILE" "$LAUNCHER") &
+# Launcher script handles its own cleanup after the agent runs;
+# remove the launcher wrapper itself once it's been read into memory.
+(sleep 5 && rm -f "$LAUNCHER") &
 
 echo "Launched ${ROLE} agent in tmux window: ${TMUX_SESSION}:${WINDOW} [${TAB_TITLE}]"

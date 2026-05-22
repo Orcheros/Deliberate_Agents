@@ -2,6 +2,7 @@
 name: linkedin-copywriter
 description: Write high-engagement LinkedIn posts using voice corpus, hook frameworks, and structural patterns
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # LinkedIn Copywriter

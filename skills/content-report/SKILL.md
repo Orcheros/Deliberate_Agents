@@ -2,6 +2,7 @@
 name: content-report
 description: Generate weekly content performance report with metrics, trends, and strategic recommendations
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
+aaaerrr-zone: "flywheel:engagement"
 ---
 
 # Content Report

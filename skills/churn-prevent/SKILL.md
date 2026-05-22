@@ -2,6 +2,7 @@
 name: churn-prevent
 description: Reduce voluntary and involuntary churn through cancel flow design, save offers, exit surveys, and dunning sequences
 allowed-tools: Read, Write, Glob, Grep
+aaaerrr-zone: "flywheel:retention"
 ---
 
 # Churn Prevention

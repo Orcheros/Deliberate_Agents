@@ -2,6 +2,23 @@
 name: dev-implement
 description: Write code to fulfill the task requirements following existing patterns
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+intent: "Write production code that fulfills task requirements following existing patterns"
+execution-mode: 4
+responsible: developer
+accountable: project-manager
+risk-level: medium
+inputs:
+  information: ["assignment with acceptance criteria", "pattern reference"]
+  artifacts: ["assignment file", "architecture doc"]
+  access: ["codebase write access", "worktree"]
+  conditions: ["task understood via dev-understand"]
+  people: []
+outputs:
+  updated-information: ["implementation notes"]
+  produced-artifacts: ["application code", "migrations", "routes"]
+  system-state-change: ["code changes in worktree"]
+  commitments-made: ["implementation matches acceptance criteria"]
+  ready-output: ["code ready for testing"]
 ---
 
 # Step 2: Implement

@@ -2,6 +2,7 @@
 name: referral-program
 description: Design, launch, or optimize a referral or affiliate program — loop mechanics, incentive structure, trigger moments, measurement
 allowed-tools: Read, Write, Glob, Grep
+aaaerrr-zone: "flywheel:referral"
 ---
 
 # Referral Program

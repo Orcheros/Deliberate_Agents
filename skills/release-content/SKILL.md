@@ -2,6 +2,7 @@
 name: release-content
 description: Create launch marketing content — blog posts, email sequences, social media
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # Step 2: Launch Content

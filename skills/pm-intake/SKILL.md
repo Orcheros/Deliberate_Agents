@@ -2,6 +2,23 @@
 name: pm-intake
 description: Receive scoped content from the founder, research the codebase for context, and produce a formal one-pager in a new initiative directory
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+intent: "Transform a founder's scoped idea into a structured one-pager grounded in codebase reality"
+execution-mode: 4
+responsible: product-manager
+accountable: integrator
+risk-level: low
+inputs:
+  information: ["founder's scoped idea", "initiative context"]
+  artifacts: ["pasted document or file path from founder"]
+  access: ["codebase read access"]
+  conditions: ["idea has been scoped by founder"]
+  people: ["founder available for clarification"]
+outputs:
+  updated-information: ["codebase feasibility notes"]
+  produced-artifacts: ["one-pager document", "queue YAML file"]
+  system-state-change: ["initiative directory created in backlog", "queue file with QUEUED status"]
+  commitments-made: ["one-pager committed to branch"]
+  ready-output: ["QUEUED initiative ready for grooming"]
 ---
 
 # Step 0: Intake — Create the One-Pager

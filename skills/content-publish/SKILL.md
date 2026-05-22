@@ -2,6 +2,7 @@
 name: content-publish
 description: Multi-platform content publishing with provider routing, rate limiting, and state management
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # Content Publish

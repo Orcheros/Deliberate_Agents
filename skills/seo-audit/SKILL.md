@@ -2,6 +2,7 @@
 name: seo-audit
 description: Audit current site content and structure across SEO, AEO, AIO, and GEO dimensions
 allowed-tools: Read, Glob, Grep, Bash
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # SEO Audit

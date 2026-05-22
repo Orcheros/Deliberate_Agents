@@ -2,6 +2,7 @@
 name: content-researcher
 description: Research content ideas through trend scanning, performance analysis, and customer insight mining
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # Content Researcher

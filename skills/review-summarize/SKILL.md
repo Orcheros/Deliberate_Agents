@@ -2,6 +2,23 @@
 name: review-summarize
 description: Write a clear review summary for efficient human review in Cursor
 allowed-tools: Read, Write, Glob, Grep, Bash
+intent: "Produce a clear summary enabling efficient human review"
+execution-mode: 4
+responsible: reviewer
+accountable: integrator
+risk-level: low
+inputs:
+  information: ["validation results", "commit history"]
+  artifacts: ["developer commits", "validation checklist"]
+  access: ["initiative branch", "codebase read access"]
+  conditions: ["review-validate passed"]
+  people: []
+outputs:
+  updated-information: ["review instructions for human"]
+  produced-artifacts: ["review summary document"]
+  system-state-change: ["initiative status set to REVIEW_READY"]
+  commitments-made: ["all changes documented for human reviewer"]
+  ready-output: ["review package ready for human merge decision"]
 ---
 
 # Step 2: Write Review Summary

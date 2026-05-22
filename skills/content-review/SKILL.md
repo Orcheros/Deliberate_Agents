@@ -2,6 +2,7 @@
 name: content-review
 description: Self-review all drafted copy against brand constraints and quality standards
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # Step 3: Review Copy

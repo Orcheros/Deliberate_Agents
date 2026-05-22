@@ -53,3 +53,11 @@
 ## Open Questions
 
 - (none)
+
+## 5x5 Summary
+
+**Intent:** {{INTENT}}
+**Inputs received:** {{INPUTS_SUMMARY}}
+**Outputs produced:** {{OUTPUTS_SUMMARY}}
+**Ready gate met:** [ ] (validate before starting work)
+**Done gate met:** [ ] (validate before marking complete)

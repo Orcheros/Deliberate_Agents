@@ -2,6 +2,7 @@
 name: sales-research
 description: Research prospects using CRM data, lead records, and discovery session context
 allowed-tools: Read, Glob, Grep
+aaaerrr-zone: "funnel:acquisition"
 ---
 
 # Sales Research

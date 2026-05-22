@@ -2,6 +2,7 @@
 name: email-sequence
 description: Create email sequences — welcome, nurture, re-engagement, post-purchase, and event-based drip campaigns with full copy and timing
 allowed-tools: Read, Write, Glob, Grep
+aaaerrr-zone: "funnel:activation"
 ---
 
 # Email Sequence Design

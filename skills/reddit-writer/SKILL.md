@@ -2,6 +2,7 @@
 name: reddit-writer
 description: Write Reddit posts and comments that add value to subreddit communities
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # Reddit Writer

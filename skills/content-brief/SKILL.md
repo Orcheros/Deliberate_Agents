@@ -2,6 +2,7 @@
 name: content-brief
 description: Understand the communication need, audience, and brand context
 allowed-tools: Read, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # Step 1: Understand the Brief

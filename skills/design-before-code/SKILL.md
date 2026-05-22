@@ -2,6 +2,23 @@
 name: design-before-code
 description: Explore intent, requirements, and design before implementation — brainstorming gate that prevents coding without a plan
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+intent: "Prevent implementation without design review — hard gate for creative work"
+execution-mode: 3
+responsible: developer
+accountable: architect
+risk-level: medium
+inputs:
+  information: ["PRD or task description", "existing code patterns"]
+  artifacts: ["PRD", "assignment"]
+  access: ["codebase read access"]
+  conditions: ["creative work identified, not a mechanical fix"]
+  people: ["human reviewer for approval gate"]
+outputs:
+  updated-information: ["design decisions"]
+  produced-artifacts: ["design document"]
+  system-state-change: ["design gate passed"]
+  commitments-made: ["approach selected and approved"]
+  ready-output: ["approved design ready for implementation"]
 ---
 
 # Design Before Code

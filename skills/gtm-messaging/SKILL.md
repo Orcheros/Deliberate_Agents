@@ -2,6 +2,7 @@
 name: gtm-messaging
 description: Build a GTM messaging and positioning framework with messaging hierarchy, persona-specific variations, channel-adapted messaging matrix, and A/B test recommendations
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # GTM Messaging Framework

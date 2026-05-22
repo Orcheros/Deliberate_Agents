@@ -2,6 +2,7 @@
 name: onboarding-design
 description: Design improved onboarding flows, in-app guidance, and activation sequences
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:activation"
 ---
 
 # Onboarding Design

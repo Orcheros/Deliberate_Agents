@@ -2,6 +2,7 @@
 name: hackernews-writer
 description: Write HackerNews submissions and comments with zero marketing language and maximum technical depth
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # HackerNews Writer

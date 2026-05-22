@@ -2,6 +2,7 @@
 name: seo-implement
 description: Produce implementation artifacts — schema markup, content briefs, and technical specifications
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # SEO Implementation

@@ -2,6 +2,7 @@
 name: threads-copywriter
 description: Write casual, conversational Threads posts that feel native to the platform
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # Threads Copywriter

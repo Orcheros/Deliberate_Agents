@@ -2,6 +2,23 @@
 name: qa-plan
 description: Read all specifications and create the comprehensive test plan
 allowed-tools: Bash, Read, Glob, Grep, Write
+intent: "Decompose all specifications into a comprehensive, categorized test plan"
+execution-mode: 4
+responsible: qa-lead
+accountable: integrator
+risk-level: low
+inputs:
+  information: ["PRD", "architecture doc", "design brief", "story breakdown"]
+  artifacts: ["all specification documents", "code diff"]
+  access: ["initiative branch", "codebase read access"]
+  conditions: ["development complete with DEV_COMPLETE status"]
+  people: []
+outputs:
+  updated-information: ["test coverage analysis"]
+  produced-artifacts: ["test plan document"]
+  system-state-change: ["initiative status set to QA_IN_PROGRESS"]
+  commitments-made: ["all acceptance criteria mapped to test cases"]
+  ready-output: ["test plan ready for QA execution"]
 ---
 
 # Step 1: Create the Test Plan

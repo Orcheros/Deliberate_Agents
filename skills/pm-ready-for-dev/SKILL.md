@@ -2,6 +2,23 @@
 name: pm-ready-for-dev
 description: Finalize documentation and signal the initiative is ready for development
 allowed-tools: Read, Write, Glob, Grep
+intent: "Validate all documentation is complete and signal readiness for development"
+execution-mode: 4
+responsible: product-manager
+accountable: integrator
+risk-level: low
+inputs:
+  information: ["PRD", "architecture doc", "task breakdown"]
+  artifacts: ["one-pager", "PRD", "architecture doc"]
+  access: ["initiative directory"]
+  conditions: ["PRD complete", "architecture doc complete or explicitly skipped"]
+  people: []
+outputs:
+  updated-information: ["validation results"]
+  produced-artifacts: []
+  system-state-change: ["initiative status set to PRD_COMPLETE"]
+  commitments-made: ["initiative is spec-complete"]
+  ready-output: ["initiative ready for project manager pickup"]
 ---
 
 # Step 4: Ready for Development

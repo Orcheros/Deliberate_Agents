@@ -94,7 +94,7 @@ echo "  Worktrees: $WORKTREES_DIR"
 echo "  State: $DELIBERATE_DIR"
 echo ""
 
-mkdir -p "$DELIBERATE_DIR"/{queue,assignments,status,decisions,logs,qa,pids,feedback}
+mkdir -p "$DELIBERATE_DIR"/{queue,intake,assignments,status,decisions,logs,qa,pids,feedback,reports,metrics}
 
 # --- Generate Config ----------------------------------------------------------
 

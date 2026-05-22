@@ -2,6 +2,7 @@
 name: twitter-copywriter
 description: Write high-engagement X/Twitter posts and threads using voice corpus and platform-native patterns
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # Twitter Copywriter

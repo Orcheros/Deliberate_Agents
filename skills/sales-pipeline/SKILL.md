@@ -2,6 +2,7 @@
 name: sales-pipeline
 description: Maintain pipeline hygiene — stage accuracy, stale deal detection, data completeness
 allowed-tools: Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:acquisition"
 ---
 
 # Pipeline Management
