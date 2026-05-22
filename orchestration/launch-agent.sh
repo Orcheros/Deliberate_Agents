@@ -517,6 +517,15 @@ if type build_system_comms_context &>/dev/null; then
   esac
 fi
 
+# --- Inject Onboarding Brief (project knowledge for all agents) ---------------
+ONBOARDING_FILE="${DELIBERATE_DIR}/onboarding.md"
+if [[ -f "$ONBOARDING_FILE" ]]; then
+  CONTEXT+="\n# Project Knowledge (from onboarding brief)\n"
+  CONTEXT+="The following is a structured brief of the target project's codebase, architecture, and state.\n"
+  CONTEXT+="Reference: ${ONBOARDING_FILE}\n\n"
+  CONTEXT+="$(cat "$ONBOARDING_FILE")\n"
+fi
+
 CONTEXT_FILE="$(mktemp)"
 echo -e "$CONTEXT" > "$CONTEXT_FILE"
 
