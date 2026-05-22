@@ -4,6 +4,20 @@ This directory contains the tools for setting up Deliberate Agents with your pro
 
 ## The Scripts
 
+### `session-start.sh` — Session Start Hook
+
+Runs automatically when you open Claude Code (via the SessionStart hook). It:
+
+1. **Discovers projects** — finds all `config.*.yaml` files in the framework directory
+2. **Prevents sleep** — starts `caffeinate` to keep the Mac awake during long sessions
+3. **Starts Slack** — launches the Slack bot for each project with `slack_enabled: true`
+4. **Establishes the Integrator** — sets the system message so Claude Code acts as your Integrator agent
+5. **Checks escalations** — scans each project's `.deliberate/comms/_system/inbox/integrator/` for messages from the Orchestrator and surfaces critical/warning items
+6. **Shows Orchestrator status** — reports whether the Orchestrator is running and provides the launch command if not
+7. **Generates briefings** — calls `orchestration/briefing.sh` for each project
+
+You don't call this directly — it's triggered by the Claude Code hook configuration.
+
 ### `init.sh` — Connect to a Project
 
 This is the first script you run when you want to use Deliberate Agents with a project. It sets everything up:

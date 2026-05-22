@@ -22,11 +22,26 @@ When you initialize a project with `init.sh`, this directory is created:
 ├── assignments/             Task assignments
 │   └── worktree-01.yaml     One file per workspace — what's assigned there
 │
-├── status/                  Agent heartbeats
-│   └── developer.yaml       Each agent reports what it's working on
+├── status/                  Agent heartbeats + dashboard
+│   ├── developer.yaml       Each agent reports what it's working on
+│   ├── dashboard.md         Orchestrator's structured status dashboard
+│   └── orchestrator.md      Orchestrator heartbeat
 │
 ├── decisions/               Things that need your input
-│   └── 2026-04-30-my-feature.md    Agents pause and wait for your answer
+│   ├── 2026-04-30-my-feature.md    Agents pause and wait for your answer
+│   └── strategic/           Integrator-level strategic decisions
+│
+├── comms/                   Cross-agent communication
+│   ├── _system/             Integrator ↔ Orchestrator channel
+│   │   ├── inbox/
+│   │   │   ├── integrator/  Messages TO the Integrator (escalations)
+│   │   │   └── orchestrator/ Messages TO the Orchestrator (directives)
+│   │   └── ack/             Acknowledged messages (audit trail)
+│   └── {slug}/              Per-initiative communication
+│       ├── handoff-log.md   Pipeline transition history
+│       ├── decisions/       Initiative-scoped decision records
+│       ├── messages/        Agent-to-agent messages
+│       └── receipts/        Handoff confirmations
 │
 ├── reports/                 Integrator audit reports and board state snapshots
 │   └── integrator-audit.md  Pipeline health, stalls, shipped-but-incomplete
@@ -194,6 +209,48 @@ The Slack bot (`integrations/slack/bot.py`) runs in Socket Mode and completes th
 8. Orchestrator detects the resolution on the next poll → agent unblocks
 
 The human can also edit the decision file directly (via Cursor) — the orchestrator detects either path.
+
+## Cross-Agent Communication
+
+Agents communicate through structured files in `comms/`, managed by `orchestration/comms.sh`.
+
+### System Channel (`comms/_system/`)
+
+The Integrator and Orchestrator exchange typed messages:
+
+**Integrator → Orchestrator** (directives):
+- `directive` — "Do X" (launch an agent, start a phase, change approach)
+- `priority-change` — Priority stack was updated, re-order work
+- `query` — Request for status or information
+
+**Orchestrator → Integrator** (escalations):
+- `escalation` — Something needs strategic attention (crash, stall, gate failure)
+- `status-update` — Periodic pipeline summary
+
+Each message is a markdown file with metadata:
+
+```markdown
+# directive: Start dev on auth
+- **From**: integrator
+- **To**: orchestrator
+- **At**: 2026-05-22T14:30:00Z
+- **Type**: directive
+- **Urgency**: info
+- **Status**: unread
+
+Launch the engineering team for the auth initiative.
+```
+
+Messages move from `inbox/{role}/` to `ack/` after processing.
+
+### Per-Initiative Channel (`comms/{slug}/`)
+
+Each initiative has its own communication directory:
+
+- **Handoff log** — Append-only record of every pipeline transition (who handed off to whom, what artifacts were produced, what context was shared)
+- **Decision records** — Decisions made during this initiative's lifecycle
+- **Messages** — Agent-to-agent messages (blocker notifications, context sharing)
+- **Receipts** — Handoff confirmations with artifact verification
 
 ## The Rules
 

@@ -23,17 +23,24 @@ Each target project defines its own branching rules. General principles enforced
 
 If the current branch is protected and the task involves changing code files, **stop and create a branch first.** No exceptions. This applies to both this repo and any target repo. Agents spawned by this system must follow it.
 
+## Two-Window Architecture
+
+The primary runtime: Integrator (user's Claude Code session) + Orchestrator (interactive agent in tmux). They communicate via `.deliberate/comms/_system/`. The `session-start.sh` hook auto-establishes the Integrator persona and checks for Orchestrator escalations.
+
 ## Key Scripts
 
 | Script | Purpose |
 |---|---|
 | `scripts/init.sh` | Initialize DA for a new target project |
-| `scripts/session-start.sh` | SessionStart hook — discovers projects, starts services, shows briefing |
-| `orchestration/orchestrate.sh` | Main orchestrator loop |
-| `orchestration/launch-agent.sh` | Spawn an agent in a tmux pane |
+| `scripts/session-start.sh` | SessionStart hook — establishes Integrator, discovers projects, checks escalations, starts services |
+| `orchestration/orchestrate.sh` | Unattended orchestrator loop (bash, zero AI cost) |
+| `orchestration/launch-agent.sh` | Spawn an agent in a tmux pane (used by Orchestrator) |
+| `orchestration/comms.sh` | Cross-agent communication library (per-initiative + system-level messaging) |
+| `orchestration/dashboard.sh` | Generate structured status dashboard to `.deliberate/status/dashboard.md` |
 | `orchestration/stop-agents.sh` | Graceful shutdown of all agents |
 | `orchestration/briefing.sh` | Generate project status briefing |
-| `agents/integrator.md` | Integrator agent — strategic executor between Visionary and Orchestrator |
+| `agents/integrator.md` | Integrator agent — primary session, strategic executor |
+| `agents/orchestrator.md` | Orchestrator agent — interactive coordinator in tmux |
 
 ## Invoking from Any Repo
 

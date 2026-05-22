@@ -7,22 +7,23 @@ Deliberate_Agents is a multi-agent coordination framework that runs multiple Cla
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │                        Human (Visionary)                           │
-│                (Ideas, decisions, review in Cursor)                │
+│                  Ideas, decisions, review in Cursor                │
 └─────────────────────────────┬────────────────────────────────────┘
-                              │ raw ideas, overrides
+                              │ talks directly to
                               ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                      Integrator (AI agent)                         │
-│     Validates ideas against in-flight work, prioritizes pipeline,  │
-│     sequences execution, tracks to shipped-and-supported           │
+│              Integrator (primary Claude Code session)               │
+│     Validates ideas, prioritizes pipeline, dispatches directives,  │
+│     captures decisions, tracks to shipped-and-supported            │
 │            Owns: intake/, priority-stack.yaml, reports/            │
-└─────────────────────────────┬────────────────────────────────────┘
-                              │ priority-stack.yaml
-                              ▼
+└──────────────┬──────────────────────────────┬────────────────────┘
+               │ directives (comms/_system/)   │ escalations
+               ▼                               │
 ┌──────────────────────────────────────────────────────────────────┐
-│                      Orchestrator (bash)                           │
-│      Reads priority stack, polls state, launches agents,           │
-│      routes by agent_type. Runs in tmux window                     │
+│               Orchestrator (interactive agent in tmux)              │
+│      Reads priority stack, launches agents, tracks handoffs,       │
+│      writes dashboard, escalates blockers to Integrator            │
+│      Fallback: orchestrate.sh bash loop (unattended, zero cost)    │
 └───┬───────┬───────┬────────┬──────────┬──────────┬───────────────┘
     │       │       │        │          │          │
     ▼       ▼       ▼        ▼          ▼          ▼
@@ -44,32 +45,40 @@ Deliberate_Agents is a multi-agent coordination framework that runs multiple Cla
 
 ## Component Roles
 
-### Integrator (AI Agent)
+### Integrator (Primary Session)
 
-The Integrator is the strategic executor — an AI agent that sits between the founder (Visionary) and the Orchestrator (tactical router). It:
+The Integrator is the user's primary Claude Code session — the strategic executor that sits between the founder (Visionary) and the Orchestrator (tactical coordinator). It is automatically established on every session start via the `session-start.sh` hook.
+
+It:
 
 1. **Receives** raw ideas from the founder and captures them in `.deliberate/intake/`
 2. **Assesses** every new idea against the full board state — initiatives at every lifecycle stage (backlog, specified, in-progress, shipped, retired)
 3. **Validates** ideas for ICP alignment, strategic fit, conflicts with in-flight work, and timing
 4. **Prioritizes** the pipeline in `.deliberate/priority-stack.yaml` — the contract the Orchestrator reads
 5. **Sequences** execution based on dependencies, resource constraints, and strategic leverage
-6. **Tracks** initiatives through their full lifecycle — code in production isn't done until it's documented, marketed, and supported
-7. **Audits** for stalled work, the "80% club" (almost done, drifting), and shipped-but-unsupported initiatives
+6. **Dispatches** work to the Orchestrator via system directives (`.deliberate/comms/_system/inbox/orchestrator/`)
+7. **Tracks** initiatives through their full lifecycle — code in production isn't done until it's documented, marketed, and supported
+8. **Audits** for stalled work, the "80% club" (almost done, drifting), and shipped-but-unsupported initiatives
 
-The Integrator runs as a persistent agent alongside the Orchestrator. It never does agent work (no PRDs, code, designs) — it evaluates, prioritizes, and holds accountable. Model: Opus.
+The Integrator never does agent work (no PRDs, code, designs) — it evaluates, prioritizes, dispatches, and holds accountable. Everything from the conversation is captured: ideas to `intake/`, decisions to `decisions/strategic/`, priorities to `priority-stack.yaml`. Model: Opus.
 
-### Orchestrator (Shell Script)
+### Orchestrator (Dual-Mode Coordinator)
 
-The orchestrator is intentionally NOT an AI agent. It is a deterministic bash script that:
+The Orchestrator runs in two modes:
 
-1. **Reads** the Integrator's priority stack to determine execution order
-2. **Polls** `.deliberate/queue/` and `.deliberate/assignments/` every N seconds
-3. **Detects** state transitions (new initiatives, completed tasks, blocked work)
-4. **Launches** the appropriate AI agent via `claude --agent <role>` in a new tmux window
-5. **Monitors** agent health via tmux window existence and heartbeat staleness
-6. **Routes** completed work to the next pipeline stage
+**Interactive mode (primary)**: An AI agent running in its own tmux window, launched via `launch-agent.sh`. It:
 
-This design keeps the coordination layer cheap (zero API cost), deterministic (no LLM variance), and observable (pure state machine).
+1. **Checks** its system inbox for Integrator directives (`.deliberate/comms/_system/inbox/orchestrator/`)
+2. **Reads** the Integrator's priority stack to determine execution order
+3. **Polls** `.deliberate/queue/` and `.deliberate/assignments/` for state changes
+4. **Launches** agents via `launch-agent.sh` in dedicated tmux windows
+5. **Monitors** agent health via PID files and heartbeat staleness
+6. **Records** handoffs at every pipeline transition (via `comms.sh`)
+7. **Writes** a structured dashboard to `.deliberate/status/dashboard.md`
+8. **Escalates** crashes, gate failures, and stalled initiatives to the Integrator (`.deliberate/comms/_system/inbox/integrator/`)
+9. **Responds** to direct user input — the user can type to it for status, unblocking, or manual overrides
+
+**Unattended mode (fallback)**: The `orchestrate.sh` bash script — a deterministic polling loop with zero API cost. It handles the same state transitions mechanically but cannot adapt, learn from failures, or respond to user input. Both modes use the same state files and should not run simultaneously.
 
 ### AI Agents
 
@@ -124,8 +133,8 @@ Each AI agent runs as an independent Claude Code session using native agent defi
 
 **Strategic Layer** (`agents/integrator.md`, `agents/orchestrator.md`):
 
-- **Integrator**: Strategic executor — validates ideas against in-flight work, prioritizes the pipeline, sequences execution, tracks initiatives to shipped-and-supported. Owns intake, priority stack, and lifecycle accountability. Model: opus.
-- **Orchestrator**: Persistent coordinator — reads the Integrator's priority stack, manages initiative queue, daily work log, team routing, Slack communication.
+- **Integrator**: Primary session agent — the user's Claude Code session. Validates ideas against in-flight work, prioritizes the pipeline, dispatches directives to the Orchestrator, captures conversations to `.deliberate/`, and tracks initiatives to shipped-and-supported. Established automatically via session-start hook. Model: opus.
+- **Orchestrator**: Interactive coordinator — runs in a dedicated tmux window. Manages initiative queue, launches agents, records handoffs, writes dashboard, escalates blockers to the Integrator via system comms channel. Falls back to `orchestrate.sh` bash loop for unattended operation. Model: opus.
 
 ### Skills (Workflow Steps)
 
@@ -187,12 +196,40 @@ The `.deliberate/` directory is the single source of truth for all inter-agent c
 - `priority-stack.yaml` — Ranked pipeline owned by the Integrator, read by the Orchestrator
 - `queue/` — Initiative lifecycle (QUEUED → ... → COMPLETE)
 - `assignments/` — Developer task assignments (assigned → in_progress → complete)
-- `status/` — Agent heartbeats, activity reports, and compiled report (`report.md`)
+- `status/` — Agent heartbeats, dashboard (`dashboard.md`), compiled report (`report.md`)
 - `decisions/` — Items requiring human input (with `.notified` markers for Slack tracking)
+- `decisions/strategic/` — Integrator-level strategic decisions captured from conversations
 - `reports/` — Integrator audit reports and board state snapshots
+- `comms/` — Cross-agent communication (per-initiative and system-level)
 - `logs/` — Session output logs
 
 See `state/README.md` for the full protocol specification.
+
+### Cross-Agent Communication
+
+The communication system (`orchestration/comms.sh`) provides structured messaging at two levels:
+
+**Per-initiative communication** (`.deliberate/comms/{slug}/`):
+- `handoff-log.md` — Append-only record of every pipeline transition with context
+- `decisions/` — Decision records scoped to a specific initiative
+- `messages/` — Agent-to-agent messages (blocker notifications, context sharing)
+- `receipts/` — Handoff confirmations with artifact verification
+
+**System-level communication** (`.deliberate/comms/_system/`):
+- `inbox/integrator/` — Messages TO the Integrator (escalations, status updates from Orchestrator)
+- `inbox/orchestrator/` — Messages TO the Orchestrator (directives, priority changes from Integrator)
+- `ack/` — Acknowledged messages (audit trail)
+
+Each message is an individual markdown file with typed metadata (from, to, type, urgency, status). Messages move from `inbox/` to `ack/` after processing. This provides a reliable, observable, asynchronous communication channel between the two coordination layers.
+
+### Dashboard
+
+The Orchestrator generates a structured dashboard (`.deliberate/status/dashboard.md`) via `orchestration/dashboard.sh`. It shows:
+- Active agents with elapsed time and role
+- Pipeline summary (count and list of initiatives per stage)
+- Items needing attention (blockers, pending decisions)
+- Recent transitions from today's orchestrator log
+- System message counts (integrator and orchestrator inboxes)
 
 ### Notification & Reporting Layer
 
@@ -296,7 +333,8 @@ Developer agents work in git worktrees, providing:
 | Agent runtime | Claude Code (`--agent` native) | Best autonomous coding agent available; native support for agents, skills, permissions |
 | Process management | tmux | Lightweight, scriptable, observable |
 | State management | Filesystem (YAML/MD) | No database needed, git-friendly, human-readable |
-| Orchestration | Bash script | Deterministic, zero API cost, easy to debug |
+| Orchestration | Interactive agent (primary) / Bash script (fallback) | Interactive mode adapts and learns; bash fallback is deterministic, zero API cost |
+| Cross-agent comms | Filesystem (markdown messages in comms/) | Observable, auditable, async, no external dependencies |
 | Human review | Cursor | Visual diffs, inline comments, familiar IDE |
 | Notifications | Slack (Incoming Webhooks) | Real-time question routing, progress visibility, decision tracking |
 | Design | Claude Design | AI-assisted UI/UX design |

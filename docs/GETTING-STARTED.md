@@ -32,27 +32,35 @@ This creates:
 - `.claude/agents/` with agent definitions deployed to your project
 - `.claude/skills/` with workflow skills deployed to your project
 
-### 2. Start the orchestrator
+### 2. Open Claude Code — You're the Integrator
 
 ```bash
-./orchestration/orchestrate.sh /path/to/my-project-worktrees/.deliberate/config.yaml
+claude
 ```
 
-The orchestrator runs in a loop, polling for state changes every 30 seconds (configurable). It reads the Integrator's priority stack (`.deliberate/priority-stack.yaml`) to determine execution order.
+The session-start hook automatically establishes you as the **Integrator** — your strategic right-hand agent. You'll see a briefing with project status, Orchestrator state, and any pending escalations.
 
-The **Integrator agent** can be launched alongside the orchestrator to manage intake, prioritization, and lifecycle accountability:
+This is your primary interface. Share ideas, ask for status, dispatch work — the Integrator captures everything to `.deliberate/`.
+
+### 3. Launch the Orchestrator
+
+The Orchestrator runs as an interactive Claude agent in its own tmux window. The Integrator's briefing shows the launch command:
 
 ```bash
 ./orchestration/launch-agent.sh \
-  --role integrator \
+  --session deliberate --name orchestrator \
+  --role orchestrator \
   --config /path/to/my-project-worktrees/.deliberate/config.yaml \
-  --framework-dir ~/Development/Deliberate_Agents \
-  --name integrator
+  --framework-dir ~/Development/Deliberate_Agents
 ```
 
-### 3. Queue an initiative
+Now you have the **two-window architecture**: Integrator (your session) + Orchestrator (tmux). They communicate via `.deliberate/comms/_system/`.
 
-If the Integrator is running, drop your raw idea and it will validate, prioritize, and queue it. Otherwise, create a one-pager describing what you want to build and queue it manually:
+> **Alternative**: For zero-AI-cost unattended operation, use the bash loop instead: `./orchestration/orchestrate.sh /path/to/config.yaml`. Both modes use the same state files — don't run both simultaneously.
+
+### 4. Queue an initiative
+
+Share your idea with the Integrator and it will validate, prioritize, and queue it. Or create a one-pager manually:
 
 ```bash
 cat > /path/to/my-project-worktrees/.deliberate/queue/my-feature.yaml <<EOF
@@ -64,19 +72,22 @@ created_at: "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 EOF
 ```
 
-### 4. Watch it work
+### 5. Watch it work
 
-Check status:
+Check status in three ways:
+
+1. **Ask the Integrator** — "what's the status?" in your Claude Code session
+2. **Read the dashboard** — `.deliberate/status/dashboard.md` (written by the Orchestrator)
+3. **Run the script** — `./orchestration/status.sh /path/to/config.yaml`
+
+Watch agents work in real time:
 ```bash
-./orchestration/status.sh /path/to/my-project-worktrees/.deliberate/config.yaml
+tmux attach -t deliberate
 ```
 
-Watch the tmux session:
-```bash
-tmux attach -t deliberate-my-project
-```
+The Orchestrator escalates blockers and crashes directly to the Integrator — you'll see them surfaced in your next session briefing.
 
-### 5. Review when ready
+### 6. Review when ready
 
 When the orchestrator reports an initiative as `REVIEW_READY`:
 1. Open the review summary in `.deliberate/queue/{initiative}/review-summary.md`

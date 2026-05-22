@@ -8,12 +8,19 @@ If you haven't set up a project yet, start with the [Getting Started](GETTING-ST
 
 ## Starting Your Day
 
-1. Open Claude Code in your project directory
-2. Type `/orchestrate`
-3. Read the briefing — it shows running agents, the initiative queue, the Integrator's priority stack, and items needing your attention
-4. Decide what to work on — or drop a new idea and let the Integrator evaluate it against what's in flight
+1. **Open Claude Code** — you're immediately talking to the **Integrator**, your strategic right-hand agent. The session-start hook gives you a briefing: project status, Orchestrator state, and any pending escalations from overnight work.
 
-The command center stays alive after the briefing. It's waiting for your next instruction.
+2. **Check escalations first** — if the Orchestrator sent critical or warning messages (agent crash, stalled initiative, gate failure), they appear at the top of your briefing. Read and address them.
+
+3. **Launch the Orchestrator** (if not running) — the briefing shows the launch command. It runs in a tmux window below your session, coordinating agents and tracking handoffs.
+
+4. **Start working** — share ideas, ask for status, dispatch work. The Integrator captures everything to `.deliberate/` and routes directives to the Orchestrator.
+
+You now have the **two-window architecture**:
+- **Your Claude Code session** (Integrator) — where you think, decide, and direct
+- **tmux window** (Orchestrator) — coordinating agents, writing the dashboard, escalating blockers
+
+> **Tip**: For ad-hoc dispatch without leaving your session, type `/orchestrate` for the interactive command center.
 
 ---
 
@@ -54,13 +61,17 @@ You can dispatch multiple things in sequence without leaving the command center.
 
 ## Checking Status
 
-Ask the command center at any time:
+Ask the Integrator (your Claude Code session) at any time:
 
 | Say this | What you get |
 |----------|-------------|
 | "what's running?" | Quick view of active agents and what they're working on |
 | "is the PM done?" | Status of a specific agent |
-| "status" | Full briefing — same as what you see when you first open the command center |
+| "status" | Full board state — pipeline, active agents, blockers |
+
+The Orchestrator also writes a **dashboard** to `.deliberate/status/dashboard.md` after each cycle — a structured markdown view with tables for active agents, pipeline stages, items needing attention, and recent transitions.
+
+You can also type directly to the Orchestrator in its tmux window — ask it "status" and it responds with the current state.
 
 ---
 
@@ -95,27 +106,43 @@ Example entry:
 
 ## Command Quick Reference
 
+### In your Claude Code session (Integrator)
+
 | Say this | What happens |
 |----------|-------------|
-| "I have an idea about X" | Routes to the Integrator for validation against in-flight work |
+| "I have an idea about X" | Integrator captures to `intake/`, evaluates against in-flight work |
+| "prioritize X over Y" | Updates `priority-stack.yaml` and notifies Orchestrator |
+| "what's the status?" | Reads board state from `.deliberate/` and the dashboard |
+| "what did we do today?" | Produces a daily summary from the journal |
+| "tell the Orchestrator to start dev on auth" | Writes a directive to `comms/_system/inbox/orchestrator/` |
+
+### In the Orchestrator tmux window
+
+| Say this | What happens |
+|----------|-------------|
+| "status" | Shows current dashboard — pipeline, active agents, blockers |
+| "unblock X" | Reads the blocker, resolves it, updates state |
+| "launch PM for auth" | Manually launches a specific agent for an initiative |
+| "what's wrong?" | Diagnoses issues — crashed agents, stalled initiatives, gate failures |
+
+### In the command center (`/orchestrate`)
+
+| Say this | What happens |
+|----------|-------------|
 | "intake this bug about X" | Dispatches a PM agent to process the intake |
 | "start dev on story 2e" | Dispatches a developer agent for that story |
 | "run QA on the payments branch" | Dispatches QA agents to test the branch |
-| "what's running?" | Shows active agent status |
-| "what did we do today?" | Produces a daily summary from the journal |
 | "menu" | Returns to the workflow selection menu |
-| "status" | Full project briefing |
-| "done for today" | Final status refresh and closing summary |
 
 ---
 
 ## Tips
 
-- **Batch intake.** Dispatch multiple items in sequence without leaving the command center. It remembers context between dispatches.
-- **Stay in the loop.** The command center never exits until you say so. It's designed for long sessions.
-- **Context carries over.** The command center knows your project context — which initiatives are active, which agents are running, what was dispatched earlier today.
-- **Ad-hoc tasks count.** Even small, one-off tasks get journaled. Nothing is lost.
-- **Two modes, one system.** The autonomous `orchestrate.sh` script and the interactive `/orchestrate` command center share the same queue and state. You can use both — the script handles routine pipeline work while you use the command center for ad-hoc dispatches and oversight.
+- **Nothing is lost.** Every idea you share with the Integrator is captured — to `intake/`, `decisions/strategic/`, `priority-stack.yaml`, or `comms/`. Conversations become documentation.
+- **Escalations surface automatically.** If the Orchestrator hits a problem overnight, you'll see it in your next session briefing — no need to check manually.
+- **Both windows are interactive.** You can type to the Orchestrator directly in its tmux window to unblock it, ask for status, or give manual overrides.
+- **The dashboard is always current.** Check `.deliberate/status/dashboard.md` for a structured view of everything in flight.
+- **Three interfaces, one system.** The Integrator session, the Orchestrator tmux window, and the `/orchestrate` command center all share the same queue and state. Use whichever fits the moment.
 
 ---
 

@@ -29,7 +29,7 @@ Think of Deliberate Agents like hiring a small company to build your feature:
 
 Not every initiative needs the Architect or Designer — a backend API change might go straight from PRD to tasks, while a new dashboard feature would go through the full design cycle. The Product Manager's PRD determines which steps are needed.
 
-The whole process is coordinated by two layers: the **Integrator** decides *what* to work on and *in what order*, while the **Orchestrator** handles the mechanics — watching for completed work and launching the next step automatically. No databases, no servers — just files on your computer.
+The whole process is coordinated by two layers running in a **two-window architecture**: the **Integrator** is your primary Claude Code session (top window) — it decides *what* to work on and *in what order*, captures every idea, and dispatches work. The **Orchestrator** runs as an interactive agent in a tmux window below — it handles the mechanics, watching for completed work, launching agents, and escalating blockers back to you. They communicate through a structured file-based messaging channel. No databases, no servers — just files on your computer.
 
 For the full detail on each workflow — including decision gates, optional branches, and handoff conditions — see the [workflows/](workflows/) directory.
 
@@ -103,7 +103,7 @@ Deliberate Agents comes with 31 specialist agents organized into 7 teams plus a 
 | Agent | What They Do |
 |-------|-------------|
 | **Integrator** | Strategic executor — sits between you (the Visionary) and the Orchestrator. Validates new ideas against everything in flight, prioritizes the pipeline, sequences execution, and holds every initiative accountable through its full lifecycle: validated → built → shipped → marketed → supported |
-| **Orchestrator** | Tactical router — two modes: the `orchestrate.sh` bash script runs autonomously as a polling loop, while `/orchestrate` gives you an interactive command center for dispatching work and tracking progress. Reads the Integrator's priority stack and executes accordingly |
+| **Orchestrator** | Tactical coordinator — runs as an interactive Claude agent in its own tmux window (visible and addressable), managing the pipeline, launching agents, and handling handoffs. Falls back to the `orchestrate.sh` bash loop for unattended operation. The `/orchestrate` command center gives you a third option for ad-hoc dispatch. Reads the Integrator's priority stack and executes accordingly |
 
 Each agent knows its role and stays in its lane. The Developer never touches the PRD. The Product Manager never writes code. The Integrator decides *what* to build; the Orchestrator handles *how* to build it. This prevents conflicts and keeps work organized.
 
@@ -201,21 +201,44 @@ Make sure you're still in the Deliberate Agents folder (`~/Development/Deliberat
 
 > **About branches:** Most mature apps use three branches — `dev` (active work), `staging` (pre-production testing), and `main` (production). Agents work on `dev`. Promoting code to `staging` and `main` is always your call.
 
-### Step 3: Start the Orchestrator
+### Step 3: Open Claude Code — You're Talking to the Integrator
 
-The orchestrator is the coordinator — it watches for work that needs to be done and launches the right agent at the right time.
-
-Still in the Deliberate Agents folder (`~/Development/Deliberate_Agents/`), run:
+Open Claude Code in any terminal:
 
 ```bash
-./orchestration/orchestrate.sh ~/Development/my-app-worktrees/.deliberate/config.yaml
+claude
 ```
 
-You'll see output confirming it's running. **This keeps running** — it needs to stay open to coordinate agents. Leave this terminal window alone and open a **new terminal tab** (Cmd+T) or **new terminal window** (Cmd+N) for the next steps.
+That's it. The session-start hook automatically establishes you as the **Integrator** — your strategic right-hand agent. You'll see a briefing showing:
+- Your Integrator identity and key behaviors
+- Project status (which initiatives are active, what needs attention)
+- Whether the Orchestrator is running (with a launch command if it isn't)
+- Any pending escalations from the Orchestrator
 
-### Step 4: Give It Something to Build
+This is your primary interface. Share ideas, ask for status, dispatch work — the Integrator captures everything to `.deliberate/` so nothing is lost.
 
-In your **new terminal window**, create a file describing what you want built. This is your "one-pager" — it doesn't need to be long, just clear about what you want:
+### Step 4: Launch the Orchestrator
+
+The Orchestrator runs as an interactive Claude agent in its own tmux window — think of it as your PM who coordinates all the agents. The Integrator's briefing will show you the launch command if it isn't running. It looks like:
+
+```bash
+~/Development/Deliberate_Agents/orchestration/launch-agent.sh \
+  --session deliberate --name orchestrator --role orchestrator \
+  --config ~/Development/my-app-worktrees/.deliberate/config.yaml \
+  --framework-dir ~/Development/Deliberate_Agents
+```
+
+Now you have the **two-window architecture**:
+- **Top**: Your Claude Code session (Integrator) — where you talk, think, and decide
+- **Bottom**: The Orchestrator in tmux — coordinating agents, tracking progress, escalating blockers
+
+They communicate through `.deliberate/comms/_system/` — the Integrator sends directives, the Orchestrator sends escalations and status updates.
+
+> **Alternative: Unattended mode.** If you prefer a zero-AI-cost coordinator, the bash script `orchestrate.sh` can replace the interactive Orchestrator. It polls state files and launches agents mechanically. Both use the same state files — don't run both simultaneously.
+
+### Step 5: Give It Something to Build
+
+Create a file describing what you want built. This is your "one-pager" — it doesn't need to be long, just clear about what you want:
 
 ```bash
 cat > ~/Development/my-app-worktrees/.deliberate/queue/user-auth.yaml << 'EOF'
@@ -230,7 +253,7 @@ created_at: 2026-04-30
 EOF
 ```
 
-> **What just happened?** You created a small YAML file in the queue folder. The orchestrator (still running in your other terminal) will detect this new file within 30 seconds and start the pipeline automatically.
+> **What just happened?** You created a YAML file in the queue folder. The Orchestrator will detect it and start the pipeline automatically. Or, even easier — just tell the Integrator "I want to build user authentication with email, password, and remember me" and it will capture, evaluate, and queue the initiative for you.
 
 The progress looks like this:
 
@@ -244,19 +267,22 @@ Your idea is queued
             → Ready for your review
 ```
 
-### Step 5: Check on Progress
+### Step 6: Check on Progress
 
-From any terminal window, run this to see what's happening:
+You have three ways to check status:
+
+1. **Ask the Integrator** — In your Claude Code session, ask "what's the status?" and it reads the board state for you
+2. **Read the dashboard** — The Orchestrator writes a structured dashboard to `.deliberate/status/dashboard.md` showing active agents, pipeline state, blockers, and recent transitions
+3. **Run the status script** — From any terminal:
 
 ```bash
-# You can run this from anywhere — just give it the full path to your config
 ~/Development/Deliberate_Agents/orchestration/status.sh \
   ~/Development/my-app-worktrees/.deliberate/config.yaml
 ```
 
-This shows you which agents are active, how far along each initiative is, and whether anything needs your attention (like a decision that agents can't make without you).
+The Orchestrator also escalates blockers, agent crashes, and stalled initiatives directly to the Integrator — you'll see these surfaced in your next session briefing.
 
-### Step 6: Review and Approve
+### Step 7: Review and Approve
 
 When the work is done, the initiative status will change to `REVIEW_READY`. Open the finished work in Cursor to review it:
 
@@ -268,7 +294,7 @@ Look through the changes, run the tests, try it out. When you're happy, merge it
 
 ### The Command Center (`/orchestrate`)
 
-The orchestrator bash script (Step 3) runs autonomously — it watches the queue and launches agents on its own. But sometimes you want to drive. The `/orchestrate` command gives you an interactive command center inside any Claude Code session.
+The Integrator + Orchestrator two-window setup handles most workflows. But sometimes you want a dedicated dispatch interface. The `/orchestrate` command gives you an interactive command center inside any Claude Code session.
 
 **How to use it:** Open Claude Code in a project that's been initialized with Deliberate Agents, then type `/orchestrate`.
 
@@ -308,19 +334,25 @@ Notice you can change the test commands — Deliberate Agents isn't locked to an
 
 ### Running Multiple Projects at Once
 
-Each project needs its own orchestrator running in its own terminal window. Open two separate Terminal windows:
+The session-start hook automatically discovers all configured projects. When you open Claude Code, the Integrator sees all of them and can manage work across projects.
+
+Each project needs its own Orchestrator. Launch one per project:
 
 ```bash
-# Terminal window 1 — start orchestrator for Project A
-cd ~/Development/Deliberate_Agents
-./orchestration/orchestrate.sh ~/Development/my-app-worktrees/.deliberate/config.yaml
+# Orchestrator for Project A
+~/Development/Deliberate_Agents/orchestration/launch-agent.sh \
+  --session deliberate --name orchestrator-a --role orchestrator \
+  --config ~/Development/my-app-worktrees/.deliberate/config.yaml \
+  --framework-dir ~/Development/Deliberate_Agents
 
-# Terminal window 2 — start orchestrator for Project B
-cd ~/Development/Deliberate_Agents
-./orchestration/orchestrate.sh ~/Development/other-app-worktrees/.deliberate/config.yaml
+# Orchestrator for Project B
+~/Development/Deliberate_Agents/orchestration/launch-agent.sh \
+  --session deliberate --name orchestrator-b --role orchestrator \
+  --config ~/Development/other-app-worktrees/.deliberate/config.yaml \
+  --framework-dir ~/Development/Deliberate_Agents
 ```
 
-Projects never interfere with each other. They have separate state, separate agents, and separate workspaces.
+Projects never interfere with each other. They have separate state, separate agents, separate communication channels, and separate workspaces.
 
 ### Adapting to Your Stack
 
@@ -349,8 +381,9 @@ Deliberate_Agents/
 ├── workflows/          How agents coordinate — end-to-end sequences
 │                       with triggers, handoffs, and decision gates
 │
-├── orchestration/      The coordination scripts that launch agents,
-│                       monitor progress, and keep things moving
+├── orchestration/      The coordination layer — launches agents,
+│                       monitors progress, cross-agent communication,
+│                       dashboard generation, and pipeline gates
 │
 ├── scripts/            Setup tools — initialize projects, check
 │                       dependencies, clean up when done
@@ -390,10 +423,13 @@ A few terms that come up often:
 | **Initiative** | A feature or project you want built. It starts as your one-pager and moves through the pipeline until it's done. |
 | **PRD** | Product Requirements Document. The detailed plan that the Product Manager writes from your one-pager. |
 | **Worktree** | A separate copy of your project's code where an agent can work without affecting your main branches. Worktrees live in a dedicated folder next to your repo (e.g., `my-app-worktrees/`) — one worktree per initiative. Think of them like sandboxes linked to your repo. |
-| **Integrator** | The strategic executor — an AI agent that evaluates new ideas against everything in flight, prioritizes the pipeline, and tracks initiatives through their full lifecycle (built → shipped → marketed → supported). Owns `.deliberate/priority-stack.yaml`. |
-| **Orchestrator** | The bash script that coordinates everything. It reads the Integrator's priority stack, watches for completed work, and launches the next agent in line. It doesn't use AI — it's just a simple script, so it costs nothing to run. |
-| **Command Center** | The `/orchestrate` slash command running as a persistent session. It dispatches work to agents, records every dispatch in a journal, and stays alive for follow-up commands. |
+| **Integrator** | Your primary Claude Code session — the strategic executor that evaluates new ideas against everything in flight, prioritizes the pipeline, dispatches work to the Orchestrator, and tracks initiatives through their full lifecycle. Automatically established on every session start. |
+| **Orchestrator** | An interactive Claude agent running in a tmux window — the tactical coordinator that manages the pipeline, launches agents, tracks handoffs, and escalates blockers. Falls back to a zero-cost bash script (`orchestrate.sh`) for unattended operation. |
+| **Two-Window Architecture** | The primary workflow: Integrator (your Claude Code session, top) + Orchestrator (tmux window, bottom). They communicate via `.deliberate/comms/_system/`. |
+| **Dashboard** | A structured status view at `.deliberate/status/dashboard.md` showing active agents, pipeline state, blockers, and recent transitions. Written by the Orchestrator each cycle. |
+| **Command Center** | The `/orchestrate` slash command — a third interface option for ad-hoc dispatch and status. Records every dispatch in a journal. |
 | **Dispatch Journal** | A daily markdown log at `.deliberate/logs/dispatch-journal-YYYYMMDD.md` that records every task dispatched, its status, and outcome. |
+| **Escalation** | A typed, urgency-leveled message from the Orchestrator to the Integrator (agent crash, gate failure, stalled initiative). Surfaced automatically at session start. |
 | **Skill** | A step-by-step instruction set that an agent follows for a specific task. Skills are loaded only when needed, keeping agents focused. |
 | **State** | The collection of files in `.deliberate/` that track what's happening — which initiatives are active, which tasks are assigned, which agents are running. |
 | **Decision** | Something that needs your input before agents can continue. Agents will pause and wait rather than guess. |
@@ -406,7 +442,7 @@ A few terms that come up often:
 - **Agents work independently.** Each agent runs in its own session and communicates through files, not messages. This means they can't accidentally step on each other's work.
 - **Everything is observable.** Every action is logged. Every state is visible. You can check what any agent is doing at any time.
 - **It works with any project.** Initialize once and point it at any codebase. The same agents work whether you're building a Rails app, a Node.js API, or a static site.
-- **Cost-conscious.** The orchestrator is a bash script — zero AI cost. Only the agent sessions themselves use the API. Skills are loaded on demand, not all at once.
+- **Cost-conscious.** Skills are loaded on demand, not all at once. The unattended orchestrator fallback (`orchestrate.sh`) is a bash script with zero AI cost. The interactive Orchestrator uses AI but replaces manual coordination effort.
 
 ---
 

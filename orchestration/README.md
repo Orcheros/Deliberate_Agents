@@ -1,21 +1,15 @@
 # Orchestration — The Coordination Layer
 
-This directory contains the bash scripts that coordinate the entire system. The orchestrator is the "manager" that watches for work, launches agents, and keeps things moving — without using any AI itself.
+This directory contains the scripts that coordinate the entire system: launching agents, managing the pipeline, tracking handoffs, and enabling communication between the Integrator and Orchestrator.
 
-## Why Bash?
+## The Two-Window Architecture
 
-The orchestrator is intentionally simple. It's a bash script, not an AI agent, because:
+The coordination system has two layers that run in visible, interactive windows:
 
-- **Zero cost.** It doesn't call any AI APIs. Only actual agent work costs money.
-- **Predictable.** It follows rules mechanically — no creativity, no surprises.
-- **Observable.** You can read the script and know exactly what it will do.
+- **Integrator** (primary Claude Code session) — Decides *what* to work on and *in what order*. Your direct interface. Validates new ideas, maintains the priority stack, dispatches directives, and captures everything from conversations to `.deliberate/`. Established automatically on session start.
+- **Orchestrator** (interactive agent in tmux) — Decides *how* to execute. Reads the Integrator's priority stack, launches agents, records handoffs, writes the dashboard, and escalates blockers. Falls back to the `orchestrate.sh` bash loop for unattended zero-cost operation.
 
-## The Two Layers
-
-The coordination system has two layers:
-
-- **Integrator** (AI agent) — Decides *what* to work on and *in what order*. Validates new ideas against everything in flight, maintains the priority stack, and tracks initiatives to completion (shipped + marketed + supported). Runs as a persistent agent in its own tmux window.
-- **Orchestrator** (bash script) — Decides *how* to execute. Reads the Integrator's priority stack, polls state files, and launches the right agent at the right time. Zero AI cost.
+They communicate via `.deliberate/comms/_system/` — the Integrator sends directives, the Orchestrator sends escalations and status updates.
 
 ## The Scripts
 
@@ -54,19 +48,41 @@ Human decision needed?        → Warn you there's a blocker
 
 ### `launch-agent.sh` — Start a Single Agent
 
-Used by the orchestrator (and sometimes by you) to launch one specific agent in a tmux window.
+Used by the Orchestrator (and sometimes by you) to launch one specific agent in a tmux window. Builds role-specific context, injects per-initiative and system-level communication channels, and starts the agent with appropriate permissions.
 
 **Usage:**
 
 ```bash
 ./orchestration/launch-agent.sh \
-  --role developer \
+  --session deliberate --name dev-auth \
+  --role developer --initiative auth \
   --config /path/to/config.yaml \
-  --initiative my-feature \
-  --worktree my-feature-worktree
+  --framework-dir ~/Development/Deliberate_Agents
 ```
 
-You generally don't need to call this directly — the orchestrator handles it. But it's useful for debugging or manually restarting a specific agent.
+The Orchestrator calls this automatically. You can also use it to manually launch or restart agents.
+
+### `comms.sh` — Cross-Agent Communication Library
+
+Sourced by `orchestrate.sh` and `launch-agent.sh`. Provides functions for structured messaging at two levels:
+
+**Per-initiative**: `record_handoff()`, `record_decision()`, `send_agent_message()`, `write_handoff_receipt()`, `build_comms_context()`
+
+**System-level**: `send_system_message()`, `read_system_messages()`, `ack_system_message()`, `count_unread_messages()`, `build_system_comms_context()`
+
+Not called directly — used by the orchestration scripts.
+
+### `dashboard.sh` — Status Dashboard Generator
+
+Reads `.deliberate/` state files and writes a structured dashboard to `.deliberate/status/dashboard.md`. Shows active agents, pipeline summary, blockers, recent transitions, and system message counts.
+
+**Usage:**
+
+```bash
+./orchestration/dashboard.sh /path/to/config.yaml
+```
+
+Called automatically by the Orchestrator after each cycle.
 
 ### `status.sh` — Check What's Happening
 
