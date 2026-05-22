@@ -151,6 +151,37 @@ Skills that produce growth-related outputs tag their AAAERRR zone in frontmatter
 
 ---
 
+## Cross-Agent Communication
+
+Agents communicate through a structured filesystem protocol in `.deliberate/comms/{slug}/`. All communication is append-only, auditable, and scoped per initiative.
+
+### Communication Channels
+
+| Channel | Purpose | Location |
+|---------|---------|----------|
+| **Handoff Log** | Records every agent-to-agent transition with context | `comms/{slug}/handoff-log.md` |
+| **Decision Records** | Agents record significant choices with rationale | `comms/{slug}/decisions/{timestamp}-{role}.md` |
+| **Agent Messages** | Agents leave context notes for specific downstream roles | `comms/{slug}/messages/{timestamp}-{from}-to-{to}.md` |
+| **Handoff Receipts** | Agents confirm what they received at startup | `comms/{slug}/receipt-{role}.md` |
+
+### When to Record a Decision
+
+- You chose one approach over another
+- You scoped something in or out
+- You deviated from the pattern reference or architecture doc
+- You discovered a constraint that affects downstream work
+- You made an assumption that could be wrong
+
+### When to Leave a Message
+
+- The next agent needs to know about a gotcha or constraint
+- You found something that affects their work but isn't in the spec
+- You want to flag a risk or concern for a specific role
+
+The orchestrator automatically records handoff log entries at every status transition. Agents write their own decision records, messages, and handoff receipts. All artifacts are injected into agent context at launch via `build_comms_context()` in `orchestration/comms.sh`.
+
+---
+
 ## Key Principles
 
 - **"Accidental work is the enemy."** Every step should exist by design, not habit.

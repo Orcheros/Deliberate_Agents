@@ -48,8 +48,15 @@ REPORT_INTERVAL="${REPORT_INTERVAL:-10}"
 
 DELIBERATE_DIR="${WORKTREES_DIR}/.deliberate"
 
-# Source gate validation library
+# Source gate validation and cross-agent communication libraries
 source "${SCRIPT_DIR}/gates.sh"
+source "${SCRIPT_DIR}/comms.sh"
+
+# Ensure system comms directories exist (for projects initialized before this feature)
+mkdir -p "${DELIBERATE_DIR}/comms/_system/inbox/integrator" \
+         "${DELIBERATE_DIR}/comms/_system/inbox/orchestrator" \
+         "${DELIBERATE_DIR}/comms/_system/ack" \
+         "${DELIBERATE_DIR}/decisions/strategic" 2>/dev/null || true
 LOG_DIR="${DELIBERATE_DIR}/logs"
 QUEUE_DIR="${DELIBERATE_DIR}/queue"
 ASSIGNMENTS_DIR="${DELIBERATE_DIR}/assignments"
@@ -333,34 +340,46 @@ check_agent_completion() {
   title="$(read_yaml_field "$initiative_file" 'title')"
   title="${title:-$initiative_slug}"
 
-  # Map status to agent name prefix
+  # Map status to agent name prefix, next status, and handoff roles
   local agent_name=""
   local next_status=""
   local notify_msg=""
+  local from_role=""
+  local to_role=""
   case "$status" in
     PM_IN_PROGRESS)
       agent_name="product-manager-${initiative_slug}"
       next_status="PRD_COMPLETE"
+      from_role="product-manager"
+      to_role="architect"
       notify_msg="PRD complete for ${title} — launching architect"
       ;;
     ARCH_IN_PROGRESS)
       agent_name="architect-${initiative_slug}"
       next_status="ARCH_COMPLETE"
+      from_role="architect"
+      to_role="product-designer"
       notify_msg="Architecture doc complete for ${title} — launching designer"
       ;;
     DESIGN_IN_PROGRESS)
       agent_name="product-designer-${initiative_slug}"
       next_status="DESIGN_COMPLETE"
+      from_role="product-designer"
+      to_role="scrum-master"
       notify_msg="Design brief complete for ${title} — launching scrum master"
       ;;
     SCRUM_IN_PROGRESS)
       agent_name="scrum-master-${initiative_slug}"
       next_status="SPECIFIED"
+      from_role="scrum-master"
+      to_role="project-manager"
       notify_msg="${title} is fully specified — ready for handoff"
       ;;
     PJM_IN_PROGRESS)
       agent_name="project-manager-${initiative_slug}"
       next_status="READY_FOR_DEV"
+      from_role="project-manager"
+      to_role="developer"
       notify_msg="${title} has tasks assigned — ready for development"
       ;;
     *) return ;;
@@ -376,10 +395,15 @@ check_agent_completion() {
     write_yaml_field "$initiative_file" "status" "BLOCKED"
     write_yaml_field "$initiative_file" "blocker" "Agent ${agent_name} crashed — check logs"
     record_health_metric "agent_crash" "$agent_name"
+    send_system_message "orchestrator" "integrator" "escalation" \
+      "Agent crash: ${agent_name}" \
+      "Agent ${agent_name} crashed for initiative '${title}' (ran < 2 minutes). Status set to BLOCKED. Check logs at ${LOG_FILE}." \
+      "critical"
     notify "alert" "Agent crashed for ${title} — needs investigation" --initiative "$initiative_slug"
   else
     log_info "Agent $agent_name finished for ${title}"
     record_flow_metric "$initiative_slug" "$status" "$next_status"
+    record_handoff "$initiative_slug" "$status" "$next_status" "$from_role" "$to_role" "Agent completed successfully"
     write_yaml_field "$initiative_file" "status" "$next_status"
     notify "transition" "$notify_msg" --initiative "$initiative_slug"
   fi
@@ -433,6 +457,7 @@ process_queue() {
         fi
         log_info "Starting product pipeline for: ${title}"
         record_flow_metric "$slug" "QUEUED" "PM_IN_PROGRESS"
+        record_handoff "$slug" "QUEUED" "PM_IN_PROGRESS" "integrator" "product-manager"
         notify "transition" "Starting product definition for ${title}" --initiative "$slug"
         launch_agent "product-manager" "$slug" "PM_IN_PROGRESS"
         return  # Only one at a time
@@ -445,6 +470,7 @@ process_queue() {
         fi
         log_info "Advancing ${title} to architecture"
         record_flow_metric "$slug" "$status" "ARCH_IN_PROGRESS"
+        record_handoff "$slug" "$status" "ARCH_IN_PROGRESS" "product-manager" "architect"
         launch_agent "architect" "$slug" "ARCH_IN_PROGRESS"
         return
         ;;
@@ -459,6 +485,7 @@ process_queue() {
         fi
         log_info "Advancing ${title} to design"
         record_flow_metric "$slug" "$status" "DESIGN_IN_PROGRESS"
+        record_handoff "$slug" "$status" "DESIGN_IN_PROGRESS" "architect" "product-designer"
         launch_agent "product-designer" "$slug" "DESIGN_IN_PROGRESS"
         ((running_designers++)) || true
         ;;
@@ -469,6 +496,7 @@ process_queue() {
         fi
         log_info "Advancing ${title} to scrum breakdown"
         record_flow_metric "$slug" "$status" "SCRUM_IN_PROGRESS"
+        record_handoff "$slug" "$status" "SCRUM_IN_PROGRESS" "product-designer" "scrum-master"
         launch_agent "scrum-master" "$slug" "SCRUM_IN_PROGRESS"
         return
         ;;
@@ -486,6 +514,7 @@ process_queue() {
         write_yaml_field "$initiative_file" "phase" "engineering"
         write_yaml_field "$initiative_file" "specified_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
         record_flow_metric "$slug" "SPECIFIED" "READY_FOR_DEV"
+        record_handoff "$slug" "SPECIFIED" "READY_FOR_DEV" "scrum-master" "project-manager"
         notify "transition" "${title} promoted to engineering — ready for dev assignment" --initiative "$slug"
         $serial_blocked && continue
         log_info "${title} ready for dev — launching project manager to create assignments"
@@ -522,6 +551,7 @@ process_queue() {
         fi
         log_info "Dev complete for ${title}"
         record_flow_metric "$slug" "DEV_COMPLETE" "REVIEW_IN_PROGRESS"
+        record_handoff "$slug" "DEV_COMPLETE" "REVIEW_IN_PROGRESS" "developer" "reviewer"
         notify "transition" "Development complete for ${title} — starting code review" --initiative "$slug"
         launch_agent "reviewer" "$slug" "REVIEW_IN_PROGRESS"
         return
@@ -538,6 +568,7 @@ process_queue() {
         fi
         log_info "QA approved for ${title} — launching QA lead"
         record_flow_metric "$slug" "QA_APPROVED" "QA_IN_PROGRESS"
+        record_handoff "$slug" "QA_APPROVED" "QA_IN_PROGRESS" "reviewer" "qa-lead"
         launch_agent "qa-lead" "$slug" "QA_IN_PROGRESS"
         return
         ;;
@@ -809,6 +840,17 @@ main() {
     # Compile report every cycle (lightweight — updates .deliberate/status/report.md)
     compile_report
 
+    # Update structured dashboard
+    "${FRAMEWORK_DIR}/orchestration/dashboard.sh" "$CONFIG_FILE" 2>/dev/null || true
+
+    # Check for directives from the Integrator
+    for msg_file in "${DELIBERATE_DIR}/comms/_system/inbox/orchestrator"/*.md; do
+      [[ -f "$msg_file" ]] || continue
+      log_info "System message from Integrator: $(basename "$msg_file")"
+      # In bash loop mode, log and ack — the interactive agent mode processes fully
+      mv "$msg_file" "${DELIBERATE_DIR}/comms/_system/ack/$(date -u '+%Y%m%d-%H%M%S')-ack-$(basename "$msg_file")" 2>/dev/null || true
+    done
+
     # Post full Slack report every N cycles
     ((poll_count++)) || true
     if (( poll_count % REPORT_INTERVAL == 0 )); then
@@ -865,6 +907,10 @@ main() {
     # Everything blocked — escalate (once)
     if (( blocked_count > 0 && active_count == 0 && pending_count > 0 )) && ! $pipeline_running && ! $was_all_blocked; then
       was_all_blocked=true
+      send_system_message "orchestrator" "integrator" "escalation" \
+        "Work stalled: ${pending_count} decision(s) blocking progress" \
+        "All work is stalled. ${blocked_count} initiative(s) blocked, ${pending_count} decision(s) need human input. Check .deliberate/decisions/ for pending items." \
+        "critical"
       notify "alert" "Work is stalled — ${pending_count} decision(s) need your input before agents can continue. Check Slack threads or .deliberate/decisions/"
     elif (( blocked_count == 0 || active_count > 0 )) || $pipeline_running; then
       was_all_blocked=false

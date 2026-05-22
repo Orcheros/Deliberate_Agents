@@ -54,8 +54,14 @@ VERBOSE="${VERBOSE:-false}"
 PERMISSION_MODE="$(parse_yaml 'permission_mode')"
 PERMISSION_MODE="${PERMISSION_MODE:-auto}"
 DELIBERATE_DIR="${WORKTREES_DIR}/.deliberate"
+QUEUE_DIR="${DELIBERATE_DIR}/queue"
 PID_DIR="${DELIBERATE_DIR}/pids"
 mkdir -p "$PID_DIR"
+
+# Source cross-agent communication library
+if [[ -f "${FRAMEWORK_DIR}/orchestration/comms.sh" ]]; then
+  source "${FRAMEWORK_DIR}/orchestration/comms.sh"
+fi
 
 # Determine working directory based on role
 case "$ROLE" in
@@ -247,11 +253,16 @@ case "$ROLE" in
     CONTEXT+="- Priority stack: ${DELIBERATE_DIR}/priority-stack.yaml\n"
     CONTEXT+="- Assignments directory: ${DELIBERATE_DIR}/assignments/\n"
     CONTEXT+="- Decisions directory: ${DELIBERATE_DIR}/decisions/\n"
+    CONTEXT+="- Strategic decisions: ${DELIBERATE_DIR}/decisions/strategic/\n"
     CONTEXT+="- Status directory: ${DELIBERATE_DIR}/status/\n"
     CONTEXT+="- Reports directory: ${DELIBERATE_DIR}/reports/\n"
+    CONTEXT+="- System inbox: ${DELIBERATE_DIR}/comms/_system/inbox/integrator/\n"
+    CONTEXT+="- Orchestrator inbox: ${DELIBERATE_DIR}/comms/_system/inbox/orchestrator/\n"
     CONTEXT+="\n## Your Task\n\n"
-    CONTEXT+="You are the integrator. Run the situational assessment protocol, then manage intake, prioritization, and lifecycle accountability.\n"
-    CONTEXT+="Start by reading all initiative queue files, the priority stack, and scanning initiative lifecycle directories to build the full board state.\n"
+    CONTEXT+="You are the integrator — the user's strategic right hand.\n"
+    CONTEXT+="1. Check your system inbox for escalations from the Orchestrator\n"
+    CONTEXT+="2. Run the situational assessment protocol (read queue, priority stack, board state)\n"
+    CONTEXT+="3. Report status and ask what the user wants to focus on\n"
     ;;
   orchestrator)
     CONTEXT+="- Queue directory: ${DELIBERATE_DIR}/queue/\n"
@@ -259,9 +270,22 @@ case "$ROLE" in
     CONTEXT+="- Decisions directory: ${DELIBERATE_DIR}/decisions/\n"
     CONTEXT+="- Status directory: ${DELIBERATE_DIR}/status/\n"
     CONTEXT+="- Priority stack: ${DELIBERATE_DIR}/priority-stack.yaml\n"
+    CONTEXT+="- System inbox: ${DELIBERATE_DIR}/comms/_system/inbox/orchestrator/\n"
+    CONTEXT+="- Integrator inbox: ${DELIBERATE_DIR}/comms/_system/inbox/integrator/\n"
+    CONTEXT+="- Dashboard output: ${DELIBERATE_DIR}/status/dashboard.md\n"
+    CONTEXT+="- Orchestration logic reference: ${FRAMEWORK_DIR}/orchestration/orchestrate.sh\n"
+    CONTEXT+="- Gate validation reference: ${FRAMEWORK_DIR}/orchestration/gates.sh\n"
+    CONTEXT+="- Comms library reference: ${FRAMEWORK_DIR}/orchestration/comms.sh\n"
     CONTEXT+="\n## Your Task\n\n"
-    CONTEXT+="You are the orchestrator. Read the priority stack, then poll for initiative state changes, launch teams, manage handoffs, and route all human communication through Slack.\n"
-    CONTEXT+="Start by reading the priority stack and all initiative queue files.\n"
+    CONTEXT+="You are the orchestrator. You run in interactive mode — the user can see this window and type to you.\n\n"
+    CONTEXT+="**On startup:**\n"
+    CONTEXT+="1. Check your system inbox for directives from the Integrator\n"
+    CONTEXT+="2. Read the priority stack and all initiative queue files\n"
+    CONTEXT+="3. Check PID files to see which agents are running\n"
+    CONTEXT+="4. Write the initial dashboard to .deliberate/status/dashboard.md\n"
+    CONTEXT+="5. Report status and wait for instructions or begin orchestrating\n\n"
+    CONTEXT+="**Each cycle:** Check inbox → read queue → check agents → validate gates → launch/advance → update dashboard → send escalations if needed.\n\n"
+    CONTEXT+="**When the user types to you:** Respond helpfully — give status, unblock stuck work, take direct instructions.\n"
     ;;
   qa-lead)
     CONTEXT+="- Initiative: ${INITIATIVE}\n"
@@ -472,6 +496,26 @@ TMUX_SESSION="${TMUX_SESSION:-deliberate}"
 
 LOG_FILE="${DELIBERATE_DIR}/logs/${AGENT_NAME}-$(date +%Y%m%d-%H%M%S).log"
 PID_FILE="${PID_DIR}/${AGENT_NAME}.pid"
+
+# --- Inject Cross-Agent Communication Context --------------------------------
+if [[ -n "${INITIATIVE:-}" ]] && type build_comms_context &>/dev/null; then
+  COMMS_CONTEXT="$(build_comms_context "$INITIATIVE" "$ROLE" 2>/dev/null)" || true
+  if [[ -n "$COMMS_CONTEXT" ]]; then
+    CONTEXT+="\n# Cross-Agent Communication\n${COMMS_CONTEXT}\n"
+  fi
+fi
+
+# --- Inject System-Level Communication Context --------------------------------
+if type build_system_comms_context &>/dev/null; then
+  case "$ROLE" in
+    integrator|orchestrator)
+      SYSTEM_COMMS="$(build_system_comms_context "$ROLE" 2>/dev/null)" || true
+      if [[ -n "$SYSTEM_COMMS" ]]; then
+        CONTEXT+="\n# System Communications\n${SYSTEM_COMMS}\n"
+      fi
+      ;;
+  esac
+fi
 
 CONTEXT_FILE="$(mktemp)"
 echo -e "$CONTEXT" > "$CONTEXT_FILE"

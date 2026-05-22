@@ -129,12 +129,87 @@ if [[ -x "$BRIEFING_SCRIPT" ]]; then
   done
 fi
 
+# --- Check Orchestrator Escalations -------------------------------------------
+
+ESCALATIONS=""
+ORCH_STATUS=""
+
+for pair in $PROJECTS; do
+  slug="${pair%%:*}"
+  name="${pair#*:}"
+  config_file="${FRAMEWORK_DIR}/config.${slug}.yaml"
+
+  worktrees=$(grep -E "^[[:space:]]*worktrees:" "$config_file" 2>/dev/null | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'")
+  [[ -n "$worktrees" ]] || continue
+
+  # Check for pending escalations from the Orchestrator
+  inbox="${worktrees}/.deliberate/comms/_system/inbox/integrator"
+  if [[ -d "$inbox" ]]; then
+    msg_count=0
+    for msg_file in "$inbox"/*.md; do
+      [[ -f "$msg_file" ]] || continue
+      ((msg_count++)) || true
+    done
+    if (( msg_count > 0 )); then
+      ESCALATIONS+="  ${name}: ${msg_count} message(s) from Orchestrator\\n"
+      for msg_file in "$inbox"/*.md; do
+        [[ -f "$msg_file" ]] || continue
+        urgency=$(grep -E '^\*\*Urgency\*\*:' "$msg_file" 2>/dev/null | head -1 | sed 's/.*: //')
+        subject=$(grep -E '^# ' "$msg_file" 2>/dev/null | head -1 | sed 's/^# //')
+        if [[ "$urgency" == "critical" ]]; then
+          ESCALATIONS+="    CRITICAL: ${subject}\\n"
+        elif [[ "$urgency" == "warning" ]]; then
+          ESCALATIONS+="    WARNING: ${subject}\\n"
+        fi
+      done
+    fi
+  fi
+
+  # Check if Orchestrator is running
+  tmux_session=$(grep -E "^[[:space:]]*tmux_session:" "$config_file" 2>/dev/null | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'")
+  tmux_session="${tmux_session:-deliberate}"
+  orch_running="false"
+  if tmux list-windows -t "$tmux_session" 2>/dev/null | grep -qi "orchestrat"; then
+    orch_running="true"
+  fi
+  if [[ "$orch_running" == "true" ]]; then
+    ORCH_STATUS+="  ${name}: RUNNING in tmux session '${tmux_session}'\\n"
+  else
+    ORCH_STATUS+="  ${name}: NOT RUNNING — launch with: bash ${FRAMEWORK_DIR}/orchestration/launch-agent.sh --session ${tmux_session} --name orchestrator --role orchestrator --config ${config_file} --framework-dir ${FRAMEWORK_DIR}\\n"
+  fi
+done
+
 # --- Build System Message -----------------------------------------------------
 
 STATUS=$(printf '%s\n' "${STATUS_LINES[@]}")
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M %Z')
 
 MSG="Session started at ${TIMESTAMP}.\n\n"
+
+# --- Integrator Identity ---
+MSG+="## You Are the Integrator\n\n"
+MSG+="You are the Integrator Agent for this Deliberate Agents session. Your full protocol is at: ${FRAMEWORK_DIR}/agents/integrator.md — read it at the start of substantive work.\n\n"
+MSG+="**Core identity**: Strategic executor between the founder (Visionary) and the Orchestrator. You validate ideas, prioritize the pipeline, sequence execution, and track initiatives to shipped-and-supported.\n\n"
+MSG+="**Key behaviors in this session**:\n"
+MSG+="- When the user shares an idea: capture to .deliberate/intake/, run situational assessment, evaluate, decide\n"
+MSG+="- When the user asks about status: read .deliberate/ state files and present the board state\n"
+MSG+="- When work needs dispatching: write a directive to .deliberate/comms/_system/inbox/orchestrator/ (or launch the Orchestrator if not running)\n"
+MSG+="- When making strategic decisions: record to .deliberate/decisions/strategic/\n"
+MSG+="- When priorities change: update .deliberate/priority-stack.yaml immediately\n"
+MSG+="- Nothing the user says should be lost — capture ideas, decisions, and context to .deliberate/\n\n"
+
+# --- Pending Escalations (shown before everything else if present) ---
+if [[ -n "$ESCALATIONS" ]]; then
+  MSG+="## PENDING ORCHESTRATOR ESCALATIONS\n\n"
+  MSG+="${ESCALATIONS}\n"
+  MSG+="Review these messages before starting new work. Read each file, act on it, then move it to comms/_system/ack/.\n\n"
+fi
+
+# --- Orchestrator Status ---
+if [[ -n "$ORCH_STATUS" ]]; then
+  MSG+="## Orchestrator Status\n\n"
+  MSG+="${ORCH_STATUS}\n"
+fi
 
 # Time awareness
 if [[ "$IS_LATE" == "true" ]]; then
@@ -147,20 +222,20 @@ if [[ "$PROJECT_COUNT" -eq 0 ]]; then
 elif [[ "$PROJECT_COUNT" -eq 1 ]]; then
   slug="${PROJECTS%%:*}"
   name="${PROJECTS#*:}"
-  MSG+="One project available: ${name}. Ask the user to confirm this is the project they want to work on today, then present the briefing below and ask what they'd like to focus on.\n\n"
+  MSG+="One project available: ${name}.\n\n"
 else
-  MSG+="Multiple projects available. Ask the user which project they'd like to work on today:\n"
+  MSG+="Multiple projects available. Ask the user which project they'd like to focus on:\n"
   for pair in $PROJECTS; do
     slug="${pair%%:*}"
     name="${pair#*:}"
     MSG+="  - ${name} (config.${slug}.yaml)\n"
   done
-  MSG+="\nOnce they choose, present that project's briefing and ask what they'd like to focus on.\n\n"
+  MSG+="\n"
 fi
 
 # Briefings
 if [[ -n "$BRIEFINGS" ]]; then
-  MSG+="PROJECT BRIEFINGS:\n\n${BRIEFINGS}"
+  MSG+="## Project Briefings\n\n${BRIEFINGS}"
 fi
 
 # System status
