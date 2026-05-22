@@ -292,6 +292,18 @@ cursor ~/Development/my-app-worktrees/<worktree-name>
 
 Look through the changes, run the tests, try it out. When you're happy, merge it into your `dev` branch. The orchestrator will mark the initiative as complete.
 
+### Quick Launch: `/deliberate`
+
+Type `/deliberate` in any Claude Code session to boot the full two-window architecture with one command. It:
+
+1. Finds your project config
+2. Checks if the Orchestrator is running — launches it if not
+3. Surfaces any pending escalations
+4. Shows the dashboard
+5. Puts you in the Integrator ready state (share ideas, check status, send directives)
+
+This is the fastest way to go from zero to fully operational.
+
 ### The Command Center (`/orchestrate`)
 
 The Integrator + Orchestrator two-window setup handles most workflows. But sometimes you want a dedicated dispatch interface. The `/orchestrate` command gives you an interactive command center inside any Claude Code session.
