@@ -23,9 +23,9 @@ Each target project defines its own branching rules. General principles enforced
 
 If the current branch is protected and the task involves changing code files, **stop and create a branch first.** No exceptions. This applies to both this repo and any target repo. Agents spawned by this system must follow it.
 
-## Two-Window Architecture
+## Window & Pane Layout
 
-The primary runtime: Integrator (user's Claude Code session) + Orchestrator (interactive agent in tmux). They communicate via `.deliberate/comms/_system/`. The `session-start.sh` hook auto-establishes the Integrator persona and checks for Orchestrator escalations.
+The primary runtime is the "coordination" window: Integrator (top pane) + Orchestrator (bottom pane), both visible and interactive simultaneously. Initiative work spawns separate windows with agent panes inside. They communicate via `.deliberate/comms/_system/`. The `session-start.sh` hook auto-establishes the Integrator persona and checks for Orchestrator escalations.
 
 ## Key Scripts
 

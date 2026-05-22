@@ -66,12 +66,12 @@ The Integrator never does agent work (no PRDs, code, designs) — it evaluates, 
 
 The Orchestrator runs in two modes:
 
-**Interactive mode (primary)**: An AI agent running in its own tmux window, launched via `launch-agent.sh`. It:
+**Interactive mode (primary)**: An AI agent running in a pane alongside the Integrator (the "coordination" window), launched via `launch-agent.sh`. It:
 
 1. **Checks** its system inbox for Integrator directives (`.deliberate/comms/_system/inbox/orchestrator/`)
 2. **Reads** the Integrator's priority stack to determine execution order
 3. **Polls** `.deliberate/queue/` and `.deliberate/assignments/` for state changes
-4. **Launches** agents via `launch-agent.sh` in dedicated tmux windows
+4. **Launches** agents via `launch-agent.sh` as panes in initiative windows
 5. **Monitors** agent health via PID files and heartbeat staleness
 6. **Records** handoffs at every pipeline transition (via `comms.sh`)
 7. **Writes** a structured dashboard to `.deliberate/status/dashboard.md`
@@ -134,7 +134,7 @@ Each AI agent runs as an independent Claude Code session using native agent defi
 **Strategic Layer** (`agents/integrator.md`, `agents/orchestrator.md`):
 
 - **Integrator**: Primary session agent — the user's Claude Code session. Validates ideas against in-flight work, prioritizes the pipeline, dispatches directives to the Orchestrator, captures conversations to `.deliberate/`, and tracks initiatives to shipped-and-supported. Established automatically via session-start hook. Model: opus.
-- **Orchestrator**: Interactive coordinator — runs in a dedicated tmux window. Manages initiative queue, launches agents, records handoffs, writes dashboard, escalates blockers to the Integrator via system comms channel. Falls back to `orchestrate.sh` bash loop for unattended operation. Model: opus.
+- **Orchestrator**: Interactive coordinator — runs in a pane alongside the Integrator in the "coordination" window. Manages initiative queue, launches agents (as panes in initiative windows), records handoffs, writes dashboard, escalates blockers to the Integrator via system comms channel. Falls back to `orchestrate.sh` bash loop for unattended operation. Model: opus.
 
 ### Skills (Workflow Steps)
 
@@ -302,10 +302,37 @@ claude --print --agent developer --permission-mode auto --max-turns 100 \
 
 The `--append-system-prompt` carries only dynamic runtime context (~200 tokens): initiative name, worktree path, state file locations. The agent's identity, workflow knowledge, and skills are handled by the agent definition file.
 
+### Window & Pane Layout
+
+The visual layout uses tmux **windows** (separate terminal views) and **panes** (splits within a window). All panes in a window are visible and interactive simultaneously — no tab-switching.
+
+```
+┌── Coordination Window ──────────────────────────────────┐
+│  Integrator (your session)   │  Orchestrator            │
+│  Top pane — talk, decide     │  Bottom pane — coordinate │
+└──────────────────────────────┴──────────────────────────┘
+
+┌── Initiative "auth" Window ─────────────────────────────┐
+│  PM Agent     │  Developer    │  Reviewer               │
+│  (complete)   │  (working)    │  (waiting)              │
+└───────────────┴───────────────┴─────────────────────────┘
+
+┌── Initiative "billing" Window ──────────────────────────┐
+│  Architect    │  Developer                              │
+│  (working)    │  (working)                              │
+└───────────────┴─────────────────────────────────────────┘
+```
+
+- **Coordination window**: Integrator + Orchestrator panes (always present)
+- **Initiative windows**: one per active initiative, with a pane per agent working on it
+- **Ops window**: agents without a specific initiative (system-wide work)
+
+`launch-agent.sh` handles pane creation automatically — if the target window exists, it adds a pane; if not, it creates the window.
+
 ### Agent Isolation
 
 Each agent runs in its own:
-- **tmux window** (separate terminal)
+- **tmux pane** within the initiative's window (visible alongside other agents on the same initiative)
 - **Claude Code session** (separate context/conversation)
 - **Working directory** (repo root for PM/PjM/Reviewer, worktree for developers)
 

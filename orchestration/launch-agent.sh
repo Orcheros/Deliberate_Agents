@@ -457,36 +457,35 @@ EOF
     ;;
 esac
 
-# --- Role-to-Window Mapping ---------------------------------------------------
-# Agents are grouped by role category. Each agent gets its own full-screen
-# window — when multiple agents share a category, windows are suffixed
-# (product, product-2, product-3, etc.) so nothing stacks into panes.
+# --- Window Naming Strategy ----------------------------------------------------
+#
+# Layout model:
+#   - WINDOW = a full tmux window (maps to a separate terminal/iTerm2 window)
+#   - PANE   = a visible split within a window (all panes visible simultaneously)
+#
+# Grouping:
+#   - "coordination" window — Integrator + Orchestrator panes
+#   - "{initiative}" window — all agents working on that initiative as panes
+#   - "ops" window — agents without an initiative (system-wide work)
+#
+# Each agent becomes a PANE in its group's window. Agents working on the same
+# initiative share a window and can see each other. The user never needs to
+# switch tmux windows to see related work.
 
-role_to_window() {
+agent_target_window() {
   local role="$1"
+  local initiative="${2:-}"
+
   case "$role" in
-    integrator)
-      echo "integrator" ;;
-    orchestrator)
-      echo "orchestrator" ;;
-    product-manager|architect|product-designer|scrum-master|\
-    project-manager|reviewer|product-strategist|market-researcher)
-      echo "product" ;;
-    developer)
-      echo "dev" ;;
-    content-researcher|content-writer|linkedin-copywriter|\
-    twitter-copywriter|threads-copywriter|facebook-copywriter|\
-    reddit-writer|hackernews-writer|producthunt-writer|\
-    video-producer|content-publisher|engagement-tracker|content-reporter)
-      echo "content" ;;
-    qa-lead|integration-tester|ux-ui-reviewer|devops-engineer|\
-    security-analyst|compliance-analyst|technical-writer|\
-    integrations-engineer|sales-development-rep|\
-    account-executive-assistant|customer-success|\
-    onboarding-specialist|seo-specialist)
-      echo "ops" ;;
+    integrator|orchestrator)
+      echo "coordination" ;;
     *)
-      echo "ops" ;;
+      if [[ -n "$initiative" ]]; then
+        echo "$initiative"
+      else
+        echo "ops"
+      fi
+      ;;
   esac
 }
 
@@ -655,30 +654,43 @@ echo "=== Agent session complete. Shell remains interactive. ==="
 SCRIPT
 chmod +x "$LAUNCHER"
 
-# Ensure tmux session exists (normally created by orchestrate.sh)
+# --- Ensure tmux session exists -----------------------------------------------
 if ! tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
-  tmux new-session -d -s "$TMUX_SESSION" -n "orchestrator"
+  tmux new-session -d -s "$TMUX_SESSION" -n "coordination"
 fi
 
-# Find an available window name in this role's category.
-# First agent gets the base name (e.g., "product"), subsequent agents get
-# suffixed names (product-2, product-3, ...) so each runs full-screen.
-BASE_WINDOW="$(role_to_window "$ROLE")"
-WINDOW="$BASE_WINDOW"
-SUFFIX=2
-while tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -qx "$WINDOW"; do
-  WINDOW="${BASE_WINDOW}-${SUFFIX}"
-  SUFFIX=$((SUFFIX + 1))
-done
-tmux new-window -t "$TMUX_SESSION" -n "$WINDOW"
-sleep 0.3
-tmux send-keys -t "${TMUX_SESSION}:${WINDOW}" "'${LAUNCHER}'" Enter
+# --- Determine target window and create pane ----------------------------------
+#
+# Each agent becomes a PANE (split) in a shared window. Agents on the same
+# initiative share one window. The coordination window holds Integrator +
+# Orchestrator side by side.
 
-# Set pane title for identification
-tmux select-pane -t "${TMUX_SESSION}:${WINDOW}" -T "$TAB_TITLE"
+TARGET_WINDOW="$(agent_target_window "$ROLE" "${INITIATIVE:-}")"
+
+window_exists() {
+  tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -qx "$1"
+}
+
+if window_exists "$TARGET_WINDOW"; then
+  # Window exists — add a new pane (vertical split) to it
+  tmux split-window -t "${TMUX_SESSION}:${TARGET_WINDOW}" -v
+  sleep 0.3
+  # Re-tile all panes evenly so they share space
+  tmux select-layout -t "${TMUX_SESSION}:${TARGET_WINDOW}" tiled 2>/dev/null || true
+  # The new pane is automatically selected; send the launcher to it
+  tmux send-keys -t "${TMUX_SESSION}:${TARGET_WINDOW}" "'${LAUNCHER}'" Enter
+else
+  # Window doesn't exist — create it with this agent as the first pane
+  tmux new-window -t "$TMUX_SESSION" -n "$TARGET_WINDOW"
+  sleep 0.3
+  tmux send-keys -t "${TMUX_SESSION}:${TARGET_WINDOW}" "'${LAUNCHER}'" Enter
+fi
+
+# Set pane title for identification (marks the active pane in the target window)
+tmux select-pane -t "${TMUX_SESSION}:${TARGET_WINDOW}" -T "$TAB_TITLE"
 
 # Launcher script handles its own cleanup after the agent runs;
 # remove the launcher wrapper itself once it's been read into memory.
 (sleep 5 && rm -f "$LAUNCHER") &
 
-echo "Launched ${ROLE} agent in tmux window: ${TMUX_SESSION}:${WINDOW} [${TAB_TITLE}]"
+echo "Launched ${ROLE} agent as pane in: ${TMUX_SESSION}:${TARGET_WINDOW} [${TAB_TITLE}]"

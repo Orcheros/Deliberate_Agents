@@ -2,14 +2,17 @@
 
 This directory contains the scripts that coordinate the entire system: launching agents, managing the pipeline, tracking handoffs, and enabling communication between the Integrator and Orchestrator.
 
-## The Two-Window Architecture
+## Window & Pane Layout
 
-The coordination system has two layers that run in visible, interactive windows:
+The coordination system uses tmux panes (visible splits) within windows:
 
-- **Integrator** (primary Claude Code session) — Decides *what* to work on and *in what order*. Your direct interface. Validates new ideas, maintains the priority stack, dispatches directives, and captures everything from conversations to `.deliberate/`. Established automatically on session start.
-- **Orchestrator** (interactive agent in tmux) — Decides *how* to execute. Reads the Integrator's priority stack, launches agents, records handoffs, writes the dashboard, and escalates blockers. Falls back to the `orchestrate.sh` bash loop for unattended zero-cost operation.
+- **Coordination window** — Two panes, both visible and interactive:
+  - **Integrator** (top pane) — Your primary Claude Code session. Decides *what* to work on and *in what order*. Established automatically on session start.
+  - **Orchestrator** (bottom pane) — Decides *how* to execute. Launches agents, records handoffs, writes the dashboard, escalates blockers. Falls back to `orchestrate.sh` for unattended zero-cost operation.
+- **Initiative windows** — One window per active initiative. Each agent working on that initiative appears as a pane within it — PM, Developer, Reviewer all visible at once.
+- **Ops window** — Agents without a specific initiative (system-wide work).
 
-They communicate via `.deliberate/comms/_system/` — the Integrator sends directives, the Orchestrator sends escalations and status updates.
+The Integrator and Orchestrator communicate via `.deliberate/comms/_system/`. Initiative agents communicate via `.deliberate/comms/{slug}/`.
 
 ## The Scripts
 
@@ -48,7 +51,7 @@ Human decision needed?        → Warn you there's a blocker
 
 ### `launch-agent.sh` — Start a Single Agent
 
-Used by the Orchestrator (and sometimes by you) to launch one specific agent in a tmux window. Builds role-specific context, injects per-initiative and system-level communication channels, and starts the agent with appropriate permissions.
+Used by the Orchestrator (and sometimes by you) to launch one specific agent as a pane. Agents on the same initiative share a window; the Integrator and Orchestrator share the "coordination" window. Builds role-specific context, injects per-initiative and system-level communication channels, and starts the agent with appropriate permissions.
 
 **Usage:**
 
@@ -112,7 +115,7 @@ Decisions: None pending
 
 ### `stop-agents.sh` — Shut Everything Down
 
-Stops all running agents by closing their tmux windows.
+Stops all running agents by closing their tmux panes.
 
 **Usage:**
 

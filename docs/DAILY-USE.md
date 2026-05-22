@@ -16,9 +16,11 @@ If you haven't set up a project yet, start with the [Getting Started](GETTING-ST
 
 4. **Start working** — share ideas, ask for status, dispatch work. The Integrator captures everything to `.deliberate/` and routes directives to the Orchestrator.
 
-You now have the **two-window architecture**:
-- **Your Claude Code session** (Integrator) — where you think, decide, and direct
-- **tmux window** (Orchestrator) — coordinating agents, writing the dashboard, escalating blockers
+You now have the **coordination window** with two panes, both visible:
+- **Top pane** (Integrator) — where you think, decide, and direct
+- **Bottom pane** (Orchestrator) — coordinating agents, writing the dashboard, escalating blockers
+
+When initiative work starts, each initiative gets its own window with agent panes inside it.
 
 > **Tip**: For ad-hoc dispatch without leaving your session, type `/orchestrate` for the interactive command center.
 
@@ -140,7 +142,7 @@ Example entry:
 
 - **Nothing is lost.** Every idea you share with the Integrator is captured — to `intake/`, `decisions/strategic/`, `priority-stack.yaml`, or `comms/`. Conversations become documentation.
 - **Escalations surface automatically.** If the Orchestrator hits a problem overnight, you'll see it in your next session briefing — no need to check manually.
-- **Both windows are interactive.** You can type to the Orchestrator directly in its tmux window to unblock it, ask for status, or give manual overrides.
+- **Both panes are interactive.** You can type to the Orchestrator directly in its pane to unblock it, ask for status, or give manual overrides — no switching needed.
 - **The dashboard is always current.** Check `.deliberate/status/dashboard.md` for a structured view of everything in flight.
 - **Three interfaces, one system.** The Integrator session, the Orchestrator tmux window, and the `/orchestrate` command center all share the same queue and state. Use whichever fits the moment.
 

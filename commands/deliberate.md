@@ -99,14 +99,14 @@ $DA_HOME/orchestration/launch-agent.sh \
 
 Confirm it launched:
 ```bash
-sleep 2 && tmux list-windows -t "$TMUX_SESSION" 2>/dev/null | grep -i "orchestrat"
+sleep 2 && tmux list-windows -t "$TMUX_SESSION" 2>/dev/null | grep -i "coordination"
 ```
 
-Report success: "Orchestrator is now running in tmux session '{TMUX_SESSION}'. You can see it with `tmux attach -t {TMUX_SESSION}`."
+Report success: "Orchestrator is now running as a pane in the coordination window. Both the Integrator and Orchestrator are visible simultaneously. Attach with `tmux attach -t {TMUX_SESSION}` if not already attached."
 
 ### If Orchestrator IS already running:
 
-Report: "Orchestrator is already running in tmux session '{TMUX_SESSION}'."
+Report: "Orchestrator is already running in the coordination window (tmux session '{TMUX_SESSION}')."
 
 ## Step 5: Show Escalations (if any)
 
@@ -131,7 +131,7 @@ If no dashboard exists yet, note that the Orchestrator will generate one on its 
 
 Tell the user:
 
-> Two-window architecture is live. You're the Integrator — share ideas, ask for status, dispatch work. The Orchestrator is coordinating in tmux below.
+> Coordination window is live — Integrator (you, top pane) + Orchestrator (bottom pane), both visible. Share ideas, ask for status, dispatch work. Initiative windows will appear as work begins.
 
 Then present options via `AskUserQuestion`:
 

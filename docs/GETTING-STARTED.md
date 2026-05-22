@@ -54,7 +54,7 @@ The Orchestrator runs as an interactive Claude agent in its own tmux window. The
   --framework-dir ~/Development/Deliberate_Agents
 ```
 
-Now you have the **two-window architecture**: Integrator (your session) + Orchestrator (tmux). They communicate via `.deliberate/comms/_system/`.
+Now you have the **coordination window** with two panes — Integrator (top) and Orchestrator (bottom), both visible and interactive simultaneously. They communicate via `.deliberate/comms/_system/`.
 
 > **Alternative**: For zero-AI-cost unattended operation, use the bash loop instead: `./orchestration/orchestrate.sh /path/to/config.yaml`. Both modes use the same state files — don't run both simultaneously.
 
