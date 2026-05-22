@@ -2,6 +2,7 @@
 name: competitive-battlecard
 description: Create sales-ready competitive battlecards with positioning comparisons, objection rebuttals, trap-setting questions, and win/loss themes
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:acquisition"
 ---
 
 # Competitive Battlecard

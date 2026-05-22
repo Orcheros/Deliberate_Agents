@@ -2,6 +2,7 @@
 name: user-personas
 description: Create refined user personas from research data — demographics, goals, frustrations, JTBD, behavioral patterns, and anti-personas
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # User Personas

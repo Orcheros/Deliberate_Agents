@@ -2,6 +2,7 @@
 name: customer-journey-map
 description: Map the end-to-end customer journey — touchpoints, emotions, pain points, and opportunities across all stages from awareness through advocacy or churn
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "funnel:awareness"
 ---
 
 # Customer Journey Map

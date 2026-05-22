@@ -4,8 +4,8 @@ description: Write an implementation-ready architecture document with code examp
 allowed-tools: Read, Glob, Grep, Bash, Write
 intent: "Produce an implementation-ready architecture document with real code examples and build sequence"
 execution-mode: 4
-responsible: product-manager
-accountable: architect
+responsible: architect
+accountable: product-manager
 risk-level: medium
 inputs:
   information: ["PRD", "codebase patterns", "existing infrastructure"]

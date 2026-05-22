@@ -6,7 +6,7 @@ intent: "Verify all developer work meets PRD acceptance criteria before human re
 execution-mode: 4
 responsible: reviewer
 accountable: integrator
-risk-level: medium
+risk-level: low
 inputs:
   information: ["PRD acceptance criteria"]
   artifacts: ["developer commits", "test results"]

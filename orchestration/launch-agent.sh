@@ -335,7 +335,8 @@ case "$EXECUTION_MODE" in
   1)
     # Human mode — don't launch agent, write instructions for human
     DECISIONS_DIR="${DELIBERATE_DIR}/decisions"
-    mkdir -p "$DECISIONS_DIR"
+    STATUS_DIR="${DELIBERATE_DIR}/status"
+    mkdir -p "$DECISIONS_DIR" "$STATUS_DIR"
     cat > "${DECISIONS_DIR}/human-task-${AGENT_NAME}.md" <<EOF
 # Human Task Required
 
@@ -353,6 +354,15 @@ This task requires human execution. An AI agent cannot perform this work.
 
 _(Complete the task manually, then add your notes here and delete this file)_
 EOF
+    cat > "${STATUS_DIR}/${AGENT_NAME}.md" <<EOF
+# Status: ${ROLE}
+
+- **Status**: awaiting_human
+- **Execution Mode**: 1 (Human)
+- **Initiative**: ${INITIATIVE:-n/a}
+- **Decision File**: ${DECISIONS_DIR}/human-task-${AGENT_NAME}.md
+- **Created**: $(date -u '+%Y-%m-%dT%H:%M:%SZ')
+EOF
     echo "Execution mode 1 (Human): wrote instructions to ${DECISIONS_DIR}/human-task-${AGENT_NAME}.md"
     exit 0
     ;;
@@ -362,8 +372,23 @@ EOF
     (( MAX_TURNS < 10 )) && MAX_TURNS=10
     ;;
   3)
-    # AI-Assisted — short leash
+    # AI-Assisted — interactive mode with full tool access but short leash.
+    # Uses --dangerously-skip-permissions so the agent never hangs on permission
+    # prompts, but caps turns low and injects interactive guidance so the agent
+    # pauses for human input at decision points. The tmux window is interactive,
+    # so the user sees everything and can respond in real time.
     MAX_TURNS=25
+    PERM_FLAG="--dangerously-skip-permissions"
+    CONTEXT+="\n## Execution Mode: AI-Assisted (Interactive)\n\n"
+    CONTEXT+="You are running in AI-Assisted mode. You have full tool access but a short turn budget.\n"
+    CONTEXT+="IMPORTANT behavioral rules for this mode:\n"
+    CONTEXT+="1. **Ask before acting on ambiguity.** If a requirement is unclear, stop and ask the human watching this session — do not guess.\n"
+    CONTEXT+="2. **Confirm before destructive actions.** Before deleting files, dropping data, force-pushing, or making irreversible changes, state what you intend to do and wait for confirmation.\n"
+    CONTEXT+="3. **Show your plan before executing.** At the start, outline your approach in 3-5 bullets and wait for a thumbs-up before writing code.\n"
+    CONTEXT+="4. **Checkpoint after each major step.** After completing a logical unit of work (e.g., migration written, model created, tests added), briefly summarize what you did and ask if you should continue.\n"
+    CONTEXT+="5. **Surface trade-offs, don't resolve them.** When you see multiple valid approaches, present them as options with trade-offs and let the human choose.\n"
+    CONTEXT+="6. **Never burn turns on exploration spirals.** If you can't find what you need in 3 file reads, ask the human for a pointer instead of scanning the whole codebase.\n"
+    CONTEXT+="\nThe human is watching this tmux window. They can type responses directly. Treat this as a pair-programming session, not an autonomous run.\n"
     ;;
   4)
     # Gated Autonomous — default, no adjustment needed
@@ -375,7 +400,8 @@ EOF
   6)
     # External — don't launch agent, log that this needs external action
     DECISIONS_DIR="${DELIBERATE_DIR}/decisions"
-    mkdir -p "$DECISIONS_DIR"
+    STATUS_DIR="${DELIBERATE_DIR}/status"
+    mkdir -p "$DECISIONS_DIR" "$STATUS_DIR"
     cat > "${DECISIONS_DIR}/external-task-${AGENT_NAME}.md" <<EOF
 # External Action Required
 
@@ -392,6 +418,15 @@ This task requires action in an external system (third-party tool, vendor, etc.)
 ## Resolution
 
 _(Complete the external action, then add your notes here and delete this file)_
+EOF
+    cat > "${STATUS_DIR}/${AGENT_NAME}.md" <<EOF
+# Status: ${ROLE}
+
+- **Status**: awaiting_external
+- **Execution Mode**: 6 (External)
+- **Initiative**: ${INITIATIVE:-n/a}
+- **Decision File**: ${DECISIONS_DIR}/external-task-${AGENT_NAME}.md
+- **Created**: $(date -u '+%Y-%m-%dT%H:%M:%SZ')
 EOF
     echo "Execution mode 6 (External): wrote instructions to ${DECISIONS_DIR}/external-task-${AGENT_NAME}.md"
     exit 0

@@ -4,8 +4,8 @@ description: Explore intent, requirements, and design before implementation — 
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
 intent: "Prevent implementation without design review — hard gate for creative work"
 execution-mode: 3
-responsible: developer
-accountable: architect
+responsible: architect
+accountable: product-manager
 risk-level: medium
 inputs:
   information: ["PRD or task description", "existing code patterns"]

@@ -191,9 +191,10 @@ validate_ready_for_design() {
 
   local arch_path
   arch_path="$(read_yaml_field "$initiative_file" 'architecture_path')"
-  if [[ -z "$arch_path" && "$arch_path" != "null" ]]; then
-    local prd_path
-    prd_path="$(read_yaml_field "$initiative_file" 'prd_path')"
+  local prd_path
+  prd_path="$(read_yaml_field "$initiative_file" 'prd_path')"
+
+  if [[ -z "$arch_path" || "$arch_path" == "null" ]]; then
     if [[ -z "$prd_path" ]]; then
       errors+=("neither architecture_path nor prd_path set — nothing for designer to work from")
     fi
@@ -239,6 +240,17 @@ validate_ready_for_dev() {
   task_count="$(read_yaml_field "$initiative_file" 'task_count')"
   if [[ -z "$task_count" || "$task_count" == "0" ]]; then
     errors+=("task_count is 0 or unset — no tasks to assign")
+  fi
+
+  # Verify at least one worktree exists for this initiative
+  if [[ -n "$WORKTREES_DIR" ]]; then
+    local has_worktree=false
+    for wt in "$WORKTREES_DIR"/*/; do
+      [[ -d "$wt" ]] && has_worktree=true && break
+    done
+    if ! $has_worktree; then
+      errors+=("no worktree directories found in ${WORKTREES_DIR}")
+    fi
   fi
 
   if (( ${#errors[@]} > 0 )); then

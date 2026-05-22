@@ -2,6 +2,7 @@
 name: pricing-strategy
 description: Design, audit, or restructure SaaS pricing — tier structure, value metrics, price points, and pricing page design
 allowed-tools: Read, Write, Glob, Grep
+aaaerrr-zone: "flywheel:revenue"
 ---
 
 # Pricing Strategy

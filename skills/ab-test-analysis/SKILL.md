@@ -2,6 +2,7 @@
 name: ab-test-analysis
 description: Analyze A/B test results — validate test setup, calculate statistical significance, check practical significance, and produce ship/extend/stop recommendations
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "flywheel:engagement"
 ---
 
 # A/B Test Analysis

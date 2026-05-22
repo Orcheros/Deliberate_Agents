@@ -2,6 +2,7 @@
 name: monetization-strategy
 description: Brainstorm and evaluate 3-5 monetization strategies with pricing structures, revenue projections, validation experiments, and a comparison matrix
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+aaaerrr-zone: "flywheel:revenue"
 ---
 
 # Monetization Strategy

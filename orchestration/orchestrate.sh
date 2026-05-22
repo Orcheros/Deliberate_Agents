@@ -428,10 +428,11 @@ process_queue() {
 
       QUEUED)
         $serial_blocked && continue
-        if ! run_gate validate_ready_for_prd "$slug" "low"; then
+        if ! run_gate validate_ready_for_prd "$slug" "medium"; then
           continue
         fi
         log_info "Starting product pipeline for: ${title}"
+        record_flow_metric "$slug" "QUEUED" "PM_IN_PROGRESS"
         notify "transition" "Starting product definition for ${title}" --initiative "$slug"
         launch_agent "product-manager" "$slug" "PM_IN_PROGRESS"
         return  # Only one at a time
@@ -443,6 +444,7 @@ process_queue() {
           continue
         fi
         log_info "Advancing ${title} to architecture"
+        record_flow_metric "$slug" "$status" "ARCH_IN_PROGRESS"
         launch_agent "architect" "$slug" "ARCH_IN_PROGRESS"
         return
         ;;
@@ -456,6 +458,7 @@ process_queue() {
           continue
         fi
         log_info "Advancing ${title} to design"
+        record_flow_metric "$slug" "$status" "DESIGN_IN_PROGRESS"
         launch_agent "product-designer" "$slug" "DESIGN_IN_PROGRESS"
         ((running_designers++)) || true
         ;;
@@ -465,6 +468,7 @@ process_queue() {
           continue
         fi
         log_info "Advancing ${title} to scrum breakdown"
+        record_flow_metric "$slug" "$status" "SCRUM_IN_PROGRESS"
         launch_agent "scrum-master" "$slug" "SCRUM_IN_PROGRESS"
         return
         ;;
@@ -493,9 +497,6 @@ process_queue() {
 
       READY_FOR_DEV)
         $serial_blocked && continue
-        if ! run_gate validate_ready_for_dev "$slug" "medium"; then
-          continue
-        fi
         log_info "${title} ready for dev — launching project manager to create assignments"
         launch_agent "project-manager" "$slug" "PJM_IN_PROGRESS"
         return
@@ -520,6 +521,7 @@ process_queue() {
           continue
         fi
         log_info "Dev complete for ${title}"
+        record_flow_metric "$slug" "DEV_COMPLETE" "REVIEW_IN_PROGRESS"
         notify "transition" "Development complete for ${title} — starting code review" --initiative "$slug"
         launch_agent "reviewer" "$slug" "REVIEW_IN_PROGRESS"
         return
@@ -528,6 +530,16 @@ process_queue() {
       REVIEW_READY)
         log_info "${title} ready for human review"
         notify "progress" "${title} is ready for your review — branch is waiting in Cursor" --initiative "$slug"
+        ;;
+
+      QA_APPROVED)
+        if ! run_gate validate_ready_for_qa "$slug" "medium"; then
+          continue
+        fi
+        log_info "QA approved for ${title} — launching QA lead"
+        record_flow_metric "$slug" "QA_APPROVED" "QA_IN_PROGRESS"
+        launch_agent "qa-lead" "$slug" "QA_IN_PROGRESS"
+        return
         ;;
 
       BLOCKED)
