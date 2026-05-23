@@ -227,13 +227,15 @@ The pass takes 2–5 minutes depending on the size of your codebase. When it fin
 
 Every agent launched after the learning pass gets this brief injected into its context automatically. Without it, agents will still work — they just won't know about your existing patterns, conventions, or in-flight work.
 
-**Re-learning:** If your codebase changes significantly (major refactor, new service, etc.), re-run the learning pass to refresh the brief:
+**Re-learning:** If your codebase changes significantly (major refactor, new service, etc.), refresh the brief:
 
 ```bash
-./scripts/onboard.sh config.my-app.yaml --refresh
+/deliberate-relearn
 ```
 
-Or choose "Re-learn codebase" from the `/deliberate` menu.
+Or from the shell: `./scripts/onboard.sh config.my-app.yaml --refresh`
+
+You can also run `/deliberate-learn` at any time to trigger the learning pass directly, or choose "Re-learn codebase" from the `/deliberate` menu.
 
 > **Empty projects:** If your repo is just a scaffold with no source files yet, the learning pass is skipped silently — there's nothing to learn.
 
@@ -340,6 +342,15 @@ Type `/deliberate` in any Claude Code session to boot the full two-window archit
 6. Puts you in the Integrator ready state (share ideas, check status, send directives, re-learn codebase)
 
 This is the fastest way to go from zero to fully operational.
+
+### Learning Commands: `/deliberate-learn` and `/deliberate-relearn`
+
+Two standalone slash commands for managing the project learning brief:
+
+- **`/deliberate-learn`** — Run the first-run learning pass. Explores the codebase and writes a structured brief to `.deliberate/onboarding.md`. Warns if a brief already exists and offers to overwrite.
+- **`/deliberate-relearn`** — Refresh an existing brief after significant codebase changes (major refactors, new services, etc.). Shows when the brief was last generated. Already-running agents won't pick up the update until re-launched.
+
+Both resolve the project config the same way `/deliberate` does — run them from any Claude Code session.
 
 ### The Command Center (`/orchestrate`)
 
