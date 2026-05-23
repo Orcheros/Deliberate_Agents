@@ -565,7 +565,8 @@ claude \\
   --agent ${ROLE} \\
   ${PERM_FLAG} \\
   --max-turns ${MAX_TURNS} \\
-  --append-system-prompt "\$(cat '${CONTEXT_FILE}')"
+  --append-system-prompt "\$(cat '${CONTEXT_FILE}')" \\
+  "Begin your session. Run your startup protocol and report status."
 
 # --- Cleanup ------------------------------------------------------------------
 rm -f '${PID_FILE}' '${CONTEXT_FILE}'
