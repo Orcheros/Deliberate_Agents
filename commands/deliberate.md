@@ -126,16 +126,24 @@ Verify the coordination window has both panes:
 sleep 2 && tmux list-panes -t "${TMUX_SESSION}:coordination" 2>/dev/null | wc -l
 ```
 
+Then **auto-open** the coordination window in a new iTerm2 window so the user sees both agents immediately:
+
+```bash
+osascript -e '
+tell application "iTerm2"
+  activate
+  set newWindow to (create window with default profile command "tmux attach -t '"${TMUX_SESSION}"'")
+end tell
+'
+```
+
 Report:
-> Coordination window is live with both agents:
-> - **Top pane**: Integrator — your strategic right-hand, handles ideas, priorities, and lifecycle tracking
-> - **Bottom pane**: Orchestrator — tactical coordinator, launches specialist agents and manages handoffs
->
-> Attach with `tmux attach -t {TMUX_SESSION}` to interact with them. Talk to the Integrator (top pane) to share ideas, ask for status, or dispatch work. The Integrator communicates with the Orchestrator on your behalf.
+> Coordination window opened — Integrator (top pane) + Orchestrator (bottom pane). Talk to the Integrator to share ideas, check status, or dispatch work.
 
 ### If both are already running:
 
-Report: "Coordination window is already live — Integrator + Orchestrator running in tmux session '{TMUX_SESSION}'."
+Auto-open the coordination window (same osascript as above), then report:
+> Coordination window is already live — opened it for you. Integrator + Orchestrator running in tmux session '{TMUX_SESSION}'.
 
 ## Step 5: Show Escalations (if any)
 
@@ -160,26 +168,16 @@ If no dashboard exists yet, note that the Orchestrator will generate one on its 
 
 Tell the user:
 
-> Coordination window is live. Attach to it with `tmux attach -t {TMUX_SESSION}` and talk to the Integrator (top pane) to share ideas, check status, or dispatch work. Initiative windows will appear as work begins.
+> Coordination window is open. The Integrator and Orchestrator are ready. Use this session to send messages, check status, or re-learn the codebase. Initiative windows will appear as work begins.
 
 Then present options via `AskUserQuestion`:
 
 | Option | Label | Description |
 |--------|-------|-------------|
-| 1 | Attach to coordination window | Show the tmux attach command to interact with the Integrator and Orchestrator |
-| 2 | Send a message to the Integrator | Write a message to the Integrator's inbox for it to process |
-| 3 | Send a directive to the Orchestrator | Write a directive message for the Orchestrator to act on |
-| 4 | Check status | Read board state and show pipeline details |
-| 5 | Re-learn codebase | Run (or re-run) the onboarding learning pass to refresh project knowledge |
-
-### If "Attach to coordination window":
-
-Tell the user:
-> Run this in your terminal to attach to the coordination window:
-> ```
-> tmux attach -t {TMUX_SESSION}
-> ```
-> Once attached, select the top pane (Integrator) to share ideas and the bottom pane (Orchestrator) to check on agent coordination. Use `Ctrl-b` then arrow keys to switch between panes.
+| 1 | Send a message to the Integrator | Write a message to the Integrator's inbox for it to process |
+| 2 | Send a directive to the Orchestrator | Write a directive message for the Orchestrator to act on |
+| 3 | Check status | Read board state and show pipeline details |
+| 4 | Re-learn codebase | Run (or re-run) the onboarding learning pass to refresh project knowledge |
 
 ### If "Send a message to the Integrator":
 
