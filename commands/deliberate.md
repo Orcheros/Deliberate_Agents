@@ -131,7 +131,10 @@ Then **auto-open** the coordination window in a new iTerm2 window so the user se
 ```bash
 osascript <<APPLESCRIPT
 tell application "iTerm2"
-  create window with default profile command "tmux attach -t ${TMUX_SESSION}"
+  set newWindow to (create window with default profile)
+  tell current session of newWindow
+    write text "tmux attach -t ${TMUX_SESSION}"
+  end tell
   activate
 end tell
 
@@ -152,7 +155,10 @@ Auto-open the coordination window:
 ```bash
 osascript <<APPLESCRIPT
 tell application "iTerm2"
-  create window with default profile command "tmux attach -t ${TMUX_SESSION}"
+  set newWindow to (create window with default profile)
+  tell current session of newWindow
+    write text "tmux attach -t ${TMUX_SESSION}"
+  end tell
   activate
 end tell
 
@@ -190,96 +196,8 @@ If no dashboard exists yet, note that the Orchestrator will generate one on its 
 
 Tell the user:
 
-> Coordination window is open. The Integrator and Orchestrator are ready. Use this session to send messages, check status, or re-learn the codebase. Initiative windows will appear as work begins.
+> Coordination window is open. The Integrator (top pane) is your primary agent — switch to that window and talk to it directly. The Orchestrator (bottom pane) handles coordination automatically.
+>
+> This session's job is done. Switch to the coordination window to begin working.
 
-Then present options via `AskUserQuestion`:
-
-| Option | Label | Description |
-|--------|-------|-------------|
-| 1 | Send a message to the Integrator | Write a message to the Integrator's inbox for it to process |
-| 2 | Send a directive to the Orchestrator | Write a directive message for the Orchestrator to act on |
-| 3 | Check status | Read board state and show pipeline details |
-| 4 | Re-learn codebase | Run (or re-run) the onboarding learning pass to refresh project knowledge |
-
-### If "Send a message to the Integrator":
-
-Ask the user what they want to tell the Integrator. Then write:
-```bash
-TIMESTAMP=$(date -u '+%Y%m%d-%H%M%S')
-```
-
-Write to `$DELIBERATE_DIR/comms/_system/inbox/integrator/${TIMESTAMP}-message.md`:
-```markdown
-# message: {subject}
-- **From**: visionary
-- **To**: integrator
-- **At**: {ISO timestamp}
-- **Type**: message
-- **Urgency**: info
-- **Status**: unread
-
-{user's message}
-```
-
-Also write to `$DELIBERATE_DIR/intake/{timestamp}-{slug}.md` if the message contains a new idea:
-```markdown
-# {title}
-**Captured**: {ISO timestamp}
-**Source**: Visionary via /deliberate
-
-{user's description}
-```
-
-Confirm: "Message sent to the Integrator's inbox. It will pick it up on its next cycle."
-
-### If "Send a directive to the Orchestrator":
-
-Ask what the user wants the Orchestrator to do. Then write a directive:
-```bash
-TIMESTAMP=$(date -u '+%Y%m%d-%H%M%S')
-```
-
-Write to `$DELIBERATE_DIR/comms/_system/inbox/orchestrator/${TIMESTAMP}-directive.md`:
-```markdown
-# directive: {subject}
-- **From**: visionary
-- **To**: orchestrator
-- **At**: {ISO timestamp}
-- **Type**: directive
-- **Urgency**: info
-- **Status**: unread
-
-{user's instruction}
-```
-
-Confirm: "Directive sent. The Orchestrator will pick it up on its next cycle."
-
-### If "Check status":
-
-Read these state files and present a comprehensive view:
-- `$DELIBERATE_DIR/priority-stack.yaml` — current priorities
-- `$DELIBERATE_DIR/queue/*.yaml` — initiative statuses
-- `$DELIBERATE_DIR/status/dashboard.md` — if available
-- `$DELIBERATE_DIR/comms/_system/inbox/integrator/*.md` — pending messages
-
-### If "Re-learn codebase":
-
-Run the onboarding script to produce (or refresh) the project knowledge brief:
-
-```bash
-$DA_HOME/scripts/onboard.sh "$CONFIG_PATH" --refresh --skip-prompt
-```
-
-This takes 2-5 minutes. Wait for completion, then verify:
-
-```bash
-test -f "$DELIBERATE_DIR/onboarding.md" && wc -l "$DELIBERATE_DIR/onboarding.md"
-```
-
-Report the result. Note: any agents launched after this will automatically pick up the refreshed brief — already-running agents won't see the update until re-launched.
-
----
-
-## After any action in Step 7, return to Step 7's ready state.
-
-This is a persistent session. Stay in the loop until the user says "done" or closes the session.
+This command's job is complete once the coordination window is open. The user interacts with the Integrator directly in the tmux pane.

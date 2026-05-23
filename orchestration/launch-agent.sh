@@ -539,6 +539,44 @@ fi
 LAUNCHER="$(mktemp)"
 TAB_TITLE="${ROLE}: ${INITIATIVE:-${WORKTREE:-agent}}"
 
+# Determine if this agent should be interactive (user types to it directly)
+# or autonomous (one-shot with streaming progress output).
+case "$ROLE" in
+  integrator|orchestrator) AGENT_INTERACTIVE=true ;;
+  *)                       AGENT_INTERACTIVE=false ;;
+esac
+
+if [[ "$AGENT_INTERACTIVE" == "true" ]]; then
+# --- Interactive launcher (Integrator, Orchestrator) --------------------------
+# Launches a full interactive Claude session. The user talks to this agent
+# directly in the tmux pane — no one-shot prompt, no streaming JSON parser.
+cat > "$LAUNCHER" <<SCRIPT
+#!/usr/bin/env bash
+cd '${WORK_DIR}'
+unset ANTHROPIC_API_KEY
+echo \$\$ > '${PID_FILE}'
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║  ${ROLE}"
+echo "║  Working in: ${WORK_DIR}"
+echo "╚══════════════════════════════════════════════════════════════╝"
+echo ""
+
+claude \\
+  --agent ${ROLE} \\
+  ${PERM_FLAG} \\
+  --max-turns ${MAX_TURNS} \\
+  --append-system-prompt "\$(cat '${CONTEXT_FILE}')"
+
+# --- Cleanup ------------------------------------------------------------------
+rm -f '${PID_FILE}' '${CONTEXT_FILE}'
+echo ""
+osascript -e "display notification \"${ROLE} session ended\" with title \"Deliberate Agents\"" 2>/dev/null
+echo "=== ${ROLE} session ended. Shell remains interactive. ==="
+SCRIPT
+
+else
+# --- Autonomous launcher (all other agents) -----------------------------------
+# One-shot session with streaming JSON progress output and activity watchdog.
 cat > "$LAUNCHER" <<SCRIPT
 #!/usr/bin/env bash
 cd '${WORK_DIR}'
@@ -570,7 +608,6 @@ read -r
 echo ""
 
 # --- Activity watchdog ---------------------------------------------------------
-# Tracks last output timestamp via file. Sends macOS notification if idle too long.
 ACTIVITY_TS="\$(mktemp)"
 date +%s > "\$ACTIVITY_TS"
 
@@ -590,11 +627,6 @@ date +%s > "\$ACTIVITY_TS"
 WATCHDOG_PID=\$!
 
 # --- Stream progress ----------------------------------------------------------
-# BUG FIXES applied:
-#   1. stderr captured (2>&1) instead of discarded — --verbose output now visible
-#   2. script(1) pty wrapper retained for unbuffered streaming
-#   3. All tool types handled — catch-all shows tool name + context
-
 script -q /dev/null claude \\
   --agent ${ROLE} \\
   ${PERM_FLAG} \\
@@ -604,7 +636,6 @@ script -q /dev/null claude \\
   --verbose \\
   -p 'Begin your assigned task. Read your assignment/state file first.' 2>&1 | \\
 while IFS= read -r line; do
-  # Skip lines that aren't valid JSON (verbose/stderr output — print directly)
   type=\$(echo "\$line" | jq -r '.type // empty' 2>/dev/null) || { echo "\$line"; continue; }
   if [[ -z "\$type" ]]; then
     [[ -n "\$line" ]] && echo "\$line"
@@ -652,6 +683,8 @@ echo ""
 osascript -e "display notification \"${ROLE} agent session ended\" with title \"Deliberate Agents\"" 2>/dev/null
 echo "=== Agent session complete. Shell remains interactive. ==="
 SCRIPT
+
+fi
 chmod +x "$LAUNCHER"
 
 # --- Ensure tmux session exists -----------------------------------------------
