@@ -201,7 +201,43 @@ Make sure you're still in the Deliberate Agents folder (`~/Development/Deliberat
 
 > **About branches:** Most mature apps use three branches — `dev` (active work), `staging` (pre-production testing), and `main` (production). Agents work on `dev`. Promoting code to `staging` and `main` is always your call.
 
-### Step 3: Open Claude Code — You're Talking to the Integrator
+### Step 3: Learn the Codebase (First Run Only)
+
+If your project already has code, Deliberate Agents needs to understand it before agents can make good decisions. The **learning pass** explores your entire codebase — models, routes, dependencies, documentation, git history — and writes a structured brief that every agent references.
+
+**This happens automatically.** The first time you run `/deliberate`, it detects that no brief exists and offers to run the learning pass for you. You can also trigger it manually:
+
+```bash
+./scripts/onboard.sh config.my-app.yaml
+```
+
+The pass takes 2–5 minutes depending on the size of your codebase. When it finishes, you'll find the brief at:
+
+```
+~/Development/my-app-worktrees/.deliberate/onboarding.md
+```
+
+**What the brief covers:**
+- Application architecture — models, controllers, routes, jobs, schema
+- Tech stack and key dependencies
+- Documentation inventory
+- Initiative catalog with status (active, shipped, retired)
+- Branching strategy and recent git activity
+- Key observations a new developer should know
+
+Every agent launched after the learning pass gets this brief injected into its context automatically. Without it, agents will still work — they just won't know about your existing patterns, conventions, or in-flight work.
+
+**Re-learning:** If your codebase changes significantly (major refactor, new service, etc.), re-run the learning pass to refresh the brief:
+
+```bash
+./scripts/onboard.sh config.my-app.yaml --refresh
+```
+
+Or choose "Re-learn codebase" from the `/deliberate` menu.
+
+> **Empty projects:** If your repo is just a scaffold with no source files yet, the learning pass is skipped silently — there's nothing to learn.
+
+### Step 4: Open Claude Code — You're Talking to the Integrator
 
 Open Claude Code in any terminal:
 
@@ -217,7 +253,7 @@ That's it. The session-start hook automatically establishes you as the **Integra
 
 This is your primary interface. Share ideas, ask for status, dispatch work — the Integrator captures everything to `.deliberate/` so nothing is lost.
 
-### Step 4: Launch the Orchestrator
+### Step 5: Launch the Orchestrator
 
 The Orchestrator runs as an interactive Claude agent in a pane alongside your Integrator session — think of it as your PM who coordinates all the agents. Both panes are visible and interactive at the same time. The Integrator's briefing will show you the launch command if it isn't running. It looks like:
 
@@ -236,7 +272,7 @@ Both are visible and interactive simultaneously — no switching needed. They co
 
 > **Alternative: Unattended mode.** If you prefer a zero-AI-cost coordinator, the bash script `orchestrate.sh` can replace the interactive Orchestrator. It polls state files and launches agents mechanically. Both use the same state files — don't run both simultaneously.
 
-### Step 5: Give It Something to Build
+### Step 6: Give It Something to Build
 
 Create a file describing what you want built. This is your "one-pager" — it doesn't need to be long, just clear about what you want:
 
@@ -267,7 +303,7 @@ Your idea is queued
             → Ready for your review
 ```
 
-### Step 6: Check on Progress
+### Step 7: Check on Progress
 
 You have three ways to check status:
 
@@ -282,7 +318,7 @@ You have three ways to check status:
 
 The Orchestrator also escalates blockers, agent crashes, and stalled initiatives directly to the Integrator — you'll see these surfaced in your next session briefing.
 
-### Step 7: Review and Approve
+### Step 8: Review and Approve
 
 When the work is done, the initiative status will change to `REVIEW_READY`. Open the finished work in Cursor to review it:
 
@@ -297,10 +333,11 @@ Look through the changes, run the tests, try it out. When you're happy, merge it
 Type `/deliberate` in any Claude Code session to boot the full two-window architecture with one command. It:
 
 1. Finds your project config
-2. Checks if the Orchestrator is running — launches it if not
-3. Surfaces any pending escalations
-4. Shows the dashboard
-5. Puts you in the Integrator ready state (share ideas, check status, send directives)
+2. Runs the first-run learning pass if the project hasn't been learned yet (offers to skip)
+3. Checks if the Orchestrator is running — launches it if not
+4. Surfaces any pending escalations
+5. Shows the dashboard
+6. Puts you in the Integrator ready state (share ideas, check status, send directives, re-learn codebase)
 
 This is the fastest way to go from zero to fully operational.
 
