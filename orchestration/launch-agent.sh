@@ -672,11 +672,16 @@ window_exists() {
 }
 
 if window_exists "$TARGET_WINDOW"; then
-  # Window exists — add a new pane (vertical split) to it
+  # Window exists — add a new pane (vertical split = top/bottom) to it
   tmux split-window -t "${TMUX_SESSION}:${TARGET_WINDOW}" -v
   sleep 0.3
-  # Re-tile all panes evenly so they share space
-  tmux select-layout -t "${TMUX_SESSION}:${TARGET_WINDOW}" tiled 2>/dev/null || true
+  # Layout: coordination window gets even-vertical (top 50% / bottom 50%),
+  # initiative windows get tiled (grid of specialist agents)
+  if [[ "$TARGET_WINDOW" == "coordination" ]]; then
+    tmux select-layout -t "${TMUX_SESSION}:${TARGET_WINDOW}" even-vertical 2>/dev/null || true
+  else
+    tmux select-layout -t "${TMUX_SESSION}:${TARGET_WINDOW}" tiled 2>/dev/null || true
+  fi
   # The new pane is automatically selected; send the launcher to it
   tmux send-keys -t "${TMUX_SESSION}:${TARGET_WINDOW}" "'${LAUNCHER}'" Enter
 else
@@ -688,6 +693,11 @@ fi
 
 # Set pane title for identification (marks the active pane in the target window)
 tmux select-pane -t "${TMUX_SESSION}:${TARGET_WINDOW}" -T "$TAB_TITLE"
+
+# For coordination window, select the top pane (Integrator) so user lands there on attach
+if [[ "$TARGET_WINDOW" == "coordination" && "$ROLE" == "orchestrator" ]]; then
+  tmux select-pane -t "${TMUX_SESSION}:${TARGET_WINDOW}.0"
+fi
 
 # Launcher script handles its own cleanup after the agent runs;
 # remove the launcher wrapper itself once it's been read into memory.

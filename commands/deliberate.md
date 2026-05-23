@@ -62,27 +62,47 @@ Check if the project has been learned:
 
 Run these checks (use Bash where needed, Glob/Read where possible):
 
-1. **Orchestrator running?** — Check if a tmux window matching `orchestrat` exists in the session:
+1. **Coordination window running?** — Check if the tmux session and coordination window exist:
    ```bash
-   tmux list-windows -t "$TMUX_SESSION" 2>/dev/null | grep -qi "orchestrat"
+   tmux list-windows -t "$TMUX_SESSION" 2>/dev/null | grep -qi "coordination"
    ```
 
-2. **Any agents running?** — Use Glob to check `$DELIBERATE_DIR/pids/*.pid`. For each, `kill -0 <pid>` to verify alive.
+2. **Integrator running?** — Check if `$DELIBERATE_DIR/pids/integrator.pid` exists and `kill -0 <pid>` succeeds.
 
-3. **Pending escalations?** — Use Glob to check `$DELIBERATE_DIR/comms/_system/inbox/integrator/*.md`. Count and read subjects if any exist.
+3. **Orchestrator running?** — Check if `$DELIBERATE_DIR/pids/orchestrator.pid` exists and `kill -0 <pid>` succeeds.
 
-4. **Dashboard available?** — Check if `$DELIBERATE_DIR/status/dashboard.md` exists.
+4. **Any other agents running?** — Use Glob to check `$DELIBERATE_DIR/pids/*.pid`. For each, `kill -0 <pid>` to verify alive.
 
-## Step 4: Present Status and Act
+5. **Pending escalations?** — Use Glob to check `$DELIBERATE_DIR/comms/_system/inbox/integrator/*.md`. Count and read subjects if any exist.
+
+6. **Dashboard available?** — Check if `$DELIBERATE_DIR/status/dashboard.md` exists.
+
+## Step 4: Launch Coordination Window
 
 Present a brief status to the user:
 
 ```
 Project: {PROJECT_NAME}
+Integrator: {RUNNING | NOT RUNNING}
 Orchestrator: {RUNNING | NOT RUNNING}
-Active agents: {count}
+Other agents: {count}
 Escalations: {count or "none"}
 ```
+
+### If Integrator is NOT running:
+
+Tell the user you're launching the Integrator, then run:
+
+```bash
+$DA_HOME/orchestration/launch-agent.sh \
+  --session "$TMUX_SESSION" \
+  --name integrator \
+  --role integrator \
+  --config "$CONFIG_PATH" \
+  --framework-dir "$DA_HOME"
+```
+
+This creates the "coordination" window with the Integrator as the first pane.
 
 ### If Orchestrator is NOT running:
 
@@ -97,16 +117,25 @@ $DA_HOME/orchestration/launch-agent.sh \
   --framework-dir "$DA_HOME"
 ```
 
-Confirm it launched:
+This splits the "coordination" window and adds the Orchestrator as a second pane below the Integrator.
+
+### After launching both (or confirming both are running):
+
+Verify the coordination window has both panes:
 ```bash
-sleep 2 && tmux list-windows -t "$TMUX_SESSION" 2>/dev/null | grep -i "coordination"
+sleep 2 && tmux list-panes -t "${TMUX_SESSION}:coordination" 2>/dev/null | wc -l
 ```
 
-Report success: "Orchestrator is now running as a pane in the coordination window. Both the Integrator and Orchestrator are visible simultaneously. Attach with `tmux attach -t {TMUX_SESSION}` if not already attached."
+Report:
+> Coordination window is live with both agents:
+> - **Top pane**: Integrator — your strategic right-hand, handles ideas, priorities, and lifecycle tracking
+> - **Bottom pane**: Orchestrator — tactical coordinator, launches specialist agents and manages handoffs
+>
+> Attach with `tmux attach -t {TMUX_SESSION}` to interact with them. Talk to the Integrator (top pane) to share ideas, ask for status, or dispatch work. The Integrator communicates with the Orchestrator on your behalf.
 
-### If Orchestrator IS already running:
+### If both are already running:
 
-Report: "Orchestrator is already running in the coordination window (tmux session '{TMUX_SESSION}')."
+Report: "Coordination window is already live — Integrator + Orchestrator running in tmux session '{TMUX_SESSION}'."
 
 ## Step 5: Show Escalations (if any)
 
@@ -131,40 +160,59 @@ If no dashboard exists yet, note that the Orchestrator will generate one on its 
 
 Tell the user:
 
-> Coordination window is live — Integrator (you, top pane) + Orchestrator (bottom pane), both visible. Share ideas, ask for status, dispatch work. Initiative windows will appear as work begins.
+> Coordination window is live. Attach to it with `tmux attach -t {TMUX_SESSION}` and talk to the Integrator (top pane) to share ideas, check status, or dispatch work. Initiative windows will appear as work begins.
 
 Then present options via `AskUserQuestion`:
 
 | Option | Label | Description |
 |--------|-------|-------------|
-| 1 | Share an idea | Capture a new idea for evaluation and potential queueing |
-| 2 | Check full status | Read board state and show pipeline details |
-| 3 | Send directive to Orchestrator | Write a directive message for the Orchestrator to act on |
-| 4 | Re-learn codebase | Run (or re-run) the onboarding learning pass to refresh project knowledge |
-| 5 | Open command center | Switch to the full `/orchestrate` dispatch interface |
+| 1 | Attach to coordination window | Show the tmux attach command to interact with the Integrator and Orchestrator |
+| 2 | Send a message to the Integrator | Write a message to the Integrator's inbox for it to process |
+| 3 | Send a directive to the Orchestrator | Write a directive message for the Orchestrator to act on |
+| 4 | Check status | Read board state and show pipeline details |
+| 5 | Re-learn codebase | Run (or re-run) the onboarding learning pass to refresh project knowledge |
 
-### If "Share an idea":
+### If "Attach to coordination window":
 
-Ask the user to describe their idea. Then:
-1. Write it to `$DELIBERATE_DIR/intake/{timestamp}-{slug}.md` with a simple format:
-   ```markdown
-   # {title}
-   **Captured**: {ISO timestamp}
-   **Source**: Integrator session
+Tell the user:
+> Run this in your terminal to attach to the coordination window:
+> ```
+> tmux attach -t {TMUX_SESSION}
+> ```
+> Once attached, select the top pane (Integrator) to share ideas and the bottom pane (Orchestrator) to check on agent coordination. Use `Ctrl-b` then arrow keys to switch between panes.
 
-   {user's description}
-   ```
-2. Confirm capture and suggest next steps (evaluate against board state, or queue directly if clear-cut).
+### If "Send a message to the Integrator":
 
-### If "Check full status":
+Ask the user what they want to tell the Integrator. Then write:
+```bash
+TIMESTAMP=$(date -u '+%Y%m%d-%H%M%S')
+```
 
-Read these state files and present a comprehensive view:
-- `$DELIBERATE_DIR/priority-stack.yaml` — current priorities
-- `$DELIBERATE_DIR/queue/*.yaml` — initiative statuses
-- `$DELIBERATE_DIR/status/dashboard.md` — if available
-- `$DELIBERATE_DIR/comms/_system/inbox/integrator/*.md` — pending messages
+Write to `$DELIBERATE_DIR/comms/_system/inbox/integrator/${TIMESTAMP}-message.md`:
+```markdown
+# message: {subject}
+- **From**: visionary
+- **To**: integrator
+- **At**: {ISO timestamp}
+- **Type**: message
+- **Urgency**: info
+- **Status**: unread
 
-### If "Send directive to Orchestrator":
+{user's message}
+```
+
+Also write to `$DELIBERATE_DIR/intake/{timestamp}-{slug}.md` if the message contains a new idea:
+```markdown
+# {title}
+**Captured**: {ISO timestamp}
+**Source**: Visionary via /deliberate
+
+{user's description}
+```
+
+Confirm: "Message sent to the Integrator's inbox. It will pick it up on its next cycle."
+
+### If "Send a directive to the Orchestrator":
 
 Ask what the user wants the Orchestrator to do. Then write a directive:
 ```bash
@@ -174,7 +222,7 @@ TIMESTAMP=$(date -u '+%Y%m%d-%H%M%S')
 Write to `$DELIBERATE_DIR/comms/_system/inbox/orchestrator/${TIMESTAMP}-directive.md`:
 ```markdown
 # directive: {subject}
-- **From**: integrator
+- **From**: visionary
 - **To**: orchestrator
 - **At**: {ISO timestamp}
 - **Type**: directive
@@ -185,6 +233,14 @@ Write to `$DELIBERATE_DIR/comms/_system/inbox/orchestrator/${TIMESTAMP}-directiv
 ```
 
 Confirm: "Directive sent. The Orchestrator will pick it up on its next cycle."
+
+### If "Check status":
+
+Read these state files and present a comprehensive view:
+- `$DELIBERATE_DIR/priority-stack.yaml` — current priorities
+- `$DELIBERATE_DIR/queue/*.yaml` — initiative statuses
+- `$DELIBERATE_DIR/status/dashboard.md` — if available
+- `$DELIBERATE_DIR/comms/_system/inbox/integrator/*.md` — pending messages
 
 ### If "Re-learn codebase":
 
@@ -201,10 +257,6 @@ test -f "$DELIBERATE_DIR/onboarding.md" && wc -l "$DELIBERATE_DIR/onboarding.md"
 ```
 
 Report the result. Note: any agents launched after this will automatically pick up the refreshed brief — already-running agents won't see the update until re-launched.
-
-### If "Open command center":
-
-Tell the user to type `/orchestrate` to enter the full dispatch interface.
 
 ---
 

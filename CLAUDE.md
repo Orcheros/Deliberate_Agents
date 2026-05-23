@@ -25,7 +25,7 @@ If the current branch is protected and the task involves changing code files, **
 
 ## Window & Pane Layout
 
-The primary runtime is the "coordination" window: Integrator (top pane) + Orchestrator (bottom pane), both visible and interactive simultaneously. Initiative work spawns separate windows with agent panes inside. They communicate via `.deliberate/comms/_system/`. The `session-start.sh` hook auto-establishes the Integrator persona and checks for Orchestrator escalations.
+The Integrator and Orchestrator are separate AI agents launched by `/deliberate` into a tmux "coordination" window — Integrator (top pane) + Orchestrator (bottom pane), both visible and interactive simultaneously. The user's Claude Code session is the Visionary session — it dispatches work and checks status but is not the Integrator. Initiative work spawns separate windows with agent panes inside. They communicate via `.deliberate/comms/_system/`. The `session-start.sh` hook establishes the Visionary session identity and checks for escalations.
 
 ## Key Scripts
 

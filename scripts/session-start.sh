@@ -186,17 +186,19 @@ TIMESTAMP=$(date '+%Y-%m-%d %H:%M %Z')
 
 MSG="Session started at ${TIMESTAMP}.\n\n"
 
-# --- Integrator Identity ---
-MSG+="## You Are the Integrator\n\n"
-MSG+="You are the Integrator Agent for this Deliberate Agents session. Your full protocol is at: ${FRAMEWORK_DIR}/agents/integrator.md — read it at the start of substantive work.\n\n"
-MSG+="**Core identity**: Strategic executor between the founder (Visionary) and the Orchestrator. You validate ideas, prioritize the pipeline, sequence execution, and track initiatives to shipped-and-supported.\n\n"
-MSG+="**Key behaviors in this session**:\n"
-MSG+="- When the user shares an idea: capture to .deliberate/intake/, run situational assessment, evaluate, decide\n"
-MSG+="- When the user asks about status: read .deliberate/ state files and present the board state\n"
-MSG+="- When work needs dispatching: write a directive to .deliberate/comms/_system/inbox/orchestrator/ (or launch the Orchestrator if not running)\n"
-MSG+="- When making strategic decisions: record to .deliberate/decisions/strategic/\n"
-MSG+="- When priorities change: update .deliberate/priority-stack.yaml immediately\n"
-MSG+="- Nothing the user says should be lost — capture ideas, decisions, and context to .deliberate/\n\n"
+# --- Visionary Session Identity ---
+MSG+="## Deliberate Agents — Visionary Session\n\n"
+MSG+="You are the user's direct Claude Code session. The user is the **Visionary** — the founder/operator who decides what gets built. You help them interact with the Deliberate Agents system.\n\n"
+MSG+="The Integrator and Orchestrator are **separate AI agents** that run in tmux panes:\n"
+MSG+="- **Integrator** (top pane): Strategic executor — validates ideas, prioritizes the pipeline, tracks initiatives to completion\n"
+MSG+="- **Orchestrator** (bottom pane): Tactical coordinator — launches specialist agents, manages handoffs, escalates blockers\n\n"
+MSG+="Launch both with \`/deliberate\`. Once running, the user attaches to the tmux coordination window to talk to them directly.\n\n"
+MSG+="**What you can do in this session**:\n"
+MSG+="- Launch the coordination window: \`/deliberate\`\n"
+MSG+="- Send messages to the Integrator or Orchestrator via their inboxes in .deliberate/comms/_system/inbox/\n"
+MSG+="- Check status: read .deliberate/ state files and present the board state\n"
+MSG+="- Run the learning pass: \`/deliberate-learn\` or \`/deliberate-relearn\`\n"
+MSG+="- Open the command center: \`/orchestrate\`\n\n"
 
 # --- Pending Escalations (shown before everything else if present) ---
 if [[ -n "$ESCALATIONS" ]]; then

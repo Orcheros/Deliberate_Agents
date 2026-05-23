@@ -29,7 +29,7 @@ Think of Deliberate Agents like hiring a small company to build your feature:
 
 Not every initiative needs the Architect or Designer — a backend API change might go straight from PRD to tasks, while a new dashboard feature would go through the full design cycle. The Product Manager's PRD determines which steps are needed.
 
-The whole process is coordinated by two layers in a **pane-based layout**: the **Integrator** is your primary Claude Code session (top pane) — it decides *what* to work on and *in what order*, captures every idea, and dispatches work. The **Orchestrator** runs as an interactive agent in the pane below — it handles the mechanics, watching for completed work, launching agents, and escalating blockers back to you. Both are visible and interactive simultaneously. When initiative work begins, each initiative gets its own window with agent panes inside it. They communicate through a structured file-based messaging channel. No databases, no servers — just files on your computer.
+The whole process is coordinated by two AI agents in a **pane-based layout**: the **Integrator** (top pane) is an AI agent you talk to directly — it decides *what* to work on and *in what order*, captures every idea, and dispatches work. The **Orchestrator** (bottom pane) is a second AI agent that handles the mechanics — watching for completed work, launching specialist agents, and escalating blockers. You talk to the Integrator; the Integrator communicates with the Orchestrator. Both are visible and interactive simultaneously. When initiative work begins, each initiative gets its own window with agent panes inside it. They communicate through a structured file-based messaging channel. No databases, no servers — just files on your computer.
 
 For the full detail on each workflow — including decision gates, optional branches, and handoff conditions — see the [workflows/](workflows/) directory.
 
@@ -102,8 +102,8 @@ Deliberate Agents comes with 31 specialist agents organized into 7 teams plus a 
 
 | Agent | What They Do |
 |-------|-------------|
-| **Integrator** | Strategic executor — sits between you (the Visionary) and the Orchestrator. Validates new ideas against everything in flight, prioritizes the pipeline, sequences execution, and holds every initiative accountable through its full lifecycle: validated → built → shipped → marketed → supported |
-| **Orchestrator** | Tactical coordinator — runs as an interactive Claude agent in a pane alongside the Integrator (both visible simultaneously), managing the pipeline, launching agents, and handling handoffs. Falls back to the `orchestrate.sh` bash loop for unattended operation. The `/orchestrate` command center gives you a third option for ad-hoc dispatch. Reads the Integrator's priority stack and executes accordingly |
+| **Integrator** | AI agent (top pane) — strategic executor between you (the Visionary) and the Orchestrator. Validates new ideas against everything in flight, prioritizes the pipeline, sequences execution, and holds every initiative accountable through its full lifecycle: validated → built → shipped → marketed → supported |
+| **Orchestrator** | AI agent (bottom pane) — tactical coordinator running alongside the Integrator (both visible simultaneously), managing the pipeline, launching specialist agents, and handling handoffs. Falls back to the `orchestrate.sh` bash loop for unattended operation. The `/orchestrate` command center gives you a third option for ad-hoc dispatch. Reads the Integrator's priority stack and executes accordingly |
 
 Each agent knows its role and stays in its lane. The Developer never touches the PRD. The Product Manager never writes code. The Integrator decides *what* to build; the Orchestrator handles *how* to build it. This prevents conflicts and keeps work organized.
 
@@ -239,7 +239,7 @@ You can also run `/deliberate-learn` at any time to trigger the learning pass di
 
 > **Empty projects:** If your repo is just a scaffold with no source files yet, the learning pass is skipped silently — there's nothing to learn.
 
-### Step 4: Open Claude Code — You're Talking to the Integrator
+### Step 4: Open Claude Code
 
 Open Claude Code in any terminal:
 
@@ -247,30 +247,27 @@ Open Claude Code in any terminal:
 claude
 ```
 
-That's it. The session-start hook automatically establishes you as the **Integrator** — your strategic right-hand agent. You'll see a briefing showing:
-- Your Integrator identity and key behaviors
-- Project status (which initiatives are active, what needs attention)
-- Whether the Orchestrator is running (with a launch command if it isn't)
-- Any pending escalations from the Orchestrator
+The session-start hook runs automatically, showing you available projects, pending escalations, and how to launch the agent team. This session is your **Visionary** session — your direct interface for dispatching work and checking status.
 
-This is your primary interface. Share ideas, ask for status, dispatch work — the Integrator captures everything to `.deliberate/` so nothing is lost.
+### Step 5: Launch the Coordination Window
 
-### Step 5: Launch the Orchestrator
+Type `/deliberate` to launch both AI agents in a tmux coordination window:
 
-The Orchestrator runs as an interactive Claude agent in a pane alongside your Integrator session — think of it as your PM who coordinates all the agents. Both panes are visible and interactive at the same time. The Integrator's briefing will show you the launch command if it isn't running. It looks like:
-
-```bash
-~/Development/Deliberate_Agents/orchestration/launch-agent.sh \
-  --session deliberate --name orchestrator --role orchestrator \
-  --config ~/Development/my-app-worktrees/.deliberate/config.yaml \
-  --framework-dir ~/Development/Deliberate_Agents
+```
+/deliberate
 ```
 
-Now you have the **coordination window** with two panes:
-- **Top pane**: Your Claude Code session (Integrator) — where you talk, think, and decide
-- **Bottom pane**: The Orchestrator — coordinating agents, tracking progress, escalating blockers
+This creates a tmux window with two panes:
+- **Top pane**: The **Integrator** — your strategic right-hand agent. Share ideas, ask for status, dispatch work. It validates new ideas against everything in flight, prioritizes the pipeline, and tracks initiatives through their full lifecycle.
+- **Bottom pane**: The **Orchestrator** — the tactical coordinator. It manages the pipeline, launches specialist agents, handles handoffs, and escalates blockers back to you.
 
-Both are visible and interactive simultaneously — no switching needed. They communicate through `.deliberate/comms/_system/`. When initiative work starts, each initiative gets its own window with agent panes inside it.
+Both are separate AI agents running simultaneously. Attach to the tmux session to interact with them:
+
+```bash
+tmux attach -t deliberate
+```
+
+Use `Ctrl-b` then arrow keys to switch between panes. Talk to the Integrator (top pane) to share ideas — it communicates with the Orchestrator on your behalf. They coordinate through `.deliberate/comms/_system/`. When initiative work starts, each initiative gets its own window with specialist agent panes inside it.
 
 > **Alternative: Unattended mode.** If you prefer a zero-AI-cost coordinator, the bash script `orchestrate.sh` can replace the interactive Orchestrator. It polls state files and launches agents mechanically. Both use the same state files — don't run both simultaneously.
 
@@ -483,9 +480,10 @@ A few terms that come up often:
 | **Initiative** | A feature or project you want built. It starts as your one-pager and moves through the pipeline until it's done. |
 | **PRD** | Product Requirements Document. The detailed plan that the Product Manager writes from your one-pager. |
 | **Worktree** | A separate copy of your project's code where an agent can work without affecting your main branches. Worktrees live in a dedicated folder next to your repo (e.g., `my-app-worktrees/`) — one worktree per initiative. Think of them like sandboxes linked to your repo. |
-| **Integrator** | Your primary Claude Code session — the strategic executor that evaluates new ideas against everything in flight, prioritizes the pipeline, dispatches work to the Orchestrator, and tracks initiatives through their full lifecycle. Automatically established on every session start. |
-| **Orchestrator** | An interactive Claude agent running in a pane alongside the Integrator — the tactical coordinator that manages the pipeline, launches agents, tracks handoffs, and escalates blockers. Falls back to a zero-cost bash script (`orchestrate.sh`) for unattended operation. |
-| **Coordination Window** | The primary workspace: Integrator (top pane) + Orchestrator (bottom pane), both visible and interactive simultaneously. They communicate via `.deliberate/comms/_system/`. |
+| **Visionary** | You — the founder/operator. You decide what gets built. Your Claude Code session helps you interact with the agent team, but the Integrator and Orchestrator run as separate AI agents in tmux. |
+| **Integrator** | An AI agent running in the top pane of the coordination window — the strategic executor that evaluates new ideas against everything in flight, prioritizes the pipeline, dispatches work to the Orchestrator, and tracks initiatives through their full lifecycle. Launched by `/deliberate`. |
+| **Orchestrator** | An AI agent running in the bottom pane of the coordination window — the tactical coordinator that manages the pipeline, launches specialist agents, tracks handoffs, and escalates blockers. Falls back to a zero-cost bash script (`orchestrate.sh`) for unattended operation. Launched by `/deliberate`. |
+| **Coordination Window** | A tmux window with two panes: Integrator (top) + Orchestrator (bottom), both visible and interactive simultaneously. Launched by `/deliberate`, attached via `tmux attach -t deliberate`. They communicate via `.deliberate/comms/_system/`. |
 | **Initiative Window** | One window per initiative. All agents working on that initiative appear as panes within it — PM, Developer, Reviewer, etc. all visible at once. Separate initiatives get separate windows. |
 | **Dashboard** | A structured status view at `.deliberate/status/dashboard.md` showing active agents, pipeline state, blockers, and recent transitions. Written by the Orchestrator each cycle. |
 | **Command Center** | The `/orchestrate` slash command — a third interface option for ad-hoc dispatch and status. Records every dispatch in a journal. |
