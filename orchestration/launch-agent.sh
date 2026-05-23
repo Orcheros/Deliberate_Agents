@@ -656,7 +656,9 @@ chmod +x "$LAUNCHER"
 
 # --- Ensure tmux session exists -----------------------------------------------
 if ! tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
-  tmux new-session -d -s "$TMUX_SESSION" -n "coordination"
+  # Create session with a throwaway window — the first agent will create the
+  # real target window. This avoids a ghost empty pane in "coordination".
+  tmux new-session -d -s "$TMUX_SESSION" -n "_init"
 fi
 
 # --- Determine target window and create pane ----------------------------------
@@ -697,6 +699,11 @@ tmux select-pane -t "${TMUX_SESSION}:${TARGET_WINDOW}" -T "$TAB_TITLE"
 # For coordination window, select the top pane (Integrator) so user lands there on attach
 if [[ "$TARGET_WINDOW" == "coordination" && "$ROLE" == "orchestrator" ]]; then
   tmux select-pane -t "${TMUX_SESSION}:${TARGET_WINDOW}.0"
+fi
+
+# Clean up the throwaway _init window if it still exists
+if tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -qx "_init"; then
+  tmux kill-window -t "${TMUX_SESSION}:_init" 2>/dev/null || true
 fi
 
 # Launcher script handles its own cleanup after the agent runs;

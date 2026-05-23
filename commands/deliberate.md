@@ -129,12 +129,18 @@ sleep 2 && tmux list-panes -t "${TMUX_SESSION}:coordination" 2>/dev/null | wc -l
 Then **auto-open** the coordination window in a new iTerm2 window so the user sees both agents immediately:
 
 ```bash
-osascript -e '
+osascript <<APPLESCRIPT
 tell application "iTerm2"
+  create window with default profile command "tmux attach -t ${TMUX_SESSION}"
   activate
-  set newWindow to (create window with default profile command "tmux attach -t '"${TMUX_SESSION}"'")
 end tell
-'
+
+tell application "System Events"
+  tell process "iTerm2"
+    set frontmost to true
+  end tell
+end tell
+APPLESCRIPT
 ```
 
 Report:
@@ -142,7 +148,23 @@ Report:
 
 ### If both are already running:
 
-Auto-open the coordination window (same osascript as above), then report:
+Auto-open the coordination window:
+```bash
+osascript <<APPLESCRIPT
+tell application "iTerm2"
+  create window with default profile command "tmux attach -t ${TMUX_SESSION}"
+  activate
+end tell
+
+tell application "System Events"
+  tell process "iTerm2"
+    set frontmost to true
+  end tell
+end tell
+APPLESCRIPT
+```
+
+Report:
 > Coordination window is already live — opened it for you. Integrator + Orchestrator running in tmux session '{TMUX_SESSION}'.
 
 ## Step 5: Show Escalations (if any)
