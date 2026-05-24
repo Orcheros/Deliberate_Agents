@@ -158,13 +158,13 @@ PM_INSTRUCTIONS=""
 if [[ "$ROLE" == "product-manager" && -n "${INITIATIVE:-}" ]]; then
   queue_file="${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml"
   if [[ -f "$queue_file" ]]; then
-    onepager_path="$(grep -E '^[[:space:]]*one_pager:' "$queue_file" | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'")"
+    onepager_path="$(grep -E '^[[:space:]]*one_pager:' "$queue_file" | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'" || true)"
     if [[ "$onepager_path" == *"/backlog/"* ]]; then
       PM_LIFECYCLE_BUCKET="backlog"
     elif [[ "$onepager_path" == *"/needs-prd/"* ]]; then
       PM_LIFECYCLE_BUCKET="needs-prd"
     fi
-    PM_INSTRUCTIONS="$(grep -E '^[[:space:]]*pm_agent_instructions:' "$queue_file" | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'")"
+    PM_INSTRUCTIONS="$(grep -E '^[[:space:]]*pm_agent_instructions:' "$queue_file" | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'" || true)"
   fi
 fi
 
