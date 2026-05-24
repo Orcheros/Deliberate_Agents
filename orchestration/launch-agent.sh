@@ -20,12 +20,14 @@ CONFIG_FILE=""
 FRAMEWORK_DIR=""
 EXECUTION_MODE=""
 CUSTOM_PROMPT=""
+WINDOW_NAME=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --session)        TMUX_SESSION="$2"; shift 2 ;;
     --window)         AGENT_NAME="$2"; shift 2 ;;
     --name)           AGENT_NAME="$2"; shift 2 ;;
+    --window-name)    WINDOW_NAME="$2"; shift 2 ;;
     --role)           ROLE="$2"; shift 2 ;;
     --initiative)     INITIATIVE="$2"; shift 2 ;;
     --worktree)       WORKTREE="$2"; shift 2 ;;
@@ -105,6 +107,14 @@ if [[ -d "$FRAMEWORK_AGENTS" ]]; then
   find "$FRAMEWORK_AGENTS" -name "*.md" -type f -exec cp {} "$TARGET_AGENTS/" \;
 fi
 
+AGENT_PERSONA_FILE="${TARGET_AGENTS}/${ROLE}.md"
+if [[ ! -f "$AGENT_PERSONA_FILE" ]]; then
+  echo "ERROR: Agent persona file not found: ${AGENT_PERSONA_FILE}" >&2
+  echo "Available agents:" >&2
+  ls -1 "$TARGET_AGENTS"/*.md 2>/dev/null | xargs -I{} basename {} .md >&2
+  exit 1
+fi
+
 # Also sync skills
 FRAMEWORK_SKILLS="${FRAMEWORK_DIR}/skills"
 TARGET_SKILLS="${WORK_DIR}/.claude/skills"
@@ -143,21 +153,40 @@ if [[ "$VERBOSE" == "true" ]]; then
   CONTEXT+="One line per major step. Do not skip this — it is how operators monitor your work.\n"
 fi
 
+PM_LIFECYCLE_BUCKET=""
+PM_INSTRUCTIONS=""
+if [[ "$ROLE" == "product-manager" && -n "${INITIATIVE:-}" ]]; then
+  queue_file="${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml"
+  if [[ -f "$queue_file" ]]; then
+    onepager_path="$(grep -E '^[[:space:]]*one_pager:' "$queue_file" | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'")"
+    if [[ "$onepager_path" == *"/backlog/"* ]]; then
+      PM_LIFECYCLE_BUCKET="backlog"
+    elif [[ "$onepager_path" == *"/needs-prd/"* ]]; then
+      PM_LIFECYCLE_BUCKET="needs-prd"
+    fi
+    PM_INSTRUCTIONS="$(grep -E '^[[:space:]]*pm_agent_instructions:' "$queue_file" | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'")"
+  fi
+fi
+
 case "$ROLE" in
   product-manager)
     CONTEXT+="- Initiative: ${INITIATIVE}\n"
     CONTEXT+="- Initiative state file: ${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml\n"
     CONTEXT+="- Feedback directory: ${DELIBERATE_DIR}/feedback/${INITIATIVE}/\n"
+    CONTEXT+="- Lifecycle bucket: ${PM_LIFECYCLE_BUCKET:-unknown}\n"
     CONTEXT+="\n## Your Task\n\n"
-    CONTEXT+="Read the initiative state file (queue YAML) first. It contains:\n"
-    CONTEXT+="- The one-pager path and lifecycle bucket (backlog/ vs needs-prd/)\n"
-    CONTEXT+="- Any pm_agent_instructions field with phase-specific overrides\n"
-    CONTEXT+="- Amendment context if this is an update to an existing one-pager\n\n"
-    CONTEXT+="Determine the correct phase from the lifecycle bucket:\n"
-    CONTEXT+="- If the one-pager is in backlog/: run Phase 1 intake (/pm-intake)\n"
-    CONTEXT+="- If the one-pager is in needs-prd/: run Phase 2 grooming (/pm-assess → /pm-research → /pm-expand-prd → /pm-cross-functional → /pm-ready-for-dev)\n\n"
-    CONTEXT+="If a pm_agent_instructions field exists in the queue YAML, follow those instructions — they override the default phase logic.\n"
-    CONTEXT+="After writing the PRD, submit it for a cross-functional feedback round before finalizing.\n"
+    if [[ -n "${PM_INSTRUCTIONS}" ]]; then
+      CONTEXT+="**Override instructions from orchestrator:** ${PM_INSTRUCTIONS}\n\n"
+    fi
+    if [[ "$PM_LIFECYCLE_BUCKET" == "backlog" ]]; then
+      CONTEXT+="This initiative is in the **backlog** bucket. Run Phase 1 intake: /pm-intake\n"
+    elif [[ "$PM_LIFECYCLE_BUCKET" == "needs-prd" ]]; then
+      CONTEXT+="This initiative is in the **needs-prd** bucket. Run Phase 2 grooming:\n"
+      CONTEXT+="/pm-assess -> /pm-research -> /pm-expand-prd -> /pm-cross-functional -> /pm-ready-for-dev\n"
+    else
+      CONTEXT+="Could not determine lifecycle bucket. Read the queue YAML to determine phase.\n"
+    fi
+    CONTEXT+="\nAfter writing the PRD, submit it for a cross-functional feedback round before finalizing.\n"
     ;;
   architect)
     CONTEXT+="- Initiative: ${INITIATIVE}\n"
@@ -480,6 +509,12 @@ esac
 # initiative share a window and can see each other. The user never needs to
 # switch tmux windows to see related work.
 
+sanitize_tmux_name() {
+  local name="$1"
+  name="${name//[^a-zA-Z0-9_-]/-}"
+  echo "$name"
+}
+
 agent_target_window() {
   local role="$1"
   local initiative="${2:-}"
@@ -497,11 +532,7 @@ agent_target_window() {
       ;;
   esac
 
-  # Sanitize: '.' and ':' are tmux pane/window separators and break
-  # send-keys/split-window addressing (session:window.pane).
-  name="${name//./-}"
-  name="${name//:/-}"
-  echo "$name"
+  echo "$(sanitize_tmux_name "$name")"
 }
 
 # --- Launch in tmux window ----------------------------------------------------
@@ -534,10 +565,16 @@ fi
 # --- Inject Onboarding Brief (project knowledge for all agents) ---------------
 ONBOARDING_FILE="${DELIBERATE_DIR}/onboarding.md"
 if [[ -f "$ONBOARDING_FILE" ]]; then
+  ONBOARDING_SIZE=$(wc -c < "$ONBOARDING_FILE")
+  ONBOARDING_MAX=30000
   CONTEXT+="\n# Project Knowledge (from onboarding brief)\n"
-  CONTEXT+="The following is a structured brief of the target project's codebase, architecture, and state.\n"
   CONTEXT+="Reference: ${ONBOARDING_FILE}\n\n"
-  CONTEXT+="$(cat "$ONBOARDING_FILE")\n"
+  if (( ONBOARDING_SIZE > ONBOARDING_MAX )); then
+    CONTEXT+="$(head -c "$ONBOARDING_MAX" "$ONBOARDING_FILE")\n"
+    CONTEXT+="\n...[TRUNCATED — full brief is ${ONBOARDING_SIZE} bytes, cap is ${ONBOARDING_MAX}. Read ${ONBOARDING_FILE} for the rest.]\n"
+  else
+    CONTEXT+="$(cat "$ONBOARDING_FILE")\n"
+  fi
 fi
 
 CONTEXT_FILE="$(mktemp)"
@@ -728,30 +765,41 @@ fi
 # initiative share one window. The coordination window holds Integrator +
 # Orchestrator side by side.
 
-TARGET_WINDOW="$(agent_target_window "$ROLE" "${INITIATIVE:-}")"
+if [[ -n "$WINDOW_NAME" ]]; then
+  TARGET_WINDOW="$(sanitize_tmux_name "$WINDOW_NAME")"
+else
+  TARGET_WINDOW="$(agent_target_window "$ROLE" "${INITIATIVE:-}")"
+fi
 
 window_exists() {
   tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -qx "$1"
 }
 
 if window_exists "$TARGET_WINDOW"; then
-  # Window exists — add a new pane (vertical split = top/bottom) to it
-  tmux split-window -t "${TMUX_SESSION}:${TARGET_WINDOW}" -v
+  if ! tmux split-window -t "${TMUX_SESSION}:${TARGET_WINDOW}" -v; then
+    echo "ERROR: Failed to split window '${TARGET_WINDOW}' in session '${TMUX_SESSION}'" >&2
+    exit 1
+  fi
   sleep 0.3
-  # Layout: coordination window gets even-vertical (top 50% / bottom 50%),
-  # initiative windows get tiled (grid of specialist agents)
   if [[ "$TARGET_WINDOW" == "coordination" ]]; then
     tmux select-layout -t "${TMUX_SESSION}:${TARGET_WINDOW}" even-vertical 2>/dev/null || true
   else
     tmux select-layout -t "${TMUX_SESSION}:${TARGET_WINDOW}" tiled 2>/dev/null || true
   fi
-  # The new pane is automatically selected; send the launcher to it
-  tmux send-keys -t "${TMUX_SESSION}:${TARGET_WINDOW}" "'${LAUNCHER}'" Enter
+  if ! tmux send-keys -t "${TMUX_SESSION}:${TARGET_WINDOW}" "'${LAUNCHER}'" Enter; then
+    echo "ERROR: Failed to send launch command to pane in '${TARGET_WINDOW}'" >&2
+    exit 1
+  fi
 else
-  # Window doesn't exist — create it with this agent as the first pane
-  tmux new-window -t "$TMUX_SESSION" -n "$TARGET_WINDOW"
+  if ! tmux new-window -t "$TMUX_SESSION" -n "$TARGET_WINDOW"; then
+    echo "ERROR: Failed to create window '${TARGET_WINDOW}' in session '${TMUX_SESSION}'" >&2
+    exit 1
+  fi
   sleep 0.3
-  tmux send-keys -t "${TMUX_SESSION}:${TARGET_WINDOW}" "'${LAUNCHER}'" Enter
+  if ! tmux send-keys -t "${TMUX_SESSION}:${TARGET_WINDOW}" "'${LAUNCHER}'" Enter; then
+    echo "ERROR: Failed to send launch command to '${TARGET_WINDOW}'" >&2
+    exit 1
+  fi
 fi
 
 # Set pane title for identification (marks the active pane in the target window)

@@ -158,9 +158,16 @@ agent_is_running() {
   return 1
 }
 
-# Legacy alias for compatibility
+sanitize_tmux_name() {
+  local name="$1"
+  name="${name//[^a-zA-Z0-9_-]/-}"
+  echo "$name"
+}
+
 agent_window_exists() {
-  agent_is_running "$1"
+  local name="$1"
+  agent_is_running "$name" && return 0
+  tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -qx "$name"
 }
 
 # --- Agent Launcher (generic) -------------------------------------------------
@@ -170,7 +177,7 @@ launch_agent() {
   local initiative_slug="$2"
   local new_status="$3"
   local initiative_file="${QUEUE_DIR}/${initiative_slug}.yaml"
-  local window_name="${role}-${initiative_slug}"
+  local window_name="$(sanitize_tmux_name "${role}-${initiative_slug}")"
 
   if agent_window_exists "$window_name"; then
     log_debug "${role} agent already running for $initiative_slug"
@@ -188,6 +195,7 @@ launch_agent() {
   "${SCRIPT_DIR}/launch-agent.sh" \
     --session "$TMUX_SESSION" \
     --window "$window_name" \
+    --window-name "$window_name" \
     --role "$role" \
     --initiative "$initiative_slug" \
     --config "$CONFIG_FILE" \
@@ -197,7 +205,7 @@ launch_agent() {
 launch_dev_agent() {
   local worktree_name="$1"
   local assignment_file="${ASSIGNMENTS_DIR}/${worktree_name}.md"
-  local window_name="dev-${worktree_name}"
+  local window_name="$(sanitize_tmux_name "dev-${worktree_name}")"
 
   if agent_window_exists "$window_name"; then
     log_debug "Dev agent already running for $worktree_name"
@@ -216,6 +224,7 @@ launch_dev_agent() {
   "${SCRIPT_DIR}/launch-agent.sh" \
     --session "$TMUX_SESSION" \
     --window "$window_name" \
+    --window-name "$window_name" \
     --role "developer" \
     --worktree "$worktree_name" \
     --config "$CONFIG_FILE" \
@@ -226,7 +235,7 @@ launch_specialist_agent() {
   local agent_type="$1"
   local worktree_name="$2"
   local assignment_file="${ASSIGNMENTS_DIR}/${worktree_name}.md"
-  local window_name="${agent_type}-${worktree_name}"
+  local window_name="$(sanitize_tmux_name "${agent_type}-${worktree_name}")"
 
   if agent_window_exists "$window_name"; then
     log_debug "${agent_type} agent already running for $worktree_name"
@@ -241,6 +250,7 @@ launch_specialist_agent() {
   "${SCRIPT_DIR}/launch-agent.sh" \
     --session "$TMUX_SESSION" \
     --window "$window_name" \
+    --window-name "$window_name" \
     --role "$agent_type" \
     --initiative "${initiative:-}" \
     --worktree "$worktree_name" \
