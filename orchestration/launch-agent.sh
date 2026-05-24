@@ -19,6 +19,7 @@ WORKTREE=""
 CONFIG_FILE=""
 FRAMEWORK_DIR=""
 EXECUTION_MODE=""
+CUSTOM_PROMPT=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -31,6 +32,7 @@ while [[ $# -gt 0 ]]; do
     --config)         CONFIG_FILE="$2"; shift 2 ;;
     --framework-dir)  FRAMEWORK_DIR="$2"; shift 2 ;;
     --execution-mode) EXECUTION_MODE="$2"; shift 2 ;;
+    --prompt)         CUSTOM_PROMPT="$2"; shift 2 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
 done
@@ -147,8 +149,14 @@ case "$ROLE" in
     CONTEXT+="- Initiative state file: ${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml\n"
     CONTEXT+="- Feedback directory: ${DELIBERATE_DIR}/feedback/${INITIATIVE}/\n"
     CONTEXT+="\n## Your Task\n\n"
-    CONTEXT+="Process the initiative '${INITIATIVE}' through the initiative-intake workflow.\n"
-    CONTEXT+="Start by reading the initiative state file to find the one-pager path, then follow the workflow steps in order.\n"
+    CONTEXT+="Read the initiative state file (queue YAML) first. It contains:\n"
+    CONTEXT+="- The one-pager path and lifecycle bucket (backlog/ vs needs-prd/)\n"
+    CONTEXT+="- Any pm_agent_instructions field with phase-specific overrides\n"
+    CONTEXT+="- Amendment context if this is an update to an existing one-pager\n\n"
+    CONTEXT+="Determine the correct phase from the lifecycle bucket:\n"
+    CONTEXT+="- If the one-pager is in backlog/: run Phase 1 intake (/pm-intake)\n"
+    CONTEXT+="- If the one-pager is in needs-prd/: run Phase 2 grooming (/pm-assess → /pm-research → /pm-expand-prd → /pm-cross-functional → /pm-ready-for-dev)\n\n"
+    CONTEXT+="If a pm_agent_instructions field exists in the queue YAML, follow those instructions — they override the default phase logic.\n"
     CONTEXT+="After writing the PRD, submit it for a cross-functional feedback round before finalizing.\n"
     ;;
   architect)
@@ -475,18 +483,25 @@ esac
 agent_target_window() {
   local role="$1"
   local initiative="${2:-}"
+  local name
 
   case "$role" in
     integrator|orchestrator)
-      echo "coordination" ;;
+      name="coordination" ;;
     *)
       if [[ -n "$initiative" ]]; then
-        echo "$initiative"
+        name="$initiative"
       else
-        echo "ops"
+        name="ops"
       fi
       ;;
   esac
+
+  # Sanitize: '.' and ':' are tmux pane/window separators and break
+  # send-keys/split-window addressing (session:window.pane).
+  name="${name//./-}"
+  name="${name//:/-}"
+  echo "$name"
 }
 
 # --- Launch in tmux window ----------------------------------------------------
@@ -535,6 +550,18 @@ else
   PERM_FLAG="--permission-mode auto"
 fi
 
+# Resolve the agent prompt — --prompt flag overrides the default.
+if [[ -n "$CUSTOM_PROMPT" ]]; then
+  AGENT_PROMPT="$CUSTOM_PROMPT"
+else
+  case "$ROLE" in
+    integrator|orchestrator)
+      AGENT_PROMPT="Begin your session. Run your startup protocol and report status." ;;
+    *)
+      AGENT_PROMPT="Begin your assigned task. Read your assignment/state file first." ;;
+  esac
+fi
+
 # Write a launcher script that the tmux pane will execute.
 LAUNCHER="$(mktemp)"
 TAB_TITLE="${ROLE}: ${INITIATIVE:-${WORKTREE:-agent}}"
@@ -566,7 +593,7 @@ claude \\
   ${PERM_FLAG} \\
   --max-turns ${MAX_TURNS} \\
   --append-system-prompt "\$(cat '${CONTEXT_FILE}')" \\
-  "Begin your session. Run your startup protocol and report status."
+  "${AGENT_PROMPT}"
 
 # --- Cleanup ------------------------------------------------------------------
 rm -f '${PID_FILE}' '${CONTEXT_FILE}'
@@ -601,7 +628,7 @@ echo "│  AGENT COMMAND                                              │"
 echo "└─────────────────────────────────────────────────────────────┘"
 echo ""
 echo "  claude --agent ${ROLE} ${PERM_FLAG} --max-turns ${MAX_TURNS}"
-echo "  Prompt: Begin your assigned task. Read your assignment/state file first."
+echo "  Prompt: ${AGENT_PROMPT}"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 printf "  Press ENTER to launch agent, or Ctrl-C to abort > "
@@ -635,7 +662,7 @@ script -q /dev/null claude \\
   --append-system-prompt "\$(cat '${CONTEXT_FILE}')" \\
   --output-format stream-json \\
   --verbose \\
-  -p 'Begin your assigned task. Read your assignment/state file first.' 2>&1 | \\
+  -p '${AGENT_PROMPT}' 2>&1 | \\
 while IFS= read -r line; do
   type=\$(echo "\$line" | jq -r '.type // empty' 2>/dev/null) || { echo "\$line"; continue; }
   if [[ -z "\$type" ]]; then
