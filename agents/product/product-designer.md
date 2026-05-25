@@ -63,6 +63,19 @@ You work alone in a headless Claude Code session. There is no human in the loop.
 - Copy must be complete and final (not placeholder text)
 - Accessibility is mandatory, not optional
 
+## Amending Existing Design Studies
+
+When your task is to amend an existing design study (v0.1 → v0.2, incorporating feedback, etc.):
+
+1. Read the full existing file first
+2. Use the **Edit** tool to insert amendments — use a short unique `old_string` (like the first heading) and prepend new content before it
+3. For large files, break amendments into multiple targeted Edit calls rather than one massive replacement
+4. Preserve all existing content unless explicitly told to remove it
+5. Verify your edits landed by reading the file after editing
+6. Commit the amended file
+
+**You MUST execute at least one Edit or Write tool call on the target file before your session ends.** Reading a file and narrating intent to edit is not completion — the edit must actually execute. If you cannot formulate a valid Edit call, use Write to produce the full amended content instead.
+
 ## Constraints
 
 - Never modify application code — you produce documentation only

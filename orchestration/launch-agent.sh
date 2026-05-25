@@ -201,10 +201,51 @@ case "$ROLE" in
     CONTEXT+="- Initiative: ${INITIATIVE}\n"
     CONTEXT+="- Initiative state file: ${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml\n"
     CONTEXT+="- Feedback directory: ${DELIBERATE_DIR}/feedback/${INITIATIVE}/\n"
+
+    DESIGNER_INSTRUCTIONS=""
+    EXISTING_DESIGN_STUDY=""
+    if [[ -n "${INITIATIVE:-}" ]]; then
+      queue_file="${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml"
+      if [[ -f "$queue_file" ]]; then
+        DESIGNER_INSTRUCTIONS="$(grep -E '^[[:space:]]*product_designer_agent_instructions:' "$queue_file" | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'" || true)"
+        design_study_path="$(grep -E '^[[:space:]]*design_study' "$queue_file" | grep -v '_v[0-9]' | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'" || true)"
+      fi
+      # Search for existing design study files
+      if [[ -n "$design_study_path" ]]; then
+        initiatives_path="$(grep -E '^[[:space:]]*initiatives_path:' "$CONFIG_FILE" | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'" || true)"
+        repo_dir="$(grep -E '^[[:space:]]*repo:' "$CONFIG_FILE" | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'" || true)"
+        for search_dir in "$repo_dir" "$WORK_DIR"; do
+          found="$(find "$search_dir" -name "*${INITIATIVE}*design-study*" -o -name "*${INITIATIVE}*design_study*" 2>/dev/null | head -1 || true)"
+          if [[ -n "$found" ]]; then
+            EXISTING_DESIGN_STUDY="$found"
+            break
+          fi
+        done
+      fi
+    fi
+
     CONTEXT+="\n## Your Task\n\n"
-    CONTEXT+="Write the design brief for initiative '${INITIATIVE}'.\n"
-    CONTEXT+="Start by reading the initiative state file, PRD, and architecture doc, then produce the design brief.\n"
-    CONTEXT+="After writing the design brief, submit it for a cross-functional feedback round before finalizing.\n"
+    if [[ -n "$DESIGNER_INSTRUCTIONS" ]]; then
+      CONTEXT+="**Override instructions from orchestrator:** ${DESIGNER_INSTRUCTIONS}\n\n"
+    fi
+
+    if [[ -n "$EXISTING_DESIGN_STUDY" ]]; then
+      existing_size="$(wc -c < "$EXISTING_DESIGN_STUDY" 2>/dev/null | tr -d ' ' || echo 0)"
+      CONTEXT+="An existing design study was found at: ${EXISTING_DESIGN_STUDY} (${existing_size} bytes)\n"
+      CONTEXT+="Your task is to **amend** this file, not rewrite it.\n\n"
+      CONTEXT+="### How to amend a large existing file\n"
+      CONTEXT+="1. Read the full file with the Read tool\n"
+      CONTEXT+="2. Identify the insertion point (typically after the title heading)\n"
+      CONTEXT+="3. Use the Edit tool with a short, unique old_string (e.g. the first heading line) and a new_string that prepends your amendments before it\n"
+      CONTEXT+="4. For large amendments, break into multiple Edit calls targeting different sections\n"
+      CONTEXT+="5. Verify your edits with a final Read of the modified file\n"
+      CONTEXT+="6. Commit the changes\n\n"
+      CONTEXT+="**CRITICAL**: You MUST execute at least one Edit call on the design study file before your session ends. If you exit without editing the file, you have failed.\n\n"
+    else
+      CONTEXT+="Write the design brief for initiative '${INITIATIVE}'.\n"
+      CONTEXT+="Start by reading the initiative state file, PRD, and architecture doc, then produce the design brief.\n"
+    fi
+    CONTEXT+="After writing/amending the design brief, submit it for a cross-functional feedback round before finalizing.\n"
     ;;
   scrum-master)
     CONTEXT+="- Initiative: ${INITIATIVE}\n"
@@ -691,6 +732,10 @@ date +%s > "\$ACTIVITY_TS"
 ) &
 WATCHDOG_PID=\$!
 
+# --- Capture pre-session state for artifact verification ----------------------
+PRE_HEAD=\$(git rev-parse HEAD 2>/dev/null || echo "none")
+PRE_DIRTY=\$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+
 # --- Stream progress ----------------------------------------------------------
 script -q /dev/null claude \\
   --agent ${ROLE} \\
@@ -745,6 +790,38 @@ done
 kill \$WATCHDOG_PID 2>/dev/null
 rm -f "\$ACTIVITY_TS" '${PID_FILE}' '${CONTEXT_FILE}'
 echo ""
+
+# --- Post-session artifact verification ---------------------------------------
+POST_HEAD=\$(git rev-parse HEAD 2>/dev/null || echo "none")
+POST_DIRTY=\$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+COMMITS_MADE=0
+if [[ "\$PRE_HEAD" != "none" && "\$POST_HEAD" != "none" && "\$PRE_HEAD" != "\$POST_HEAD" ]]; then
+  COMMITS_MADE=\$(git rev-list --count "\${PRE_HEAD}..\${POST_HEAD}" 2>/dev/null || echo 0)
+fi
+FILES_CHANGED=\$(( POST_DIRTY - PRE_DIRTY ))
+(( FILES_CHANGED < 0 )) && FILES_CHANGED=0
+
+ARTIFACT_ROLES="product-manager architect product-designer scrum-master developer reviewer qa-lead content-writer technical-writer"
+IS_ARTIFACT_ROLE=false
+for ar in \$ARTIFACT_ROLES; do
+  [[ "${ROLE}" == "\$ar" ]] && IS_ARTIFACT_ROLE=true
+done
+
+if [[ "\$IS_ARTIFACT_ROLE" == "true" ]]; then
+  if (( COMMITS_MADE == 0 && FILES_CHANGED == 0 )); then
+    printf "\\n┌─────────────────────────────────────────────────────────────┐\\n"
+    printf "│  WARNING: NO ARTIFACTS PRODUCED                             │\\n"
+    printf "│  Role: ${ROLE}                                              │\\n"
+    printf "│  Commits: 0 | Uncommitted changes: 0                        │\\n"
+    printf "│  Agent claimed completion but produced no files.             │\\n"
+    printf "│  This session may need to be re-dispatched.                  │\\n"
+    printf "└─────────────────────────────────────────────────────────────┘\\n"
+    osascript -e "display notification \"WARNING: ${ROLE} produced no artifacts — may need re-dispatch\" with title \"Deliberate Agents\" sound name \"Basso\"" 2>/dev/null
+  else
+    printf "\\n  Artifacts: %s commit(s), %s uncommitted file(s)\\n" "\$COMMITS_MADE" "\$FILES_CHANGED"
+  fi
+fi
+
 osascript -e "display notification \"${ROLE} agent session ended\" with title \"Deliberate Agents\"" 2>/dev/null
 echo "=== Agent session complete. Shell remains interactive. ==="
 SCRIPT
