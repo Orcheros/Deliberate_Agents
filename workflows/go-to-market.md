@@ -106,3 +106,7 @@ Growth Strategist
 ## Exit Condition
 
 GTM activities complete. Content published, sales enabled, onboarding updated, success outreach planned. Growth Strategist documents measurement plan via `/release-measure`.
+
+## Deliverables Convention
+
+GTM artifacts for an initiative should be organized in `{initiative-dir}/gtm/` using the numbered naming convention defined in `templates/gtm-deliverables-convention.md`. This creates a browsable playbook per initiative.

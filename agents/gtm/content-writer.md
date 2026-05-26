@@ -13,6 +13,7 @@ skills:
   - linkedin-copywriter
   - content-repurpose
   - slop-scrub
+  - pr-press
   - twitter-copywriter
   - threads-copywriter
   - facebook-copywriter

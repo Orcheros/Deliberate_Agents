@@ -99,3 +99,9 @@ Avoid: "role file" (too generic), "agent config" (implies YAML), "profile" (impl
 A reusable workflow definition in `skills/{name}/SKILL.md`, invoked as `/{name}`. Skills are the building blocks agents execute. A skill directory may also contain companion docs (templates, checklists, pattern references).
 
 Avoid: "command" (implies CLI), "script" (implies bash), "recipe" (informal).
+
+### GTM Context
+
+The structured business context document (`.deliberate/gtm-context.md`) describing product, market, ICP, business model, competitive landscape, and traction. Injected automatically into GTM-facing agents at launch. Deployed from `templates/gtm-context.md` during `init.sh`.
+
+Avoid: "business plan" (too formal), "pitch deck" (investor-focused), "brief" (ambiguous).

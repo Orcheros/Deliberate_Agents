@@ -153,8 +153,60 @@ validate_ready_for_prd() {
 
   local status
   status="$(read_yaml_field "$initiative_file" 'status')"
+  if [[ "$status" != "QUEUED" && "$status" != "VALIDATED" ]]; then
+    errors+=("initiative status is '${status}', expected 'QUEUED' or 'VALIDATED'")
+  fi
+
+  if (( ${#errors[@]} > 0 )); then
+    printf '%s\n' "${errors[@]}"
+    return 1
+  fi
+  return 0
+}
+
+validate_ready_for_validation() {
+  local slug="$1"
+  local initiative_file="${QUEUE_DIR}/${slug}.yaml"
+  local errors=()
+
+  local one_pager
+  one_pager="$(read_yaml_field "$initiative_file" 'one_pager')"
+  if [[ -z "$one_pager" ]]; then
+    errors+=("one_pager path not set in queue YAML")
+  elif [[ ! -f "${WORKTREES_DIR}/${one_pager}" && ! -f "$one_pager" ]]; then
+    errors+=("one-pager file not found: ${one_pager}")
+  fi
+
+  local status
+  status="$(read_yaml_field "$initiative_file" 'status')"
   if [[ "$status" != "QUEUED" ]]; then
     errors+=("initiative status is '${status}', expected 'QUEUED'")
+  fi
+
+  local requires_validation
+  requires_validation="$(read_yaml_field "$initiative_file" 'requires_validation')"
+  if [[ "$requires_validation" != "true" ]]; then
+    errors+=("requires_validation is not 'true'")
+  fi
+
+  if (( ${#errors[@]} > 0 )); then
+    printf '%s\n' "${errors[@]}"
+    return 1
+  fi
+  return 0
+}
+
+validate_validation_complete() {
+  local slug="$1"
+  local initiative_file="${QUEUE_DIR}/${slug}.yaml"
+  local errors=()
+
+  local validation_evidence
+  validation_evidence="$(read_yaml_field "$initiative_file" 'validation_evidence_path')"
+  if [[ -z "$validation_evidence" || "$validation_evidence" == "null" ]]; then
+    errors+=("validation_evidence_path not set — no evidence of validation work")
+  elif [[ ! -f "${WORKTREES_DIR}/${validation_evidence}" && ! -f "$validation_evidence" ]]; then
+    errors+=("validation evidence file not found: ${validation_evidence}")
   fi
 
   if (( ${#errors[@]} > 0 )); then

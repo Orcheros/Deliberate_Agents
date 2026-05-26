@@ -8,6 +8,7 @@ maxTurns: 60
 skills:
   - sales-research
   - sales-pipeline
+  - partnership-design
 effort: high
 ---
 

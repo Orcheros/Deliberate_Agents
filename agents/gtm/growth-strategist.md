@@ -12,6 +12,9 @@ skills:
   - pricing-strategy
   - experiment-design
   - referral-program
+  - pr-press
+  - community-strategy
+  - partnership-design
   - competitive-teardown
   - competitive-battlecard
   - growth-loops

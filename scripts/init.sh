@@ -192,6 +192,12 @@ if [[ -f "${FRAMEWORK_DIR}/templates/mcp.json.template" ]]; then
   echo "  Deployed .mcp.json to ${WORKTREES_DIR}/"
 fi
 
+# Deploy GTM context template if it doesn't already exist
+if [[ ! -f "${DELIBERATE_DIR}/gtm-context.md" ]] && [[ -f "${FRAMEWORK_DIR}/templates/gtm-context.md" ]]; then
+  cp "${FRAMEWORK_DIR}/templates/gtm-context.md" "${DELIBERATE_DIR}/gtm-context.md"
+  echo "  Created gtm-context.md — fill in business context for GTM agents"
+fi
+
 # --- Create Standard Initiative Directories -----------------------------------
 
 INITIATIVES_DIR="${REPO_DIR}/${INITIATIVES_PATH}"

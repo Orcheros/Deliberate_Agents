@@ -271,7 +271,7 @@ any_initiative_agent_running() {
     local name
     name="$(basename "$pid_file" .pid)"
     case "$name" in
-      product-manager-*|architect-*|product-designer-*|scrum-master-*|project-manager-*)
+      product-strategist-*|product-manager-*|architect-*|product-designer-*|scrum-master-*|project-manager-*)
         if $exclude_parallel; then
           case "$name" in product-designer-*|scrum-master-*) continue ;; esac
         fi
@@ -357,6 +357,13 @@ check_agent_completion() {
   local from_role=""
   local to_role=""
   case "$status" in
+    VALIDATION_IN_PROGRESS)
+      agent_name="product-strategist-${initiative_slug}"
+      next_status="VALIDATED"
+      from_role="product-strategist"
+      to_role="product-manager"
+      notify_msg="Validation complete for ${title} — ready for product definition"
+      ;;
     PM_IN_PROGRESS)
       agent_name="product-manager-${initiative_slug}"
       next_status="PRD_COMPLETE"
@@ -462,15 +469,41 @@ process_queue() {
 
       QUEUED)
         $serial_blocked && continue
+        local requires_validation
+        requires_validation="$(read_yaml_field "$initiative_file" 'requires_validation')"
+        if [[ "$requires_validation" == "true" ]]; then
+          if ! run_gate validate_ready_for_validation "$slug" "medium"; then
+            continue
+          fi
+          log_info "Starting validation phase for: ${title}"
+          record_flow_metric "$slug" "QUEUED" "VALIDATION_IN_PROGRESS"
+          record_handoff "$slug" "QUEUED" "VALIDATION_IN_PROGRESS" "integrator" "product-strategist"
+          notify "transition" "Starting validation for ${title}" --initiative "$slug"
+          launch_agent "product-strategist" "$slug" "VALIDATION_IN_PROGRESS"
+        else
+          if ! run_gate validate_ready_for_prd "$slug" "medium"; then
+            continue
+          fi
+          log_info "Starting product pipeline for: ${title}"
+          record_flow_metric "$slug" "QUEUED" "PM_IN_PROGRESS"
+          record_handoff "$slug" "QUEUED" "PM_IN_PROGRESS" "integrator" "product-manager"
+          notify "transition" "Starting product definition for ${title}" --initiative "$slug"
+          launch_agent "product-manager" "$slug" "PM_IN_PROGRESS"
+        fi
+        return  # Only one at a time
+        ;;
+
+      VALIDATED)
+        $serial_blocked && continue
         if ! run_gate validate_ready_for_prd "$slug" "medium"; then
           continue
         fi
-        log_info "Starting product pipeline for: ${title}"
-        record_flow_metric "$slug" "QUEUED" "PM_IN_PROGRESS"
-        record_handoff "$slug" "QUEUED" "PM_IN_PROGRESS" "integrator" "product-manager"
-        notify "transition" "Starting product definition for ${title}" --initiative "$slug"
+        log_info "Validation complete for ${title} — advancing to PM"
+        record_flow_metric "$slug" "VALIDATED" "PM_IN_PROGRESS"
+        record_handoff "$slug" "VALIDATED" "PM_IN_PROGRESS" "product-strategist" "product-manager"
+        notify "transition" "Validation complete for ${title} — starting product definition" --initiative "$slug"
         launch_agent "product-manager" "$slug" "PM_IN_PROGRESS"
-        return  # Only one at a time
+        return
         ;;
 
       PRD_COMPLETE|PM_COMPLETE)

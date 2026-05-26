@@ -18,6 +18,8 @@ skills:
   - brainstorm-okrs
   - outcome-roadmap
   - stakeholder-map
+  - identify-assumptions
+  - design-experiments
 effort: high
 ---
 

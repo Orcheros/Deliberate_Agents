@@ -283,9 +283,31 @@ case "$ROLE" in
       CONTEXT+="- Assignment file: ${DELIBERATE_DIR}/assignments/${WORKTREE}.md\n"
     fi
     CONTEXT+="- Assignments directory: ${DELIBERATE_DIR}/assignments/\n"
-    CONTEXT+="\n## Your Task\n\n"
-    CONTEXT+="Execute the task described in your assignment file. Follow your workflow skills in order.\n"
-    CONTEXT+="Start by reading your assignment file.\n"
+
+    STRATEGIST_STATUS=""
+    if [[ "$ROLE" == "product-strategist" && -n "${INITIATIVE:-}" ]]; then
+      queue_file="${DELIBERATE_DIR}/queue/${INITIATIVE}.yaml"
+      if [[ -f "$queue_file" ]]; then
+        STRATEGIST_STATUS="$(grep -E '^[[:space:]]*status:' "$queue_file" | head -1 | sed 's/.*:[[:space:]]*//' | tr -d '"' | tr -d "'" || true)"
+      fi
+    fi
+
+    if [[ "$STRATEGIST_STATUS" == "VALIDATION_IN_PROGRESS" ]]; then
+      CONTEXT+="\n## Your Task: Pre-Build Validation\n\n"
+      CONTEXT+="This initiative requires validation before entering the product pipeline.\n"
+      CONTEXT+="Execute in order:\n"
+      CONTEXT+="1. Read the one-pager from the path in the queue YAML\n"
+      CONTEXT+="2. /identify-assumptions — Map and prioritize assumptions from the one-pager\n"
+      CONTEXT+="3. /design-experiments — Design validation experiments for highest-risk assumptions\n"
+      CONTEXT+="4. Write the validation evidence document summarizing findings\n"
+      CONTEXT+="5. Update the queue YAML: set validation_evidence_path to your evidence document path\n\n"
+      CONTEXT+="If experiments require human execution, mark them [HUMAN GATE] and document what needs to happen.\n"
+      CONTEXT+="When complete, set the initiative status to VALIDATED in the queue YAML.\n"
+    else
+      CONTEXT+="\n## Your Task\n\n"
+      CONTEXT+="Execute the task described in your assignment file. Follow your workflow skills in order.\n"
+      CONTEXT+="Start by reading your assignment file.\n"
+    fi
     ;;
   content-researcher|linkedin-copywriter|content-publisher|\
   engagement-tracker|content-reporter|\
@@ -623,6 +645,23 @@ LANGUAGE_FILE="${DELIBERATE_AGENTS_HOME}/LANGUAGE.md"
 if [[ -f "$LANGUAGE_FILE" ]]; then
   CONTEXT+="\n# Framework Vocabulary\nCanonical terminology is defined in ${LANGUAGE_FILE}. Read it when uncertain about naming.\n"
 fi
+
+# --- Inject GTM Business Context (GTM-facing agents only) ---------------------
+case "$ROLE" in
+  growth-strategist|content-writer|content-researcher|sales-development-rep|\
+  account-executive-assistant|customer-success|onboarding-specialist|\
+  seo-specialist|market-researcher|product-strategist|\
+  linkedin-copywriter|twitter-copywriter|threads-copywriter|\
+  facebook-copywriter|reddit-writer|hackernews-writer|producthunt-writer|\
+  engagement-tracker|content-publisher|content-reporter|video-producer)
+    GTM_CONTEXT_FILE="${DELIBERATE_DIR}/gtm-context.md"
+    if [[ -f "$GTM_CONTEXT_FILE" ]]; then
+      CONTEXT+="\n# GTM Business Context\n"
+      CONTEXT+="Reference: ${GTM_CONTEXT_FILE}\n\n"
+      CONTEXT+="$(cat "$GTM_CONTEXT_FILE")\n"
+    fi
+    ;;
+esac
 
 CONTEXT_FILE="$(mktemp)"
 echo -e "$CONTEXT" > "$CONTEXT_FILE"

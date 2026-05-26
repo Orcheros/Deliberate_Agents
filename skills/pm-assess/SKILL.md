@@ -29,6 +29,7 @@ Evaluate the incoming one-pager for completeness, clarity, and feasibility befor
    - [ ] Desired outcome is stated (what does "done" look like?)
    - [ ] Scope is reasonable for a single initiative
    - [ ] No obvious conflicts with existing functionality
+   - [ ] Core assumptions have evidence or are flagged for validation (see validation-checkpoint.md)
 5. **Determine readiness**:
    - **Ready**: All criteria met -> proceed to `/pm-expand-prd`
    - **Needs clarification**: Some criteria unclear -> write specific questions to `.deliberate/decisions/`, set status to `BLOCKED`
@@ -44,6 +45,10 @@ assessment:
   notes: "Brief assessment summary"
   concerns: []        # Any risks or questions (non-blocking)
 ```
+
+## Companion Docs
+
+- `validation-checkpoint.md` — Evidence inventory to document what's validated vs. assumed. Run this checklist during assessment, especially for Medium+ risk initiatives.
 
 ## Transition
 
