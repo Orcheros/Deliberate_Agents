@@ -106,6 +106,11 @@ You are NOT ideating — the founder has already scoped the idea. Your job is to
    - Commit the one-pager and queue file to the current branch
    - Message: `"Intake: {Initiative Title} — one-pager created in backlog"`
 
+## Companion Docs
+
+- `one-pager-template.md` — The full one-pager template with field-by-field guidance and common mistakes to avoid.
+- `intake-checklist.md` — Quality gate to run before committing. Every item must pass.
+
 ## Output
 
 - Initiative directory at `{initiatives_path}/backlog/{slug}/`

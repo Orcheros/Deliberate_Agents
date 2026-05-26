@@ -618,6 +618,12 @@ if [[ -f "$ONBOARDING_FILE" ]]; then
   fi
 fi
 
+# --- Inject Framework Vocabulary -----------------------------------------------
+LANGUAGE_FILE="${DELIBERATE_AGENTS_HOME}/LANGUAGE.md"
+if [[ -f "$LANGUAGE_FILE" ]]; then
+  CONTEXT+="\n# Framework Vocabulary\nCanonical terminology is defined in ${LANGUAGE_FILE}. Read it when uncertain about naming.\n"
+fi
+
 CONTEXT_FILE="$(mktemp)"
 echo -e "$CONTEXT" > "$CONTEXT_FILE"
 

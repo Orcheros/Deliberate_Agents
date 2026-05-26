@@ -95,6 +95,15 @@ Present the design for review. **Do not begin implementation until approved.**
 
 If working autonomously (no human in loop), write the design to the initiative directory and proceed. If a human is available, wait for their confirmation.
 
+## Companion Docs
+
+- `design-alternatives.md` — How to explore and compare multiple approaches
+- `design-review-checklist.md` — Self-review gate before presenting the design
+
+## Architectural Decisions
+
+If the design involves a non-obvious architectural choice (data model shape, integration pattern, technology selection), capture it as an ADR in `.deliberate/decisions/` using the template at `templates/adr-template.md`. ADRs are short (1-3 sentences per section) and created lazily — only when there's a decision worth documenting.
+
 ## Output
 
 Design document written to the assignment or initiative directory. Implementation proceeds only after the design gate is passed.

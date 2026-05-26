@@ -42,6 +42,10 @@ The Integrator and Orchestrator are separate AI agents launched by `/deliberate`
 | `agents/integrator.md` | Integrator agent — primary session, strategic executor |
 | `agents/orchestrator.md` | Orchestrator agent — interactive coordinator in tmux |
 
+## Vocabulary
+
+`LANGUAGE.md` defines canonical terms used across all agents, skills, and documentation. When terms are ambiguous (e.g., "initiative" vs. "project" vs. "task"), use the canonical term from LANGUAGE.md. Each entry includes an "Avoid" list of synonyms that cause confusion.
+
 ## Invoking from Any Repo
 
 Users can invoke `/orchestrate` from any Claude Code session. This user-level slash command resolves `$DELIBERATE_AGENTS_HOME`, finds or scaffolds a project config, and offers orchestration actions.

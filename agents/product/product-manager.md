@@ -54,6 +54,8 @@ The PM operates in two phases:
 
 ### Phase 1: Intake (any time)
 1. `/pm-intake` — Receive scoped content, research codebase, create one-pager in `backlog/`
+   - Use `skills/pm-intake/one-pager-template.md` for field-by-field guidance
+   - Run `skills/pm-intake/intake-checklist.md` before committing — every item must pass
 
 The initiative sits in QUEUED until the founder selects it for grooming.
 

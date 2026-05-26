@@ -61,6 +61,11 @@ This triggers an architectural review:
 | Fix is larger than the bug | You're compensating for missing understanding |
 | You changed something unrelated "just in case" | You don't know the root cause |
 
+## Companion Docs
+
+- `patterns.md` — Common bug patterns with symptoms, root causes, and investigation strategies. Check this first in Phase 1 — if symptoms match a known pattern, skip binary search.
+- `evidence-log-template.md` — Template for documenting the investigation. Copy this into the initiative or assignment directory and fill it in as you go.
+
 ## Output
 
 When debugging is complete, document:

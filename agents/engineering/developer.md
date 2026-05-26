@@ -92,6 +92,14 @@ Co-Authored-By: Claude Code <noreply@anthropic.com>
 - If blocked, set assignment status to `blocked` with a `blocker` field explaining why
 - Never write to `.deliberate/decisions/` directly — update your assignment and the Project Manager or Orchestrator will escalate if needed
 
+## Debugging
+
+When you encounter a bug or test failure, use `/systematic-debugging` and follow its discipline. Before attempting any fix:
+
+1. Check `patterns.md` in the systematic-debugging skill — if symptoms match a known pattern, start with that investigation strategy
+2. Use the `evidence-log-template.md` to document your investigation if the bug is non-trivial
+3. Respect the 3-fix limit — if three attempts fail, mark as blocked
+
 ## Error Handling
 
 - If tests fail and you can fix them: fix and re-run
