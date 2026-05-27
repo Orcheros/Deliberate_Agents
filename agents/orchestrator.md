@@ -292,7 +292,7 @@ initiative:
   one_pager: "path/to/one-pager.md"
   prd: null
   architecture: null
-  design_brief: null
+  design_study: null
   backlog: null
   current_team: null
   current_agent: null

@@ -98,27 +98,33 @@ read_md_field() {
   grep -E "\*\*${field}\*\*:" "$file" 2>/dev/null | head -1 | sed 's/.*\*\*:[[:space:]]*//' | tr -d '"' | tr -d "'"
 }
 
-# Write/update a field in a YAML file
+# Write/update a field in a YAML file (atomic via temp+mv)
 write_yaml_field() {
   local file="$1"
   local field="$2"
   local value="$3"
+  local tmp="${file}.tmp.$$"
   if grep -qE "^\s*${field}:" "$file" 2>/dev/null; then
-    sed -i '' "s|^\(\s*${field}:\).*|\1 \"${value}\"|" "$file"
+    sed "s|^\(\s*${field}:\).*|\1 \"${value}\"|" "$file" > "$tmp" && mv "$tmp" "$file"
   else
-    echo "${field}: \"${value}\"" >> "$file"
+    cp "$file" "$tmp"
+    printf '%s: "%s"\n' "$field" "$value" >> "$tmp"
+    mv "$tmp" "$file"
   fi
 }
 
-# Write/update a field in a markdown status/assignment file
+# Write/update a field in a markdown status/assignment file (atomic via temp+mv)
 write_md_field() {
   local file="$1"
   local field="$2"
   local value="$3"
+  local tmp="${file}.tmp.$$"
   if grep -qE "\*\*${field}\*\*:" "$file" 2>/dev/null; then
-    sed -i '' "s|\(\*\*${field}\*\*:\).*|\1 ${value}|" "$file"
+    sed "s|\(\*\*${field}\*\*:\).*|\1 ${value}|" "$file" > "$tmp" && mv "$tmp" "$file"
   else
-    echo "- **${field}**: ${value}" >> "$file"
+    cp "$file" "$tmp"
+    printf -- '- **%s**: %s\n' "$field" "$value" >> "$tmp"
+    mv "$tmp" "$file"
   fi
 }
 
@@ -306,7 +312,7 @@ get_active_initiative() {
     local status
     status="$(read_yaml_field "$initiative_file" 'status')"
     case "$status" in
-      PM_IN_PROGRESS|ARCH_IN_PROGRESS|DESIGN_IN_PROGRESS|SCRUM_IN_PROGRESS|PJM_IN_PROGRESS)
+      PM_IN_PROGRESS|ARCH_IN_PROGRESS|DESIGN_IN_PROGRESS|SCRUM_IN_PROGRESS|PJM_IN_PROGRESS|VALIDATION_IN_PROGRESS)
         basename "$initiative_file" .yaml
         return
         ;;
@@ -444,7 +450,7 @@ check_agent_completion() {
         ;;
       blocked)
         local open_items=""
-        open_items="$(read_signal_section "$signal_file" "Open Items" 2>/dev/null | head -3 | tr '\n' ' ')" || true
+        open_items="$(read_signal_section "$signal_file" "Open Items" 2>/dev/null | head -3 | tr '\n' ' ' | tr '|' '-')" || true
         log_warn "Agent $agent_name blocked for ${title}: ${open_items}"
         write_yaml_field "$initiative_file" "status" "BLOCKED"
         write_yaml_field "$initiative_file" "blocker" "${open_items:-Agent reported blocked — check completion signal}"
@@ -501,7 +507,7 @@ process_queue() {
     local check_status
     check_status="$(read_yaml_field "$initiative_file" 'status')"
     case "$check_status" in
-      PM_IN_PROGRESS|ARCH_IN_PROGRESS|DESIGN_IN_PROGRESS|SCRUM_IN_PROGRESS|PJM_IN_PROGRESS)
+      PM_IN_PROGRESS|ARCH_IN_PROGRESS|DESIGN_IN_PROGRESS|SCRUM_IN_PROGRESS|PJM_IN_PROGRESS|VALIDATION_IN_PROGRESS)
         check_agent_completion "$(basename "$initiative_file" .yaml)"
         ;;
     esac

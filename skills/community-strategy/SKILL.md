@@ -142,7 +142,7 @@ Design a strategic community growth plan that selects the right platforms, defin
 
 ## Output
 
-Write the community strategy to `.deliberate/reports/{slug}/community-strategy.md`.
+Write the community strategy to `.deliberate/reports/{slug}/gtm/community-strategy.md`.
 
 ## Transition
 

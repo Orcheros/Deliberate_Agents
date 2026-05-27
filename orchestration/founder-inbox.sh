@@ -62,16 +62,16 @@ load_state() {
 
   [[ -f "$STATE_FILE" ]] || return 0
 
-  while IFS='|' read -r status id first_seen last_seen title; do
+  while IFS=$'\t' read -r status id first_seen last_seen title; do
     [[ "$status" == "#"* ]] && continue
     [[ -z "$status" ]] && continue
     case "$status" in
       ACTIVE)
-        SEEN_ITEMS["$id"]="${first_seen}|${last_seen}|${title}"
+        SEEN_ITEMS["$id"]="${first_seen}	${last_seen}	${title}"
         ;;
       COMPLETED)
         COMPLETED_ITEMS["$id"]=1
-        COMPLETED_LOG+=("${last_seen}|${title}")
+        COMPLETED_LOG+=("${last_seen}	${title}")
         ;;
     esac
   done < "$STATE_FILE"
@@ -79,17 +79,17 @@ load_state() {
 
 save_state() {
   {
-    echo "# Founder Inbox State — do not edit manually"
-    echo "# Format: STATUS|ID|FIRST_SEEN|LAST_SEEN|TITLE"
+    printf '# Founder Inbox State — do not edit manually\n'
+    printf '# Format: STATUS\\tID\\tFIRST_SEEN\\tLAST_SEEN\\tTITLE\n'
     for id in "${!SEEN_ITEMS[@]}"; do
-      echo "ACTIVE|${id}|${SEEN_ITEMS[$id]}"
+      printf 'ACTIVE\t%s\t%s\n' "$id" "${SEEN_ITEMS[$id]}"
     done
     for entry in "${COMPLETED_LOG[@]}"; do
-      local ts="${entry%%|*}"
-      local title="${entry#*|}"
+      local ts="${entry%%	*}"
+      local title="${entry#*	}"
       local cid
-      cid="$(echo "$title" | md5 -q 2>/dev/null || echo "$title" | md5sum 2>/dev/null | cut -d' ' -f1)"
-      echo "COMPLETED|${cid}|${ts}|${ts}|${title}"
+      cid="$(printf '%s' "$title" | md5 -q 2>/dev/null || printf '%s' "$title" | md5sum 2>/dev/null | cut -d' ' -f1)"
+      printf 'COMPLETED\t%s\t%s\t%s\t%s\n' "$cid" "$ts" "$ts" "$title"
     done
   } > "$STATE_FILE"
 }
@@ -210,8 +210,6 @@ scan_founder_messages() {
     [[ -f "$msg_file" ]] || continue
     local filename
     filename="$(basename "$msg_file")"
-    local subject
-    subject="$(grep -E '^\- \*\*Type\*\*:' "$msg_file" 2>/dev/null | head -1 | sed 's/.*: //')"
     local urgency
     urgency="$(grep -E '^\- \*\*Urgency\*\*:' "$msg_file" 2>/dev/null | head -1 | sed 's/.*: //')"
     urgency="${urgency:-normal}"
@@ -341,27 +339,6 @@ scan_founder_responses() {
         ;;
     esac
   done
-
-  # Also check decision response files
-  [[ -d "$DECISIONS_DIR" ]] || return 0
-
-  for resp_file in "$DECISIONS_DIR"/*.response.md; do
-    [[ -f "$resp_file" ]] || continue
-    local dec_file="${resp_file%.response.md}.md"
-    [[ -f "$dec_file" ]] || continue
-    local action
-    action="$(grep -E '^\- \*\*Action\*\*:' "$resp_file" 2>/dev/null | head -1 | sed 's/.*: //')"
-    local decision
-    decision="$(sed -n '/^## Decision/,/^##/p' "$resp_file" 2>/dev/null | grep -v '^##')"
-
-    if [[ -n "$decision" ]]; then
-      printf "\n## Resolution\n\n%s\n" "$decision" >> "$dec_file"
-      local ts
-      ts="$(date -u '+%Y%m%d-%H%M%S')"
-      mv "$resp_file" "${DECISIONS_DIR}/resolved-${ts}-$(basename "$resp_file")"
-      osascript -e "display notification \"Decision resolved\" with title \"Founder Response\" sound name \"Purr\"" 2>/dev/null || true
-    fi
-  done
 }
 
 scan_sources() {
@@ -383,12 +360,12 @@ detect_and_notify_new() {
   for item in "${CURRENT_ITEMS[@]}"; do
     IFS='|' read -r type urgency slug title id details <<< "$item"
     if [[ -z "${SEEN_ITEMS[$id]:-}" ]]; then
-      SEEN_ITEMS["$id"]="${now}|${now}|${title}"
+      SEEN_ITEMS["$id"]="${now}	${now}	${title}"
       osascript -e "display notification \"${title}\" with title \"Deliberate Agents\" subtitle \"${type}\" sound name \"Ping\"" 2>/dev/null || true
     else
       local parts="${SEEN_ITEMS[$id]}"
-      local first_seen="${parts%%|*}"
-      SEEN_ITEMS["$id"]="${first_seen}|${now}|${title}"
+      local first_seen="${parts%%	*}"
+      SEEN_ITEMS["$id"]="${first_seen}	${now}	${title}"
     fi
   done
 }
@@ -402,8 +379,8 @@ detect_completed() {
   for id in "${!SEEN_ITEMS[@]}"; do
     if [[ -z "${CURRENT_IDS[$id]:-}" ]]; then
       local parts="${SEEN_ITEMS[$id]}"
-      local title="${parts##*|}"
-      COMPLETED_LOG+=("${now}|${title}")
+      local title="${parts##*	}"
+      COMPLETED_LOG+=("${now}	${title}")
       COMPLETED_ITEMS["$id"]=1
       unset 'SEEN_ITEMS[$id]'
     fi
@@ -468,7 +445,7 @@ render_dashboard() {
       local ts_display=""
       if [[ -n "${SEEN_ITEMS[$id]:-}" ]]; then
         local parts="${SEEN_ITEMS[$id]}"
-        local first_seen="${parts%%|*}"
+        local first_seen="${parts%%	*}"
         ts_display="$first_seen"
       fi
 
@@ -496,8 +473,8 @@ render_dashboard() {
     local start_idx=$(( comp_count - show_count ))
     for (( i = comp_count - 1; i >= start_idx; i-- )); do
       local entry="${COMPLETED_LOG[$i]}"
-      local ts="${entry%%|*}"
-      local ctitle="${entry#*|}"
+      local ts="${entry%%	*}"
+      local ctitle="${entry#*	}"
       printf "  ${DIM}  [done] %s  %s${RESET}\n" "$ts" "$ctitle"
     done
   fi

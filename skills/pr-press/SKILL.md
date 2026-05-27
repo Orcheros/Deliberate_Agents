@@ -74,7 +74,7 @@ Create press and media materials for product launches, company milestones, and n
 
 ## Output
 
-Write the complete press kit to `.deliberate/reports/{slug}/pr-press-kit.md`, organized by section:
+Write the complete press kit to `.deliberate/reports/{slug}/gtm/pr-press-kit.md`, organized by section:
 1. Press Release
 2. Media Kit (if Tier 1 or 2)
 3. Journalist Outreach Plan (if Tier 1 or 2)

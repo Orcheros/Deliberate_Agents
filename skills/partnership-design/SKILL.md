@@ -140,7 +140,7 @@ Design a comprehensive partnership program covering integration, channel/reselle
 
 ## Output
 
-Write the partnership program design to `.deliberate/reports/{slug}/partnership-program.md`.
+Write the partnership program design to `.deliberate/reports/{slug}/gtm/partnership-program.md`.
 
 ## Transition
 

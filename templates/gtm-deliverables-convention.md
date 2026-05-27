@@ -5,7 +5,7 @@
 GTM deliverables for an initiative live at:
 
 ```
-{initiative-dir}/gtm/
+.deliberate/reports/{slug}/gtm/
 ```
 
 For initiative-independent GTM work (ongoing strategy, channel management):
@@ -67,9 +67,9 @@ for browsability. Each file maps to the skill that produces it.
 ## Usage
 
 This convention is **recommended, not required**. It provides structure for
-initiatives where GTM is a significant workstream. Skills currently write to
-`.deliberate/reports/{slug}/` — the `gtm/` subdirectory adds organization
-without breaking existing output paths.
+initiatives where GTM is a significant workstream. Skills write to
+`.deliberate/reports/{slug}/gtm/` to keep GTM artifacts organized separately
+from other reports.
 
 Not every initiative will produce all 20 deliverables. Skip numbers that don't
 apply — the gaps signal which GTM phases were not needed for this initiative.

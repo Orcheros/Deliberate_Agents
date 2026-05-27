@@ -212,32 +212,19 @@ CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 mkdir -p "$HOME/.claude"
 
 if [[ -f "$CLAUDE_SETTINGS" ]]; then
-  # Add teammateMode if missing
-  if ! grep -q '"teammateMode"' "$CLAUDE_SETTINGS" 2>/dev/null; then
-    # Insert teammateMode after the opening brace
-    sed -i '' 's/^{$/{\n  "teammateMode": "tmux",/' "$CLAUDE_SETTINGS"
-    echo "  Added teammateMode: tmux to $CLAUDE_SETTINGS"
-  fi
-  # Add CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS if missing
-  if ! grep -q 'CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS' "$CLAUDE_SETTINGS" 2>/dev/null; then
-    if grep -q '"env"' "$CLAUDE_SETTINGS" 2>/dev/null; then
-      # env block exists — add the key inside it
-      sed -i '' '/"env"[[:space:]]*:[[:space:]]*{/a\
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-' "$CLAUDE_SETTINGS"
-    else
-      # No env block — add one after the opening brace
-      sed -i '' 's/^{$/{\n  "env": { "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1" },/' "$CLAUDE_SETTINGS"
-    fi
-    echo "  Enabled agent teams in $CLAUDE_SETTINGS"
-  fi
-  # Add DA script permissions if missing
-  if ! grep -q 'Deliberate_Agents/orchestration' "$CLAUDE_SETTINGS" 2>/dev/null; then
-    # Use python3 to safely merge permissions into the JSON
-    python3 -c "
-import json, sys
+  # Merge all required settings into the existing JSON via python3
+  python3 -c "
+import json
 with open('$CLAUDE_SETTINGS') as f:
     s = json.load(f)
+changed = False
+if s.get('teammateMode') != 'tmux':
+    s['teammateMode'] = 'tmux'
+    changed = True
+env = s.setdefault('env', {})
+if env.get('CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS') != '1':
+    env['CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS'] = '1'
+    changed = True
 perms = s.setdefault('permissions', {})
 allow = perms.setdefault('allow', [])
 new_rules = [
@@ -257,11 +244,15 @@ new_rules = [
 for rule in new_rules:
     if rule not in allow:
         allow.append(rule)
-with open('$CLAUDE_SETTINGS', 'w') as f:
-    json.dump(s, f, indent=2)
-    f.write('\n')
-" 2>/dev/null && echo "  Added DA orchestration permissions to $CLAUDE_SETTINGS"
-  fi
+        changed = True
+if changed:
+    with open('$CLAUDE_SETTINGS', 'w') as f:
+        json.dump(s, f, indent=2)
+        f.write('\n')
+    print('  Updated Claude settings: teammateMode, agent teams, permissions')
+else:
+    print('  Claude settings already configured')
+" 2>/dev/null || echo "  Warning: Could not update $CLAUDE_SETTINGS — check python3 availability"
 else
   # No settings file — create one with agent team defaults and permissions
   cat > "$CLAUDE_SETTINGS" <<'SETTINGSEOF'

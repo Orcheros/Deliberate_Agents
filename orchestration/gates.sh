@@ -70,6 +70,11 @@ run_gate() {
       fi
       return 1
       ;;
+    *)
+      log_warn "Gate FAILED (unknown risk level '${risk_level}', blocking): ${gate_name} — ${reason}"
+      write_gate_decision "$initiative_slug" "$gate_name" "$reason"
+      return 1
+      ;;
   esac
 }
 

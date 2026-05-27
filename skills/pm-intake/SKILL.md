@@ -95,7 +95,7 @@ You are NOT ideating — the founder has already scoped the idea. Your job is to
      one_pager: "{initiatives_path}/backlog/{slug}/{slug}-one-pager.md"
      prd: null
      architecture: null
-     design_brief: null
+     design_study: null
      backlog: null
      created_at: "ISO timestamp"
      updated_at: "ISO timestamp"

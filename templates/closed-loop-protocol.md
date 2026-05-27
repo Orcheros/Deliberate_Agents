@@ -99,4 +99,6 @@ When you make a non-obvious choice, record it:
 
 **When to record**: You chose one approach over another. You scoped something in or out. You deviated from the spec. You discovered a constraint. You made an assumption.
 
+**Note**: This path (`.deliberate/comms/{slug}/decisions/`) is for per-initiative agent reasoning — recording why you chose one approach over another. Global escalations requiring human resolution go to `.deliberate/decisions/` — those are created by the orchestrator and gate system, not by individual agents. Do not write to `.deliberate/decisions/` directly.
+
 **When to leave a message** for the next agent: Write to `.deliberate/comms/{slug}/messages/{timestamp}-{role}-to-{target-role}.md` when you have context they will need.

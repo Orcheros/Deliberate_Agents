@@ -29,5 +29,5 @@ Design brief: 1 agent session (typically 10-20 minutes).
 1. PM completes `/pm-architecture`, transitions to design phase
 2. Designer agent launched with PRD + arch doc as context
 3. Designer reads UI requirements from PRD section 5, component needs from arch doc
-4. Design brief written to `{slug}-design-brief.md`
-5. `design_brief_path` updated in queue YAML
+4. Design study written to `{slug}-design-study.md`
+5. `design_study_path` updated in queue YAML

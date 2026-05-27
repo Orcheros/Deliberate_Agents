@@ -46,6 +46,10 @@ The Integrator and Orchestrator are separate AI agents launched by `/deliberate`
 
 `LANGUAGE.md` defines canonical terms used across all agents, skills, and documentation. When terms are ambiguous (e.g., "initiative" vs. "project" vs. "task"), use the canonical term from LANGUAGE.md. Each entry includes an "Avoid" list of synonyms that cause confusion.
 
+## Platform
+
+Deliberate Agents requires **macOS**. Shell scripts use macOS-specific tools (`date -j`, `sed -i ''`, `osascript` for notifications). Linux/WSL is not currently supported.
+
 ## Invoking from Any Repo
 
 Users can invoke `/orchestrate` from any Claude Code session. This user-level slash command resolves `$DELIBERATE_AGENTS_HOME`, finds or scaffolds a project config, and offers orchestration actions.

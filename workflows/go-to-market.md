@@ -109,4 +109,4 @@ GTM activities complete. Content published, sales enabled, onboarding updated, s
 
 ## Deliverables Convention
 
-GTM artifacts for an initiative should be organized in `{initiative-dir}/gtm/` using the numbered naming convention defined in `templates/gtm-deliverables-convention.md`. This creates a browsable playbook per initiative.
+GTM artifacts for an initiative should be organized in `.deliberate/reports/{slug}/gtm/` using the numbered naming convention defined in `templates/gtm-deliverables-convention.md`. This creates a browsable playbook per initiative.

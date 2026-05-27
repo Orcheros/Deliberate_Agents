@@ -59,7 +59,7 @@ EOF
     local prd_path arch_path design_path review_path
     prd_path="$(read_yaml_field "$initiative_file" 'prd_path' 2>/dev/null)"
     arch_path="$(read_yaml_field "$initiative_file" 'architecture_path' 2>/dev/null)"
-    design_path="$(read_yaml_field "$initiative_file" 'design_brief_path' 2>/dev/null)"
+    design_path="$(read_yaml_field "$initiative_file" 'design_study_path' 2>/dev/null)"
     review_path="$(read_yaml_field "$initiative_file" 'review_summary_path' 2>/dev/null)"
     [[ -n "$prd_path" ]] && artifacts+="  - PRD: ${prd_path}\n"
     [[ -n "$arch_path" && "$arch_path" != "null" ]] && artifacts+="  - Architecture: ${arch_path}\n"
@@ -463,7 +463,7 @@ read_completion_signal() {
 read_signal_field() {
   local file="$1"
   local field="$2"
-  grep -E "^\- \*\*${field}\*\*:" "$file" 2>/dev/null | head -1 | sed 's/.*\*\*: //'
+  grep -E "^\- \*\*${field}\*\*:" "$file" 2>/dev/null | head -1 | sed 's/^.*\*\*:[[:space:]]*//'
 }
 
 read_signal_section() {
