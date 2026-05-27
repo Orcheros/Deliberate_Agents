@@ -586,6 +586,8 @@ agent_target_window() {
   case "$role" in
     integrator|orchestrator)
       name="coordination" ;;
+    founder-inbox)
+      name="founder-inbox" ;;
     *)
       if [[ -n "$initiative" ]]; then
         name="$initiative"
@@ -691,12 +693,28 @@ TAB_TITLE="${ROLE}: ${INITIATIVE:-${WORKTREE:-agent}}"
 
 # Determine if this agent should be interactive (user types to it directly)
 # or autonomous (one-shot with streaming progress output).
+AGENT_DAEMON=false
 case "$ROLE" in
   integrator|orchestrator) AGENT_INTERACTIVE=true ;;
+  founder-inbox)           AGENT_INTERACTIVE=false; AGENT_DAEMON=true ;;
   *)                       AGENT_INTERACTIVE=false ;;
 esac
 
-if [[ "$AGENT_INTERACTIVE" == "true" ]]; then
+if [[ "$AGENT_DAEMON" == "true" ]]; then
+# --- Daemon launcher (Founder Inbox) ------------------------------------------
+# Runs a pure bash daemon — no AI model calls.
+cat > "$LAUNCHER" <<SCRIPT
+#!/usr/bin/env bash
+echo \$\$ > '${PID_FILE}'
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║  Founder Inbox — Human Attention Aggregator"
+echo "║  Project: ${PROJECT_NAME:-unknown}"
+echo "╚══════════════════════════════════════════════════════════════╝"
+echo ""
+exec '${FRAMEWORK_DIR}/orchestration/founder-inbox.sh' '${CONFIG_FILE}'
+SCRIPT
+
+elif [[ "$AGENT_INTERACTIVE" == "true" ]]; then
 # --- Interactive launcher (Integrator, Orchestrator) --------------------------
 # Launches a full interactive Claude session. The user talks to this agent
 # directly in the tmux pane — no one-shot prompt, no streaming JSON parser.
@@ -865,6 +883,23 @@ if [[ "\$IS_ARTIFACT_ROLE" == "true" ]]; then
   else
     printf "\\n  Artifacts: %s commit(s), %s uncommitted file(s)\\n" "\$COMMITS_MADE" "\$FILES_CHANGED"
   fi
+fi
+
+# --- Completion signal check --------------------------------------------------
+SIGNAL_FILE=""
+if [[ -n "${INITIATIVE:-}" ]]; then
+  SIGNAL_FILE="${DELIBERATE_DIR}/comms/${INITIATIVE}/completion-${ROLE}.md"
+else
+  SIGNAL_FILE="${DELIBERATE_DIR}/comms/_system/completion-${AGENT_NAME}.md"
+fi
+
+if [[ -f "\$SIGNAL_FILE" ]]; then
+  SIGNAL_STATUS=\$(grep -E '^\- \*\*Status\*\*:' "\$SIGNAL_FILE" 2>/dev/null | head -1 | sed 's/.*: //')
+  printf "\\n  Completion signal: %s (status: %s)\\n" "\$SIGNAL_FILE" "\$SIGNAL_STATUS"
+else
+  printf "\\n  WARNING: No completion signal written\\n"
+  printf "  Expected: %s\\n" "\$SIGNAL_FILE"
+  osascript -e "display notification \"WARNING: ${ROLE} wrote no completion signal\" with title \"Deliberate Agents\" sound name \"Basso\"" 2>/dev/null
 fi
 
 osascript -e "display notification \"${ROLE} agent session ended\" with title \"Deliberate Agents\"" 2>/dev/null

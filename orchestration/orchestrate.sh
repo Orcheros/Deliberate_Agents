@@ -406,23 +406,87 @@ check_agent_completion() {
     return
   fi
 
-  # Agent is not running — did it crash or complete?
-  if agent_crashed "$agent_name"; then
-    log_error "Agent $agent_name crashed for ${title} (ran < 2 minutes)"
+  # Agent is not running — read completion signal to determine outcome
+  local signal_file=""
+  signal_file="$(read_completion_signal "$initiative_slug" "$from_role" "$agent_name" 2>/dev/null)" || true
+  local signal_status=""
+  if [[ -n "$signal_file" ]]; then
+    signal_status="$(read_signal_field "$signal_file" "Status")"
+  fi
+
+  if [[ -n "$signal_file" && -n "$signal_status" ]]; then
+    # Closed-loop: agent wrote a completion signal
+    local signal_summary=""
+    signal_summary="$(read_signal_section "$signal_file" "Summary" 2>/dev/null | head -5 | tr '\n' ' ')" || true
+    local handoff_notes=""
+    handoff_notes="$(read_signal_section "$signal_file" "Handoff Notes" 2>/dev/null | head -5 | tr '\n' ' ')" || true
+    local notes="Signal: ${signal_status}. ${signal_summary}"
+    [[ -n "$handoff_notes" ]] && notes+=" Handoff: ${handoff_notes}"
+
+    case "$signal_status" in
+      success)
+        log_info "Agent $agent_name completed successfully for ${title}"
+        record_flow_metric "$initiative_slug" "$status" "$next_status"
+        record_handoff "$initiative_slug" "$status" "$next_status" "$from_role" "$to_role" "$notes"
+        write_yaml_field "$initiative_file" "status" "$next_status"
+        notify "transition" "$notify_msg" --initiative "$initiative_slug"
+        ;;
+      partial)
+        log_warn "Agent $agent_name partially completed for ${title}"
+        record_flow_metric "$initiative_slug" "$status" "$next_status"
+        record_handoff "$initiative_slug" "$status" "$next_status" "$from_role" "$to_role" "$notes"
+        write_yaml_field "$initiative_file" "status" "$next_status"
+        send_system_message "orchestrator" "integrator" "escalation" \
+          "Partial completion: ${agent_name}" \
+          "Agent ${agent_name} partially completed for '${title}'. Advanced to ${next_status} but review may be needed. ${signal_summary}" \
+          "warning"
+        notify "transition" "$notify_msg" --initiative "$initiative_slug"
+        ;;
+      blocked)
+        local open_items=""
+        open_items="$(read_signal_section "$signal_file" "Open Items" 2>/dev/null | head -3 | tr '\n' ' ')" || true
+        log_warn "Agent $agent_name blocked for ${title}: ${open_items}"
+        write_yaml_field "$initiative_file" "status" "BLOCKED"
+        write_yaml_field "$initiative_file" "blocker" "${open_items:-Agent reported blocked — check completion signal}"
+        record_health_metric "agent_blocked" "$agent_name"
+        send_to_founder "orchestrator" "agent-blocked" \
+          "${from_role} blocked on ${title}" \
+          "$initiative_slug" "high" \
+          "Agent reported blocked.\n${open_items}\nSignal: ${signal_file}"
+        notify "alert" "Agent blocked for ${title}" --initiative "$initiative_slug"
+        ;;
+      failed)
+        log_error "Agent $agent_name failed for ${title}"
+        write_yaml_field "$initiative_file" "status" "BLOCKED"
+        write_yaml_field "$initiative_file" "blocker" "Agent ${agent_name} failed — check completion signal"
+        record_health_metric "agent_failure" "$agent_name"
+        send_to_founder "orchestrator" "agent-failed" \
+          "${from_role} failed on ${title}" \
+          "$initiative_slug" "critical" \
+          "Agent reported failure.\n${signal_summary}\nSignal: ${signal_file}"
+        notify "alert" "Agent failed for ${title} — needs investigation" --initiative "$initiative_slug"
+        ;;
+    esac
+  elif agent_crashed "$agent_name"; then
+    log_error "Agent $agent_name crashed for ${title} (ran < 2 minutes, no completion signal)"
     write_yaml_field "$initiative_file" "status" "BLOCKED"
     write_yaml_field "$initiative_file" "blocker" "Agent ${agent_name} crashed — check logs"
     record_health_metric "agent_crash" "$agent_name"
     send_system_message "orchestrator" "integrator" "escalation" \
       "Agent crash: ${agent_name}" \
-      "Agent ${agent_name} crashed for initiative '${title}' (ran < 2 minutes). Status set to BLOCKED. Check logs at ${LOG_FILE}." \
+      "Agent ${agent_name} crashed for initiative '${title}' (ran < 2 minutes, no completion signal). Status set to BLOCKED. Check logs." \
       "critical"
     notify "alert" "Agent crashed for ${title} — needs investigation" --initiative "$initiative_slug"
   else
-    log_info "Agent $agent_name finished for ${title}"
-    record_flow_metric "$initiative_slug" "$status" "$next_status"
-    record_handoff "$initiative_slug" "$status" "$next_status" "$from_role" "$to_role" "Agent completed successfully"
-    write_yaml_field "$initiative_file" "status" "$next_status"
-    notify "transition" "$notify_msg" --initiative "$initiative_slug"
+    log_warn "Agent $agent_name exited without completion signal for ${title}"
+    write_yaml_field "$initiative_file" "status" "BLOCKED"
+    write_yaml_field "$initiative_file" "blocker" "Agent ${agent_name} completed without writing a completion signal — may need re-dispatch"
+    record_health_metric "missing_signal" "$agent_name"
+    send_system_message "orchestrator" "integrator" "escalation" \
+      "Missing completion signal: ${agent_name}" \
+      "Agent ${agent_name} exited for '${title}' without writing a completion signal. Cannot confirm work was done. Status set to BLOCKED." \
+      "warning"
+    notify "alert" "Missing completion signal for ${title}" --initiative "$initiative_slug"
   fi
 }
 
@@ -704,15 +768,41 @@ check_agent_health() {
   local state_file="$2"
 
   if ! agent_window_exists "$window_name"; then
-    log_warn "Agent window $window_name disappeared — session may have crashed"
     local status
     status="$(read_md_field "$state_file" 'Status')"
     if [[ "$status" == "in_progress" ]]; then
-      log_warn "Marking $state_file as blocked (agent crashed)"
-      write_md_field "$state_file" "Status" "blocked"
-      write_md_field "$state_file" "Blocker" "Agent session crashed unexpectedly"
-      record_health_metric "agent_crash" "$window_name"
-      notify "alert" "Agent $window_name crashed — session marked as blocked"
+      # Check for completion signal before assuming crash
+      local signal_file=""
+      signal_file="$(read_completion_signal "_system" "" "$window_name" 2>/dev/null)" || true
+
+      if [[ -n "$signal_file" ]]; then
+        local signal_status
+        signal_status="$(read_signal_field "$signal_file" "Status")"
+        case "$signal_status" in
+          success|complete)
+            log_info "Agent $window_name completed with signal (status: $signal_status)"
+            write_md_field "$state_file" "Status" "complete"
+            ;;
+          blocked)
+            log_warn "Agent $window_name reported blocked"
+            write_md_field "$state_file" "Status" "blocked"
+            local open_items=""
+            open_items="$(read_signal_section "$signal_file" "Open Items" 2>/dev/null | head -3 | tr '\n' ' ')" || true
+            write_md_field "$state_file" "Blocker" "${open_items:-Agent reported blocked}"
+            ;;
+          *)
+            log_warn "Agent $window_name exited with signal status: $signal_status"
+            write_md_field "$state_file" "Status" "blocked"
+            write_md_field "$state_file" "Blocker" "Agent exited with status: ${signal_status}"
+            ;;
+        esac
+      else
+        log_warn "Agent window $window_name disappeared — no completion signal"
+        write_md_field "$state_file" "Status" "blocked"
+        write_md_field "$state_file" "Blocker" "Agent session ended without completion signal"
+        record_health_metric "missing_signal" "$window_name"
+        notify "alert" "Agent $window_name ended without completion signal — marked as blocked"
+      fi
     fi
   fi
 }
@@ -745,6 +835,12 @@ check_initiative_completion() {
     if [[ "$current_status" != "DEV_COMPLETE" && "$current_status" != "REVIEW_READY" && "$current_status" != "COMPLETE" ]]; then
       log_info "All tasks complete for initiative $initiative — marking DEV_COMPLETE"
       write_yaml_field "$initiative_file" "status" "DEV_COMPLETE"
+      local title
+      title="$(read_yaml_field "$initiative_file" 'title')"
+      send_to_founder "orchestrator" "review-ready" \
+        "${title:-$initiative} is ready for review" \
+        "$initiative" "high" \
+        "Development complete. All tasks finished — branch ready for human code review."
     fi
   fi
 }
@@ -762,6 +858,19 @@ check_decisions() {
       # Already sent notification, check for resolution
       local resolution_content
       resolution_content="$(sed -n '/^## Resolution/,/^##/p' "$f" 2>/dev/null | grep -v '^##' | tr -d '[:space:]')"
+      # Also check for .response.md file (closed-loop human response)
+      local response_file="${f%.md}.response.md"
+      if [[ -f "$response_file" && -z "$resolution_content" ]]; then
+        local action
+        action="$(grep -E '^\- \*\*Action\*\*:' "$response_file" 2>/dev/null | head -1 | sed 's/.*: //')"
+        local decision_text
+        decision_text="$(sed -n '/^## Decision/,/^##/p' "$response_file" 2>/dev/null | grep -v '^##')"
+        # Write the response into the decision file's Resolution section
+        printf "\n## Resolution\n\n**Action**: %s (via response file)\n\n%s\n" "$action" "$decision_text" >> "$f"
+        resolution_content="filled"
+        log_info "Decision resolved via response file: $(basename "$f" .md)"
+        mv "$response_file" "${DECISIONS_DIR}/resolved-$(basename "$response_file")"
+      fi
       if [[ -n "$resolution_content" ]]; then
         log_info "Decision resolved: $(basename "$f" .md)"
         rm -f "$notified_marker"
@@ -954,6 +1063,10 @@ main() {
         "Work stalled: ${pending_count} decision(s) blocking progress" \
         "All work is stalled. ${blocked_count} initiative(s) blocked, ${pending_count} decision(s) need human input. Check .deliberate/decisions/ for pending items." \
         "critical"
+      send_to_founder "orchestrator" "escalation" \
+        "Work stalled: ${pending_count} decision(s) blocking progress" \
+        "system" "critical" \
+        "All work is stalled. ${blocked_count} initiative(s) blocked, ${pending_count} decision(s) need human input.\nCheck: ${DECISIONS_DIR}/"
       notify "alert" "Work is stalled — ${pending_count} decision(s) need your input before agents can continue. Check Slack threads or .deliberate/decisions/"
     elif (( blocked_count == 0 || active_count > 0 )) || $pipeline_running; then
       was_all_blocked=false

@@ -81,6 +81,14 @@ EOF
     recent_decisions+="  - $(basename "$dec_file")\n"
   done
 
+  # Check for prior agent's receipt and completion signal
+  local receipt_ref=""
+  local prior_receipt="${comms_dir}/receipt-${from_role}.md"
+  [[ -f "$prior_receipt" ]] && receipt_ref="  - Receipt: ${prior_receipt}"
+  local completion_ref=""
+  local prior_completion="${comms_dir}/completion-${from_role}.md"
+  [[ -f "$prior_completion" ]] && completion_ref="  - Completion signal: ${prior_completion}"
+
   cat >> "$log_file" <<EOF
 
 ## ${timestamp} — ${from_role} → ${to_role}
@@ -92,6 +100,9 @@ $(echo -e "${artifacts:-  - (none)}")
 $(echo -e "${recent_decisions:-  - (none)}")
 - **Messages pending for ${to_role}**:
 $(echo -e "${pending_messages:-  - (none)}")
+- **Closed-loop signals**:
+$(echo -e "${receipt_ref:-  - Receipt: (not written)}")
+$(echo -e "${completion_ref:-  - Completion signal: (not written)}")
 ${notes:+- **Notes**: ${notes}}
 
 EOF
@@ -267,42 +278,17 @@ build_comms_context() {
     context+="Read it to understand how work flowed to you and what artifacts are available.\n\n"
   fi
 
-  # Communication protocol reminder
-  context+="\n## Communication Protocol\n\n"
-  context+="As you work, record your significant decisions and leave context for downstream agents:\n\n"
-  context+="**Record a decision** (when you make a non-obvious choice):\n"
-  context+="Write to \`.deliberate/comms/${slug}/decisions/{timestamp}-${role}.md\`:\n"
-  context+="\`\`\`markdown\n"
-  context+="# Decision: {title}\n"
-  context+="- **By**: ${role}\n"
-  context+="- **At**: {timestamp}\n"
-  context+="## What was decided\n"
-  context+="{rationale}\n"
-  context+="## Alternatives considered\n"
-  context+="{what else you looked at and why you rejected it}\n"
-  context+="## Impact on downstream agents\n"
-  context+="{what the next agent needs to know about this choice}\n"
-  context+="\`\`\`\n\n"
-  context+="**Leave a message** for the next agent (when you have context they'll need):\n"
-  context+="Write to \`.deliberate/comms/${slug}/messages/{timestamp}-${role}-to-{target-role}.md\`:\n"
-  context+="\`\`\`markdown\n"
-  context+="# Message: {subject}\n"
-  context+="- **From**: ${role}\n"
-  context+="- **To**: {target-role}\n"
-  context+="{your message — be specific about what they should do differently}\n"
-  context+="\`\`\`\n\n"
-  context+="**Write a handoff receipt** at the start of your work:\n"
-  context+="After reading your inputs, write to \`.deliberate/comms/${slug}/receipt-${role}.md\` confirming what you received and flagging anything missing.\n\n"
-  context+="**When to record a decision:**\n"
-  context+="- You chose one approach over another\n"
-  context+="- You scoped something in or out\n"
-  context+="- You deviated from the pattern reference or architecture doc\n"
-  context+="- You discovered a constraint that affects downstream work\n"
-  context+="- You made an assumption that could be wrong\n\n"
-  context+="**When to leave a message:**\n"
-  context+="- The next agent needs to know about a gotcha or constraint\n"
-  context+="- You found something that affects their work but isn't in the spec\n"
-  context+="- You want to flag a risk or concern for a specific role\n"
+  # Closed-loop communication protocol
+  local protocol_file="${FRAMEWORK_DIR:-}/templates/closed-loop-protocol.md"
+  if [[ -f "$protocol_file" ]]; then
+    context+="\n$(sed "s/{slug}/${slug}/g; s/{role}/${role}/g" "$protocol_file")\n"
+  else
+    context+="\n## Communication Protocol\n\n"
+    context+="Write a handoff receipt at the start of your work to \`.deliberate/comms/${slug}/receipt-${role}.md\`.\n"
+    context+="Write a completion signal as your last action to \`.deliberate/comms/${slug}/completion-${role}.md\`.\n"
+    context+="Record decisions to \`.deliberate/comms/${slug}/decisions/{timestamp}-${role}.md\`.\n"
+    context+="Leave messages for the next agent at \`.deliberate/comms/${slug}/messages/{timestamp}-${role}-to-{target-role}.md\`.\n"
+  fi
 
   echo -e "$context"
 }
@@ -318,11 +304,12 @@ build_comms_context() {
 # Directory layout:
 #   _system/inbox/integrator/   — messages TO the Integrator
 #   _system/inbox/orchestrator/ — messages TO the Orchestrator
+#   _system/inbox/founder/      — messages TO the Founder (human)
 #   _system/ack/                — acknowledged messages (audit trail)
 
 system_comms_dir() {
   local dir="${DELIBERATE_DIR}/comms/_system"
-  mkdir -p "$dir/inbox/integrator" "$dir/inbox/orchestrator" "$dir/ack"
+  mkdir -p "$dir/inbox/integrator" "$dir/inbox/orchestrator" "$dir/inbox/founder" "$dir/ack"
   echo "$dir"
 }
 
@@ -401,6 +388,35 @@ ack_system_message() {
   log_info "System message acknowledged: ${filename}" 2>/dev/null || true
 }
 
+send_to_founder() {
+  local from_role="$1"
+  local msg_type="$2"
+  local subject="$3"
+  local initiative="${4:-system}"
+  local urgency="${5:-normal}"
+  local body="$6"
+
+  local structured_body=""
+  structured_body+="$body"
+
+  if [[ "$initiative" != "system" ]]; then
+    local worktree_path="${WORKTREES_DIR}/${initiative}"
+    local queue_path="${DELIBERATE_DIR}/queue/${initiative}.yaml"
+    local branch=""
+    if [[ -d "$worktree_path/.git" ]] || [[ -f "$worktree_path/.git" ]]; then
+      branch="$(git -C "$worktree_path" branch --show-current 2>/dev/null || echo "unknown")"
+    fi
+
+    structured_body+="\n\n---\n"
+    structured_body+="- **Initiative**: ${initiative}\n"
+    structured_body+="- **Queue**: ${queue_path}\n"
+    [[ -d "$worktree_path" ]] && structured_body+="- **Worktree**: ${worktree_path}\n"
+    [[ -n "$branch" ]] && structured_body+="- **Branch**: ${branch}\n"
+  fi
+
+  send_system_message "$from_role" "founder" "$msg_type" "$subject" "$structured_body" "$urgency"
+}
+
 count_unread_messages() {
   local role="$1"
 
@@ -419,6 +435,69 @@ count_unread_messages() {
     ((count++)) || true
   done
   echo "$count"
+}
+
+# =============================================================================
+# CLOSED-LOOP PROTOCOL FUNCTIONS
+# =============================================================================
+
+read_completion_signal() {
+  local slug="$1"
+  local role="$2"
+  local agent_name="${3:-}"
+
+  local signal_file
+  if [[ -n "$slug" && "$slug" != "_system" ]]; then
+    signal_file="${DELIBERATE_DIR}/comms/${slug}/completion-${role}.md"
+  else
+    signal_file="${DELIBERATE_DIR}/comms/_system/completion-${agent_name:-${role}}.md"
+  fi
+
+  if [[ -f "$signal_file" ]]; then
+    echo "$signal_file"
+    return 0
+  fi
+  return 1
+}
+
+read_signal_field() {
+  local file="$1"
+  local field="$2"
+  grep -E "^\- \*\*${field}\*\*:" "$file" 2>/dev/null | head -1 | sed 's/.*\*\*: //'
+}
+
+read_signal_section() {
+  local file="$1"
+  local section="$2"
+  sed -n "/^## ${section}/,/^##/p" "$file" 2>/dev/null | grep -v "^##" | sed '/^$/d'
+}
+
+verify_receipt_exists() {
+  local slug="$1"
+  local role="$2"
+  local receipt_file="${DELIBERATE_DIR}/comms/${slug}/receipt-${role}.md"
+  [[ -f "$receipt_file" ]]
+}
+
+mark_message_acknowledged() {
+  local msg_file="$1"
+  [[ -f "$msg_file" ]] || return 1
+  sed -i '' 's/\*\*Status\*\*: unread/**Status**: acknowledged/' "$msg_file"
+}
+
+resolve_message() {
+  local msg_file="$1"
+  [[ -f "$msg_file" ]] || return 1
+
+  local sys_dir
+  sys_dir="$(system_comms_dir)"
+  local filename
+  filename="$(basename "$msg_file")"
+  local resolved_ts
+  resolved_ts="$(date -u '+%Y%m%d-%H%M%S')"
+
+  mv "$msg_file" "${sys_dir}/ack/${resolved_ts}-resolved-${filename}"
+  log_info "Message resolved: ${filename}" 2>/dev/null || true
 }
 
 build_system_comms_context() {
@@ -492,6 +571,12 @@ build_system_comms_context() {
     context+="- **Status**: unread\n\n"
     context+="{body — be specific about what the Orchestrator should do}\n"
     context+="\`\`\`\n"
+  fi
+
+  # Inject closed-loop protocol for system agents too
+  local protocol_file="${FRAMEWORK_DIR:-}/templates/closed-loop-protocol.md"
+  if [[ -f "$protocol_file" ]]; then
+    context+="\n$(sed "s/{slug}/_system/g; s/{role}/${role}/g" "$protocol_file")\n"
   fi
 
   echo -e "$context"

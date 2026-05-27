@@ -105,3 +105,27 @@ Avoid: "command" (implies CLI), "script" (implies bash), "recipe" (informal).
 The structured business context document (`.deliberate/gtm-context.md`) describing product, market, ICP, business model, competitive landscape, and traction. Injected automatically into GTM-facing agents at launch. Deployed from `templates/gtm-context.md` during `init.sh`.
 
 Avoid: "business plan" (too formal), "pitch deck" (investor-focused), "brief" (ambiguous).
+
+### Founder Inbox
+
+A pure bash polling daemon (`orchestration/founder-inbox.sh`) that runs in its own tmux window. Scans queue YAMLs, decision files, founder messages, and orchestrator heartbeat to aggregate items needing human attention into a live terminal dashboard. Zero AI cost — no model calls.
+
+Avoid: "dashboard" (ambiguous — `dashboard.sh` is the status dashboard), "notification center" (implies push-only — this is a polling TUI).
+
+### Completion Signal
+
+A structured markdown file every agent writes as its last action before exiting. Contains Status (`success`/`partial`/`blocked`/`failed`), Summary, Artifacts Produced, Open Items, and Handoff Notes. Located at `.deliberate/comms/{slug}/completion-{role}.md`. The orchestrator reads this to route post-completion behavior instead of relying solely on PID death.
+
+Avoid: "exit report" (implies optional), "status update" (implies periodic, not terminal).
+
+### Assignment Receipt
+
+A structured markdown file every agent writes as its first action after reading inputs. Confirms which artifacts were received and readable, flags anything missing, and states the agent's understanding of scope. Located at `.deliberate/comms/{slug}/receipt-{role}.md`.
+
+Avoid: "acknowledgment" (overloaded — used for message lifecycle), "intake" (ambiguous with PM intake).
+
+### Response File
+
+A `.response.md` file the Visionary creates adjacent to a founder inbox message or decision file to close the loop. Contains Action (`approve`/`reject`/`defer`/`instruct`) and Decision fields. The Founder Inbox daemon processes response files and routes them: approvals/rejections move to `ack/`, instructions become system messages to the orchestrator.
+
+Avoid: "reply" (implies conversational), "resolution" (already used for the inline section in decision files).

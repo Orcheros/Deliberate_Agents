@@ -177,6 +177,13 @@ if [[ -d "$COMMS_DIR/_system/inbox/orchestrator" ]]; then
     ((orchestrator_count++)) || true
   done
 fi
+founder_count=0
+if [[ -d "$COMMS_DIR/_system/inbox/founder" ]]; then
+  for f in "$COMMS_DIR/_system/inbox/founder"/*.md; do
+    [[ -f "$f" ]] || continue
+    ((founder_count++)) || true
+  done
+fi
 
 # --- Write Dashboard ----------------------------------------------------------
 
@@ -201,6 +208,7 @@ ${TRANSITIONS}
 ## System Messages
 - Integrator inbox: ${integrator_count}
 - Orchestrator inbox: ${orchestrator_count}
+- Founder inbox: ${founder_count}
 EOF
 
 echo "Dashboard written to ${DASHBOARD_FILE}"

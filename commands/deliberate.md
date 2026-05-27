@@ -77,6 +77,8 @@ Run these checks (use Bash where needed, Glob/Read where possible):
 
 6. **Dashboard available?** — Check if `$DELIBERATE_DIR/status/dashboard.md` exists.
 
+7. **Founder Inbox running?** — Check if `$DELIBERATE_DIR/pids/founder-inbox.pid` exists and `kill -0 <pid>` succeeds.
+
 ## Step 4: Launch Coordination Window
 
 Present a brief status to the user:
@@ -85,6 +87,7 @@ Present a brief status to the user:
 Project: {PROJECT_NAME}
 Integrator: {RUNNING | NOT RUNNING}
 Orchestrator: {RUNNING | NOT RUNNING}
+Founder Inbox: {RUNNING | NOT RUNNING}
 Other agents: {count}
 Escalations: {count or "none"}
 ```
@@ -119,7 +122,22 @@ $DA_HOME/orchestration/launch-agent.sh \
 
 This splits the "coordination" window and adds the Orchestrator as a second pane below the Integrator.
 
-### After launching both (or confirming both are running):
+### If Founder Inbox is NOT running:
+
+Tell the user you're launching the Founder Inbox, then run:
+
+```bash
+$DA_HOME/orchestration/launch-agent.sh \
+  --session "$TMUX_SESSION" \
+  --name founder-inbox \
+  --role founder-inbox \
+  --config "$CONFIG_PATH" \
+  --framework-dir "$DA_HOME"
+```
+
+This creates the "founder-inbox" window as a separate tmux window. It runs a pure bash daemon (zero AI cost) that polls for items needing human attention and displays a live terminal dashboard.
+
+### After launching all three (or confirming all are running):
 
 Verify the coordination window has both panes:
 ```bash
@@ -196,7 +214,7 @@ If no dashboard exists yet, note that the Orchestrator will generate one on its 
 
 Tell the user:
 
-> Coordination window is open. The Integrator (top pane) is your primary agent — switch to that window and talk to it directly. The Orchestrator (bottom pane) handles coordination automatically.
+> Coordination window is open. The Integrator (top pane) is your primary agent — switch to that window and talk to it directly. The Orchestrator (bottom pane) handles coordination automatically. The Founder Inbox (separate window) monitors for items needing your attention — switch to the "founder-inbox" tmux window to see the live dashboard.
 >
 > This session's job is done. Switch to the coordination window to begin working.
 

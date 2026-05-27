@@ -51,11 +51,23 @@ run_gate() {
     high)
       log_warn "Gate FAILED (high risk, blocking + peer review required): ${gate_name} — ${reason}"
       write_gate_decision "$initiative_slug" "$gate_name" "$reason" "Requires peer review before proceeding"
+      if type send_to_founder &>/dev/null; then
+        send_to_founder "orchestrator" "gate-failure" \
+          "Gate failed: ${gate_name} for ${initiative_slug}" \
+          "$initiative_slug" "high" \
+          "Gate: ${gate_name}\nReason: ${reason}\nDecision file: ${DECISIONS_DIR}/gate-${gate_name}-${initiative_slug}.md\n\nPeer review required before proceeding."
+      fi
       return 1
       ;;
     critical)
       log_warn "Gate FAILED (critical, human approval required): ${gate_name} — ${reason}"
       write_gate_decision "$initiative_slug" "$gate_name" "$reason" "CRITICAL: Human approval required"
+      if type send_to_founder &>/dev/null; then
+        send_to_founder "orchestrator" "gate-failure" \
+          "CRITICAL gate failed: ${gate_name} for ${initiative_slug}" \
+          "$initiative_slug" "critical" \
+          "Gate: ${gate_name}\nReason: ${reason}\nDecision file: ${DECISIONS_DIR}/gate-${gate_name}-${initiative_slug}.md\n\nHuman approval required before proceeding."
+      fi
       return 1
       ;;
   esac
